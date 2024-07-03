@@ -1,13 +1,11 @@
 // src/components/AdminCreateArticle.tsx
-import { FunctionalComponent, h } from "preact";
+import { FunctionalComponent } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
 import { route } from "preact-router";
-import { useMockAuth } from "./models/userModel";
 import { addNewArticle, checkArticleExists, getAllCategories } from "../utils";
 import Breadcrumb from "./Breadcrumb";
 
 export const AdminCreateArticle: FunctionalComponent = () => {
-  const { isAuthenticated } = useMockAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [detailedDescription, setDetailedDescription] = useState("");
@@ -81,10 +79,6 @@ export const AdminCreateArticle: FunctionalComponent = () => {
       }
     }
   };
-
-  if (!isAuthenticated()) {
-    route("/admin");
-  }
 
   return (
 <>

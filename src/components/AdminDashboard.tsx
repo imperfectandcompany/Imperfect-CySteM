@@ -3,30 +3,15 @@ import { content } from "../content";
 import { FunctionalComponent } from "preact";
 import { route } from "preact-router";
 import Breadcrumb from "./Breadcrumb";
-import { useMockAuth } from "./models/userModel";
+import { isFeatureEnabled } from "../featureFlags";
 
 export const AdminDashboard: FunctionalComponent = ({}) => {
-  const [editMode, setEditMode] = useState<{
-    section: string;
-    id: number;
-  } | null>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [cardStates, setCardStates] = useState(content.sections);
-  const { isAuthenticated } = useMockAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      route("/admin"); // Redirect to dashboard if already logged in
-    }
-  }, []);
 
   const handleEdit = (id: number) => {
     // Correctly pass the article ID to the AdminEditArticle component
     route(`/admin/edit/article/${id}`);
-  };
-
-  const handleCloseEdit = () => {
-    setEditMode(null);
   };
 
   const toggleSection = (sectionKey: string) => {
@@ -55,11 +40,6 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
     });
   };
 
-  // Function to navigate to the category edit page
-  const handleEditCategory = (categoryId: number) => {
-    route(`/admin/edit/category/${categoryId}`);
-  };
-
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   // Close the popover when clicking outside
@@ -75,10 +55,13 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
   }, []);
 
   // Function to handle routing and prevent event propagation
-const handleRoute = (path: string, event: { stopPropagation: () => void; }) => {
-  event.stopPropagation(); // Prevent the click from closing the popover
-  route(path); // Replace with your routing logic
-};
+  const handleRoute = (
+    path: string,
+    event: { stopPropagation: () => void }
+  ) => {
+    event.stopPropagation(); // Prevent the click from closing the popover
+    route(path); // Replace with your routing logic
+  };
 
   return (
     <div>
@@ -88,45 +71,63 @@ const handleRoute = (path: string, event: { stopPropagation: () => void; }) => {
           Admin Dashboard
         </h1>
         <section className="mt-8">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">Content Management</h2>
-        <div className="relative popover-container space-x-2">
-          <button
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">
+              Content Management
+            </h2>
+            <div className="relative popover-container space-x-2">
+              <button
                 onClick={() => route("/admin/logs")}
                 className="px-4 py-2 bg-indigo-100 text-stone-800 hover:text-white font-bold rounded hover:bg-indigo-600 transition duration-300 ease-in-out"
               >
                 Visit Admin Logs
               </button>
-            <button
-              onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-              className="px-4 py-2 bg-indigo-50 text-stone-800 transition hover:text-white font-medium rounded-md inline-flex items-center"
-
-            >
-              Create New
-              <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-            {isPopoverOpen && (
-              <div className="absolute z-10 mt-2 w-48 right-0 bg-white shadow-lg rounded-md border border-gray-200">
-                <div className="py-1">
-                <button
-                  onClick={(e) => handleRoute('/admin/create/article', e)}
-                  className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+              <button
+                onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+                className="px-4 py-2 bg-indigo-50 text-stone-800 transition hover:text-white font-medium rounded-md inline-flex items-center"
+              >
+                Create New
+                <svg
+                  className="ml-2 w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  Article
-                </button>
-                <button
-                  onClick={(e) => handleRoute('/admin/create/category', e)}
-                  className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
-                >
-                  Category
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
+              </button>
+              {isPopoverOpen && (
+                <div className="absolute z-10 mt-2 w-48 right-0 bg-white shadow-lg rounded-md border border-gray-200">
+                  <div className="py-1">
+                    {isFeatureEnabled("CreateArticle") && (
+                      <button
+                        onClick={(e) => handleRoute("/admin/create/article", e)}
+                        className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      >
+                        Article
+                      </button>
+                    )}
+                    {isFeatureEnabled("CreateCategory") && (
+                      <button
+                        onClick={(e) =>
+                          handleRoute("/admin/create/category", e)
+                        }
+                        className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      >
+                        Category
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
           {Object.keys(cardStates).map((sectionKey) => {
             const section = cardStates[parseInt(sectionKey)];
@@ -166,12 +167,16 @@ const handleRoute = (path: string, event: { stopPropagation: () => void; }) => {
                   }`}
                 >
                   {/* Category-specific content here */}
-                  <button
-                    onClick={() => route(`/admin/edit/category/${sectionKey}`)}
-                    className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out"
-                  >
-                    Edit Category
-                  </button>
+                  {isFeatureEnabled("EditCategory") && (
+                    <button
+                      onClick={() =>
+                        route(`/admin/edit/category/${sectionKey}`)
+                      }
+                      className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out"
+                    >
+                      Edit Category
+                    </button>
+                  )}
                   <div className="border-b border-gray-200">
                     {section.cards.map((card, index) => {
                       const latestCardVersion = card.versions.slice(-1)[0];
@@ -192,30 +197,39 @@ const handleRoute = (path: string, event: { stopPropagation: () => void; }) => {
                               {latestCardVersion.description}
                             </p>
                             <div className="flex space-x-4 text-sm mt-1">
-                              <button
-                                onClick={() => toggleArchive(sectionKey, index)}
-                                className="text-indigo-500 hover:underline"
-                              >
-                                {card.archived ? "Unarchive" : "Archive"}
-                              </button>
-                              <button
-                                onClick={() =>
-                                  toggleStaffOnly(sectionKey, index)
-                                }
-                                className="text-indigo-500 hover:underline"
-                              >
-                                {card.staffOnly
-                                  ? "Make Public"
-                                  : "Make Staff Only"}
-                              </button>
+                              {isFeatureEnabled("ArchiveArticle") && (
+                                <button
+                                  onClick={() =>
+                                    toggleArchive(sectionKey, index)
+                                  }
+                                  className="text-indigo-500 hover:underline"
+                                >
+                                  {card.archived ? "Unarchive" : "Archive"}
+                                </button>
+                              )}
+                              {isFeatureEnabled("StaffOnly") && (
+                                <button
+                                  onClick={() =>
+                                    toggleStaffOnly(sectionKey, index)
+                                  }
+                                  className="text-indigo-500 hover:underline"
+                                >
+                                  {card.staffOnly
+                                    ? "Make Public"
+                                    : "Make Staff Only"}
+                                </button>
+                              )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleEdit(card.id)}
-                            className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
-                          >
-                            Edit
-                          </button>
+
+                          {isFeatureEnabled("StaffOnly") && (
+                            <button
+                              onClick={() => handleEdit(card.id)}
+                              className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -225,19 +239,6 @@ const handleRoute = (path: string, event: { stopPropagation: () => void; }) => {
             );
           })}
         </section>
-        {editMode && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center transition-opacity duration-300 ease-in-out">
-            <div className="bg-white p-5 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out scale-105">
-              <h2 className="text-xl mb-4">Edit {editMode.section}</h2>
-              <button
-                onClick={handleCloseEdit}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

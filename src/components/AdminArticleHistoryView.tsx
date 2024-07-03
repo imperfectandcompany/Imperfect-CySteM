@@ -1,11 +1,9 @@
-// src/components/AdminArticleHistoryView
-
 // src/components/AdminArticleHistoryView.tsx
 
 import { FunctionalComponent } from "preact";
 import { Card } from "../content";
 import { useEffect, useState } from "preact/hooks";
-import { useMockAuth } from "./models/userModel";
+import { useAuth } from "../contexts/AuthContext";
 
 interface AdminArticleHistoryViewProps {
   card: Card;
@@ -13,7 +11,7 @@ interface AdminArticleHistoryViewProps {
 
 export const AdminArticleHistoryView: FunctionalComponent<AdminArticleHistoryViewProps> = ({ card }) => {
   const [usernames, setUsernames] = useState<{ [key: number]: string }>({});
-  const { getUsernameById } = useMockAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchUsernames = async () => {
@@ -22,7 +20,7 @@ export const AdminArticleHistoryView: FunctionalComponent<AdminArticleHistoryVie
       ];
 
       const usernamePromises = uniqueUserIds.map(async (userId) => {
-        const username = await getUsernameById(userId);
+        const username = await user.username
         return { userId, username };
       });
 

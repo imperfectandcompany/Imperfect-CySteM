@@ -1,24 +1,16 @@
 import { useState, useEffect } from 'preact/hooks';
 import { content } from '../content';
 import { findCardById } from '../utils';
-import { useMockAuth } from './models/userModel';
-import { route } from 'preact-router';
 import { TextDiffViewer } from './TextDiffViewer';
 import Breadcrumb from './Breadcrumb';
+import { useAuth } from '../contexts/AuthContext';
 
 /** A component that displays a log of all changes across the articles with detailed interaction */
 export function AdminLogs() {
     const [logs, setLogs] = useState<{ title: any; versionId: any; description: any; detailedDescription: any; diffs: any; editDate: any; changes: any; editor: any; }[]>([]);
     const [filter, setFilter] = useState('');
     const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
-    const { getUsernameById, isAuthenticated } = useMockAuth();
-
-    useEffect(() => {
-      if (!isAuthenticated()) {
-        route("/admin"); // Redirect to login if not authenticated
-      }
-    }, [isAuthenticated]);
-  
+    const { getUsernameById } = useAuth();
 
     useEffect(() => {
         assembleLogs();

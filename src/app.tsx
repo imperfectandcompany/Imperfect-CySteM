@@ -13,7 +13,7 @@ import Home from "./components/Home";
 import { Admin } from "./components/Admin";
 import { Card } from "./content";
 import { ErrorBoundary } from "./components/ErrorBoundary"; // Add this line to import ErrorBoundary
-
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminLogs } from "./components/AdminLogs";
 import { AdminEditArticle } from "./components/AdminEditArticle";
@@ -101,6 +101,47 @@ export function reducer(state: AppState, action: Action): AppState {
       return state;
   }
 }
+
+interface AdminRouteProps {
+  component: React.ComponentType<any>;
+  [key: string]: any;
+  path: string;
+}
+
+const AdminRoute: React.FC<AdminRouteProps> = ({
+  component: Component,
+  path: path,
+}) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>; // Replace with your loading component or spinner
+  }
+
+  // Redirect to the admin dashboard if the user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && path === "/admin") {
+      <AdminDashboard path="/admin/dashboard" />;
+      // This will replace the current entry in the history stack
+      route("/admin/dashboard", true);
+    }
+  }, [isAuthenticated]); // Only re-run the effect if isAuthenticated changes
+
+  // Render dashboard if authenticated
+  if (isAuthenticated && path === "/admin") {
+    <AdminDashboard path="/admin/dashboard" />;
+    // This will replace the current entry in the history stack
+    route("/admin/dashboard", true);
+  }
+  
+  if(!isAuthenticated && path !== "/admin"){
+    <Admin path="/admin" />;
+    // This will replace the current entry in the history stack
+    route("/admin", true);
+  }
+  // Render the component
+  return <Component path={path} />;
+};
 
 export function App(): VNode {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -250,115 +291,138 @@ export function App(): VNode {
   }
 
   return (
-    <div className="flex flex-col min-h-screen mx-auto md:py-8 max-w-screen-xl">
-      {isFeatureEnabled("NotificationBanner") && (
-        <div class="relative my-8 md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 mx-4 sm:mx-6 md:mx-8 lg:mx-10 xl:mx-4">
-          <div className="bg-blue-900 text-white text-center p-4 rounded-lg">
-            <button
-              className="absolute top-3 right-3 text-indigo-300 hover:text-indigo-500"
-              onClick={(e) => {
-                const parentElement = e.currentTarget.parentElement;
-                if (parentElement) {
-                  const grandParentElement = parentElement.parentElement;
-                  if (grandParentElement) {
-                    grandParentElement.style.display = "none";
+    <AuthProvider>
+      <div className="flex flex-col min-h-screen mx-auto md:py-8 max-w-screen-xl">
+        {isFeatureEnabled("NotificationBanner") && (
+          <div class="relative my-8 md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 mx-4 sm:mx-6 md:mx-8 lg:mx-10 xl:mx-4">
+            <div className="bg-blue-900 text-white text-center p-4 rounded-lg">
+              <button
+                className="absolute top-3 right-3 text-indigo-300 hover:text-indigo-500"
+                onClick={(e) => {
+                  const parentElement = e.currentTarget.parentElement;
+                  if (parentElement) {
+                    const grandParentElement = parentElement.parentElement;
+                    if (grandParentElement) {
+                      grandParentElement.style.display = "none";
+                    }
                   }
-                }
-              }}
-            >
-              &#x2715;
-            </button>
-            <p className="text-xs sm:text-sm md:text-base">
-              <span className="font-medium text-indigo-50">Update:</span>{" "}
-              <span className="text-indigo-100">Fri, Jun 21, 2024</span>
-              <br />
-              This site is currently a work in progress. For immediate
-              assistance, please visit our discord at{" "}
-              <a
-                href="https://imperfectgamers.org/discord/"
-                class="text-indigo-300 hover:text-indigo-500"
+                }}
               >
-                https://imperfectgamers.org/discord/
-              </a>
-              .
-            </p>
-            <p class="text-right text-xs mt-1 sm:text-sm italic">
-              - Imperfect Gamers Team
-            </p>
+                &#x2715;
+              </button>
+              <p className="text-xs sm:text-sm md:text-base">
+                <span className="font-medium text-indigo-50">Update:</span>{" "}
+                <span className="text-indigo-100">Fri, Jun 21, 2024</span>
+                <br />
+                This site is currently a work in progress. For immediate
+                assistance, please visit our discord at{" "}
+                <a
+                  href="https://imperfectgamers.org/discord/"
+                  class="text-indigo-300 hover:text-indigo-500"
+                >
+                  https://imperfectgamers.org/discord/
+                </a>
+                .
+              </p>
+              <p class="text-right text-xs mt-1 sm:text-sm italic">
+                - Imperfect Gamers Team
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <Header
-        onSearchChange={handleSearchChange}
-        onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-        searchQuery={state.searchQuery}
-        onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-      />
-      <main className="flex-1 relative">
-        <ErrorBoundary>
-          <Router>
-            <Home
-              path="/"
-              onCardClick={handleCardClick}
-              searchQuery={state.searchQuery}
-              isSearching={state.isSearching}
-              currentItemCount={state.currentItemCount}
-              onBreadcrumbClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-            />
-            {isFeatureEnabled("HomeSearch") && (
+        <Header
+          onSearchChange={handleSearchChange}
+          onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
+          searchQuery={state.searchQuery}
+          onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
+        />
+        <main className="flex-1 relative">
+          <ErrorBoundary>
+            <Router>
               <Home
-                path="/search"
+                path="/"
                 onCardClick={handleCardClick}
                 searchQuery={state.searchQuery}
                 isSearching={state.isSearching}
                 currentItemCount={state.currentItemCount}
-                onBreadcrumbClick={() => dispatch({ type: "NO_RESULTS_FOUND" })}
-                onBreadcrumbClickHome={() => dispatch({ type: "CLEAR_SEARCH" })}
-              />
-            )}
-            <Article
-              path="/article/:title"
-              lastRoute={state.lastRoute || "/"}
-              onBreadcrumbClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-            />
-            {isFeatureEnabled("CategoriesPage") && (
-              <Categories
-                path="/categories"
                 onBreadcrumbClick={() => dispatch({ type: "CLEAR_SEARCH" })}
               />
-            )}
-            {isFeatureEnabled("SpecificCategoryPage") && (
-              <CategoryItems
-                path="/category/:categorySlug"
-                categorySlug=""
-                onCardClick={handleCardClick} // Pass handleCardClick to CategoryItems
+              {isFeatureEnabled("HomeSearch") && (
+                <Home
+                  path="/search"
+                  onCardClick={handleCardClick}
+                  searchQuery={state.searchQuery}
+                  isSearching={state.isSearching}
+                  currentItemCount={state.currentItemCount}
+                  onBreadcrumbClick={() =>
+                    dispatch({ type: "NO_RESULTS_FOUND" })
+                  }
+                  onBreadcrumbClickHome={() =>
+                    dispatch({ type: "CLEAR_SEARCH" })
+                  }
+                />
+              )}
+              <Article
+                path="/article/:title"
+                lastRoute={state.lastRoute || "/"}
+                onBreadcrumbClick={() => dispatch({ type: "CLEAR_SEARCH" })}
               />
-            )}
-            {isFeatureEnabled("AdminDashboard") && (
-              <AdminDashboard path="/admin/dashboard" />
-            )}
-            {isFeatureEnabled("ViewAdminLogs") && (
-              <AdminLogs path="/admin/logs" />
-            )}
-            {isFeatureEnabled("CreateArticle") && (
-              <AdminCreateArticle path="/admin/create/article" />
-            )}
-            {isFeatureEnabled("CreateCategory") && (
-              <AdminCreateCategory path="/admin/create/category" />
-            )}
-            {isFeatureEnabled("AdminDashboard") && <Admin path="/admin" />}
-            {isFeatureEnabled("EditArticle") && (
-              <AdminEditArticle path="/admin/edit/article/:articleId" />
-            )}
-            {isFeatureEnabled("EditCategory") && (
-              <AdminEditCategory path="/admin/edit/category/:id" />
-            )}
-            <NotFound default />
-          </Router>
-        </ErrorBoundary>
-      </main>
-      <Footer />
-    </div>
+              {isFeatureEnabled("CategoriesPage") && (
+                <Categories
+                  path="/categories"
+                  onBreadcrumbClick={() => dispatch({ type: "CLEAR_SEARCH" })}
+                />
+              )}
+              {isFeatureEnabled("SpecificCategoryPage") && (
+                <CategoryItems
+                  path="/category/:categorySlug"
+                  categorySlug=""
+                  onCardClick={handleCardClick} // Pass handleCardClick to CategoryItems
+                />
+              )}
+              {isFeatureEnabled("AdminDashboard") && (
+                <AdminRoute
+                  component={AdminDashboard}
+                  path="/admin/dashboard"
+                />
+              )}
+              {isFeatureEnabled("AdminDashboard") && (
+                <AdminRoute component={Admin} path="/admin" />
+              )}
+              {isFeatureEnabled("ViewAdminLogs") && (
+                <AdminRoute component={AdminLogs} path="/admin/logs" />
+              )}
+              {isFeatureEnabled("CreateArticle") && (
+                <AdminRoute
+                  component={AdminCreateArticle}
+                  path="/admin/create/article"
+                />
+              )}
+              {isFeatureEnabled("CreateCategory") && (
+                <AdminRoute
+                  component={AdminCreateCategory}
+                  path="/admin/create/category"
+                />
+              )}
+              {isFeatureEnabled("EditArticle") && (
+                <AdminRoute
+                  component={AdminEditArticle}
+                  path="/admin/edit/article/:articleId"
+                />
+              )}
+              {isFeatureEnabled("EditCategory") && (
+                <AdminRoute
+                  component={AdminEditCategory}
+                  path="/admin/edit/category/:id"
+                />
+              )}
+              <NotFound default />
+            </Router>
+          </ErrorBoundary>
+        </main>
+        <Footer />
+      </div>
+    </AuthProvider>
   );
 }

@@ -1,28 +1,21 @@
 // src/components/Admin.tsx
 
-import { FunctionalComponent, h } from 'preact';
+import { FunctionalComponent } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
-import { route } from 'preact-router';
-import { useMockAuth } from './models/userModel';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Admin: FunctionalComponent = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isAuthenticated } = useMockAuth();
+  const { login } = useAuth(); // Use useAuth instead of useMockAuth
 
-  useEffect(() => {
-    if (isAuthenticated()) {
-      route('/admin/dashboard'); // Redirect to dashboard if already logged in
-    }
-  }, []);
-
-  const handleLogin = (event: Event) => {
+  const handleLogin = async (event: Event) => {
     event.preventDefault();
-    if (login(email, password)) {
-      console.log('Login successful');
-      route('/admin/dashboard');
-    } else {
-      console.log('Login failed');
+    try {
+      await login(email, password); // login is now an async function
+    } catch (error) {
+      console.error('Login failed', error);
+      // Handle login failure, e.g., show an error message to the user
     }
   };
 

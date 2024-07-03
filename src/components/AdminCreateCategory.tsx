@@ -1,8 +1,7 @@
-import { FunctionalComponent, h } from "preact";
+import { FunctionalComponent } from "preact";
 import { useState, useRef } from "preact/hooks";
 import { route } from "preact-router";
 import { checkCategoryExists, addNewCategory } from "../utils";
-import { useMockAuth } from "./models/userModel";
 import Breadcrumb from "./Breadcrumb";
 
 export const AdminCreateCategory: FunctionalComponent = () => {
@@ -10,7 +9,6 @@ export const AdminCreateCategory: FunctionalComponent = () => {
   const [loading, setLoading] = useState(false);
   const [categoryExists, setCategoryExists] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const { isAuthenticated } = useMockAuth();
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -21,13 +19,6 @@ export const AdminCreateCategory: FunctionalComponent = () => {
       setCategoryExists(await checkCategoryExists(newCategory));
     }, 500);
   };
-
-
-
-  if (!isAuthenticated()) {
-    route("/admin");
-  }
-
 
   const handleCreate = async (event: Event) => {
     event.preventDefault();

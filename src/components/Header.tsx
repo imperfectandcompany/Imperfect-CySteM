@@ -33,7 +33,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
   }, []);
 
   function onAdminClick() {
-    console.log("");
+
   }
 
   return (

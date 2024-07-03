@@ -7,10 +7,10 @@ import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
 import { ChangeEvent } from "preact/compat";
 import { AdminError } from "./AdminError";
-import { useMockAuth } from "./models/userModel";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
+import { useAuth } from "../contexts/AuthContext";
 
 interface MatchParams {
   articleId: number;
@@ -22,7 +22,7 @@ export const AdminEditArticle: FunctionalComponent<{
   const { articleId } = matches;
   const [article, setArticle] = useState<Card | null>(null);
   const [loadingError, setLoadingError] = useState<string>("");
-  const { isAuthenticated, isStaff } = useMockAuth();
+  // const { isAuthenticated, isStaff } = useMockAuth();
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -35,7 +35,8 @@ export const AdminEditArticle: FunctionalComponent<{
         if (!fetchedArticle) {
           throw new Error("Article not found");
         }
-        if (!isStaff()) throw new Error("Unauthorized access");
+        // REINTRODUCE ONCE API IS UPDATED WITH PLANNED BITWISE PERMUTIL IMPLEMENTATION
+        // if (!isStaff()) throw new Error("Unauthorized access");
         setArticle(fetchedArticle);
       } catch (error: any) {
         console.error("Failed to fetch article:", error);
@@ -44,10 +45,11 @@ export const AdminEditArticle: FunctionalComponent<{
     };
 
     fetchArticle();
-  }, [articleId, isAuthenticated, isStaff]);
+  }, [articleId]);
+  // }, [articleId, isAuthenticated, isStaff]);
 
-  if (!isAuthenticated())
-    return <AdminError message="Please log in to edit articles." />;
+  // if (!isAuthenticated())
+  //   return <AdminError message="Please log in to edit articles." />;
 
   if (loadingError) {
     return <AdminError message={loadingError} />;
@@ -114,19 +116,10 @@ export const AdminEditArticle: FunctionalComponent<{
   const contentElements = parseContent(articleText);
   const renderedContent = renderContent(contentElements);
 
-  // Mock function to fetch article history
-  interface ArticleHistory {
-    editor: string;
-    role: string; // New field for role
-    timestamp: string;
-    content: string;
-  }
-
-  // const { user } = useMockAuth();
   const [history, setHistory] = useState(article.versions);
 
   const saveEdit = (newContent: string) => {
-    const user = useMockAuth().getUser(); // Get the current user details
+    const user = useAuth().user; // Get the current user details
     if (!user) return null; // Add null check for user
 
     const newVersion = {
