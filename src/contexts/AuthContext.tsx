@@ -14,11 +14,12 @@ interface AuthContextType {
   logout: () => void;
   getUsernameById: (userId: number) => Promise<string>;
   isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void; // Specify the type for setIsAuthenticated
   isLoading: boolean; // Add this line
+  setUser: (user: UserType | null) => void; // Specify the type for setUser
 }
 
 export const AuthContext = createContext<AuthContextType>(null!);
-// Define a type for the user state
 interface UserType {
   userId: number;
   userToken: string;
@@ -138,6 +139,8 @@ export const AuthProvider = ({ children }: { children: any }) => {
         isAuthenticated,
         getUsernameById,
         isLoading,
+        setIsAuthenticated,
+        setUser
       }}
     >
       {children}

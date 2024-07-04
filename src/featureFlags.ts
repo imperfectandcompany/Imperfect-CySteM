@@ -40,7 +40,7 @@
     // UserAuthentication: false, // Set this to true or false to enable/disable user authentication and authorization
     // ToastNotifications: false, // Set this to true or false to enable/disable toast notifications
     // TextDiffViewer: false, // Set this to true or false to enable/disable text diff viewer
-    HomeSearch: true, // Set this to true or false to enable/disable home search
+    HomeSearch: false, // Set this to true or false to enable/disable home search
     StaffOnly: true, // Set this to true or false to enable/disable the staff only feature
     ArchiveArticle: true, // Set this to true or false to enable/disable archiving articles
     CreateCategory: true, // Set this to true or false to enable/disable category creation

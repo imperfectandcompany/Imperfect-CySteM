@@ -1,10 +1,10 @@
 import { FunctionalComponent } from "preact";
 import { renderContent } from "../contentRenderer";
 import { parseContent } from "../contentParser";
-import { Card } from "../content";
+import { Article } from "../contexts/ContentContext";
 
 interface DetailViewProps {
-  item: Card;
+  item: Article;
   onBack: () => void;
 }
 
@@ -12,8 +12,7 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
   item,
   onBack,
 }) => {
-  const latestVersion = item.versions.slice(-1)[0]; // Get the latest version of the article
-  const contentElements = parseContent(latestVersion.detailedDescription);
+  const contentElements = parseContent(item.DetailedDescription);
 
   return (
     <>
@@ -78,7 +77,7 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
             Back
           </button>
           <h1 className="mt-8 text-4xl font-normal tracking-tighter text-black/75 sm:text-5xl">
-          {latestVersion.title}
+          {item.Title}
           </h1>
           <div className="detail-description mt-4">
             {renderContent(contentElements)}
