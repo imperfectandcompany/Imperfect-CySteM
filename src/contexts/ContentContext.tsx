@@ -41,6 +41,7 @@ interface ContentContextType {
   fetchArticle: (articleId: string) => Promise<any>; // Adjust the return type as needed
   fetchArticleBySlugDirectly: (articleSlug: string) => Promise<any>;
   currentArticle: Article | IArticle | null;
+  toggleArticleArchive: (articleId: number) => Promise<void>; // Add this line
   toggleArticleStaffOnly: (articleId: number) => Promise<void>; // Add this line
   setArticles: (articles: Article[] | IArticle[]) => void;
 }
@@ -148,16 +149,20 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
   // }, [selectedCategoryId]);
 
 
-
-
-
-  const toggleArticleArchive = async (articleId: string) => {
+  const toggleArticleArchive = async (articleId: number) => {
     setLoading(true);
     try {
       const updatedArticle = await toggleArticleArchiveStatus(articleId);
-      // Update the article in the cache and articles state
-      setArticleCache(prev => ({ ...prev, [articleId]: updatedArticle }));
-      setArticles(prev => prev.map(article => article.ArticleID === updatedArticle.ArticleID ? updatedArticle : article));
+      // Update the article in the cache
+      setArticleCache(prev => {
+        const newCache = { ...prev };
+        newCache[articleId] = updatedArticle;
+        return newCache;
+      });
+      // Update the articles array
+      setArticles(prev => prev.map(article => {
+        return article.ArticleID === updatedArticle.ArticleID ? updatedArticle : article;
+      }));
       setLoading(false);
     } catch (e) {
       if (e instanceof Error) {
@@ -168,7 +173,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
       setLoading(false);
     }
   };
-
 
   const toggleArticleStaffOnly = async (articleId: number) => {
     setLoading(true);
@@ -292,6 +296,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
         fetchArticle,
         fetchArticleBySlugDirectly, // Add this to the context
         currentArticle, // Add this to the context     
+        toggleArticleArchive,
         toggleArticleStaffOnly,
         setArticles
       }}

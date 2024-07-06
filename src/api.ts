@@ -29,15 +29,23 @@ export const fetchArticleBySlug = async (slug: string) => {
     return response.json();
   };
 
-export const toggleArticleArchiveStatus = async (articleId: string) => {
-  const response = await fetch(`${API_BASE_URL}/article/toggleArchive/${articleId}`, {
-    method: 'POST', // or 'PUT' if your API requires
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to toggle archive status for article ${articleId}`);
-  }
-  return response.json();
-};
+  export const toggleArticleArchiveStatus = async (articleId: number) => {
+
+    const token = getToken();
+        const url = new URL(`${API_BASE_URL}/article/toggleArchive/${articleId}`);
+  
+    const response = await fetch(url.toString(), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${token}`,
+    },    
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to toggle staff only status for article ${articleId}`);
+    }
+    return response.json();
+  };
 
 export const toggleArticleStaffOnlyStatus = async (articleId: number) => {
 

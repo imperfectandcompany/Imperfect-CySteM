@@ -14,6 +14,7 @@ export const AdminDashboard: FunctionalComponent = () => {
     selectCategory,
     toggleArticleStaffOnly,
     setArticles,
+    toggleArticleArchive
   } = useContext(ContentContext);
 
   const handleToggleSection = (categoryId: number) => {
@@ -70,6 +71,30 @@ export const AdminDashboard: FunctionalComponent = () => {
         )
       );
       console.error("Failed to toggle staff only status:", error);
+    }
+  };
+
+
+  const handleToggleArchive = async (articleId: number) => {
+    setArticles((prevArticles: Article[]) =>
+      prevArticles.map((article) =>
+        article.ArticleID === articleId
+          ? { ...article, Archived: article.Archived ? 0 : 1 }
+          : article
+      )
+    );
+
+    try {
+      await toggleArticleArchive(articleId);
+    } catch (error) {
+      setArticles((prevArticles: Article[]) =>
+        prevArticles.map((article) =>
+          article.ArticleID === articleId
+            ? { ...article, StaffOnly: article.StaffOnly ? 0 : 1 }
+            : article
+        )
+      );
+      console.error("Failed to toggle archive:", error);
     }
   };
 
@@ -197,7 +222,14 @@ export const AdminDashboard: FunctionalComponent = () => {
                         key={article.ArticleID}
                         className="border-b border-gray-200"
                       >
-                        <div className="flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ">
+                        <div
+                          className={`flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ${
+                            article.Archived ? "bg-stone-50" : ""
+                          } ${
+                            article.StaffOnly ? "border-l-4 border-indigo-600" : ""
+                          }`}
+                        >                          
+
                           <div>
                             <h4 className="font-medium text-lg">
                               {article.Title}
@@ -205,7 +237,11 @@ export const AdminDashboard: FunctionalComponent = () => {
                             <p className="mt-1">{article.Description}</p>
                             <div className="flex space-x-4 text-sm mt-1">
                               {isFeatureEnabled("ArchiveArticle") && (
-                                <button className="text-indigo-500 hover:underline">
+                                <button
+                                onClick={() =>
+                                  handleToggleArchive(article.ArticleID)
+                                }
+                                className="text-indigo-500 hover:underline">
                                   {article.Archived ? "Unarchive" : "Archive"}
                                 </button>
                               )}
