@@ -56,7 +56,7 @@
     CategoriesPage: true, // Set this to true or false to enable/disable the categories page
     SpecificCategoryPage: true, // Set this to true or false to enable/disable the specific category page
     BackButtonArticleView: true, // Set this to true or false to enable/disable the back button when viewing an article
-    Breadcrumbs: true, // Set this to true or false to enable/disable breadcrumbs
+    Breadcrumbs: false, // Set this to true or false to enable/disable breadcrumbs
     AdminDashboard: true, // Set this to true or false to enable/disable admin login
     PreviewArticle: false, // Set this to true or false to enable/disable previewing articles
     NotificationBanner: false // Feature flag for the little notification / banner at the top of the page

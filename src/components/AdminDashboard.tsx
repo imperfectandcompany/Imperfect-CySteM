@@ -1,48 +1,36 @@
-import { useEffect, useState } from "preact/hooks";
-import { content } from "../content";
+import { useContext, useEffect, useState } from "preact/hooks";
 import { FunctionalComponent } from "preact";
 import { route } from "preact-router";
 import Breadcrumb from "./Breadcrumb";
 import { isFeatureEnabled } from "../featureFlags";
+import { Article, Category, ContentContext } from "../contexts/ContentContext";
 
-export const AdminDashboard: FunctionalComponent = ({}) => {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [cardStates, setCardStates] = useState(content.sections);
+export const AdminDashboard: FunctionalComponent = () => {
+  const [activeSection, setActiveSection] = useState<number | null>(null);
 
-  const handleEdit = (id: number) => {
-    // Correctly pass the article ID to the AdminEditArticle component
-    route(`/admin/edit/article/${id}`);
-  };
+  const {
+    articles,
+    categories,
+    selectCategory,
+    toggleArticleStaffOnly,
+    setArticles,
+  } = useContext(ContentContext);
 
-  const toggleSection = (sectionKey: string) => {
+  const handleToggleSection = (categoryId: number) => {
     setActiveSection((prevSection) =>
-      prevSection === sectionKey ? null : sectionKey
+      prevSection === categoryId ? null : categoryId
     );
+    if (activeSection !== categoryId) {
+      selectCategory(categoryId);
+    }
   };
 
-  const toggleArchive = (sectionKey: string, cardIndex: number) => {
-    setCardStates((prevStates) => {
-      const newState = { ...prevStates };
-      const section = newState[parseInt(sectionKey)];
-      const card = section.cards[cardIndex];
-      card.archived = !card.archived;
-      return newState;
-    });
-  };
-
-  const toggleStaffOnly = (sectionKey: string, cardIndex: number) => {
-    setCardStates((prevStates) => {
-      const newState = { ...prevStates };
-      const section = newState[parseInt(sectionKey)];
-      const card = section.cards[cardIndex];
-      card.staffOnly = !card.staffOnly;
-      return newState;
-    });
+  const handleEdit = (articleId: number) => {
+    route(`/admin/edit/article/${articleId}`);
   };
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // Close the popover when clicking outside
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (!(event.target as HTMLElement).closest(".popover-container")) {
@@ -54,13 +42,35 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Function to handle routing and prevent event propagation
   const handleRoute = (
     path: string,
     event: { stopPropagation: () => void }
   ) => {
-    event.stopPropagation(); // Prevent the click from closing the popover
-    route(path); // Replace with your routing logic
+    event.stopPropagation();
+    route(path);
+  };
+
+  const handleToggleStaffOnly = async (articleId: number) => {
+    setArticles((prevArticles: Article[]) =>
+      prevArticles.map((article) =>
+        article.ArticleID === articleId
+          ? { ...article, StaffOnly: article.StaffOnly ? 0 : 1 }
+          : article
+      )
+    );
+
+    try {
+      await toggleArticleStaffOnly(articleId);
+    } catch (error) {
+      setArticles((prevArticles: Article[]) =>
+        prevArticles.map((article) =>
+          article.ArticleID === articleId
+            ? { ...article, StaffOnly: article.StaffOnly ? 0 : 1 }
+            : article
+        )
+      );
+      console.error("Failed to toggle staff only status:", error);
+    }
   };
 
   return (
@@ -129,17 +139,20 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
             </div>
           </div>
 
-          {Object.keys(cardStates).map((sectionKey) => {
-            const section = cardStates[parseInt(sectionKey)];
-            const latestSectionVersion = section.versions.slice(-1)[0];
-            const isActive = activeSection === sectionKey;
+          {categories.map((category: Category) => {
+            const isActive = activeSection === category.CategoryID;
+            const categoryArticles = articles.filter(
+              (article: Article) => article.CategoryID === category.CategoryID
+            );
+            const articleCount = category.ArticleCount;
+
             return (
-              <div key={sectionKey} className="mt-5">
+              <div key={category.CategoryID} className="mt-5">
                 <button
-                  onClick={() => toggleSection(sectionKey)}
+                  onClick={() => handleToggleSection(category.CategoryID)}
                   className="flex hover:opacity-80 justify-between items-center w-full text-left text-lg font-semibold text-stone-900 py-2 transition duration-300 ease-in-out transform hover:scale-100 focus:outline-none"
                 >
-                  {latestSectionVersion.title} ({section.cards.length} Articles)
+                  {category.Title} ({articleCount} Articles)
                   <span
                     className={`transform transition-transform duration-300 text-indigo-500 ${
                       isActive ? "rotate-180" : "rotate-0"
@@ -166,55 +179,44 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
                     isActive ? "max-h-screen" : "max-h-0"
                   }`}
                 >
-                  {/* Category-specific content here */}
-                  {isFeatureEnabled("EditCategory") && (
-                    <button
-                      onClick={() =>
-                        route(`/admin/edit/category/${sectionKey}`)
-                      }
-                      className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out"
-                    >
-                      Edit Category
-                    </button>
-                  )}
-                  <div className="border-b border-gray-200">
-                    {section.cards.map((card, index) => {
-                      const latestCardVersion = card.versions.slice(-1)[0];
-                      return (
-                        <div
-                          key={index}
-                          className={`flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ${
-                            card.archived ? "bg-stone-50" : ""
-                          } ${
-                            card.staffOnly ? "border-l-4 border-indigo-600" : ""
-                          }`}
+                  {categoryArticles.map((article: Article) => (
+                    <div key={article.ArticleID}>
+                      {isFeatureEnabled("EditCategory") && (
+                        <button
+                          onClick={() =>
+                            route(
+                              `/admin/edit/category/${category.CategoryID}`
+                            )
+                          }
+                          className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out"
                         >
-                          <div className="m2">
+                          Edit Category
+                        </button>
+                      )}
+                      <div
+                        key={article.ArticleID}
+                        className="border-b border-gray-200"
+                      >
+                        <div className="flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ">
+                          <div>
                             <h4 className="font-medium text-lg">
-                              {latestCardVersion.title}
+                              {article.Title}
                             </h4>
-                            <p className="mt-1">
-                              {latestCardVersion.description}
-                            </p>
+                            <p className="mt-1">{article.Description}</p>
                             <div className="flex space-x-4 text-sm mt-1">
                               {isFeatureEnabled("ArchiveArticle") && (
-                                <button
-                                  onClick={() =>
-                                    toggleArchive(sectionKey, index)
-                                  }
-                                  className="text-indigo-500 hover:underline"
-                                >
-                                  {card.archived ? "Unarchive" : "Archive"}
+                                <button className="text-indigo-500 hover:underline">
+                                  {article.Archived ? "Unarchive" : "Archive"}
                                 </button>
                               )}
                               {isFeatureEnabled("StaffOnly") && (
                                 <button
                                   onClick={() =>
-                                    toggleStaffOnly(sectionKey, index)
+                                    handleToggleStaffOnly(article.ArticleID)
                                   }
                                   className="text-indigo-500 hover:underline"
                                 >
-                                  {card.staffOnly
+                                  {article.StaffOnly
                                     ? "Make Public"
                                     : "Make Staff Only"}
                                 </button>
@@ -224,16 +226,16 @@ export const AdminDashboard: FunctionalComponent = ({}) => {
 
                           {isFeatureEnabled("StaffOnly") && (
                             <button
-                              onClick={() => handleEdit(card.id)}
+                              onClick={() => handleEdit(article.ArticleID)}
                               className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
                             >
                               Edit
                             </button>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

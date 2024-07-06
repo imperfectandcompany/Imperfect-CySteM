@@ -11,7 +11,6 @@ import { Header } from "./components/Header";
 import { NotFound } from "./components/NotFound";
 import Home from "./components/Home";
 import { Admin } from "./components/Admin";
-import { Card } from "./content";
 import { ErrorBoundary } from "./components/ErrorBoundary"; // Add this line to import ErrorBoundary
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AdminDashboard } from "./components/AdminDashboard";
@@ -22,12 +21,12 @@ import { AdminCreateCategory } from "./components/AdminCreateCategory";
 import AdminEditCategory from "./components/AdminEditCategory";
 import { isFeatureEnabled } from "./featureFlags";
 import { getToken, removeUserToken } from "./utils";
-import { ContentProvider } from "./contexts/ContentContext";
+import { ContentProvider, IArticle } from "./contexts/ContentContext";
 
 export interface AppState {
   searchQuery: string | null;
   isSearching: boolean;
-  selectedItem: Card | null;
+  selectedItem: IArticle | null;
   currentItemCount: number;
   lastRoute: string | null;
 }
@@ -35,9 +34,12 @@ export interface AppState {
 export interface Action {
   type: string;
   value?: string;
-  item?: Card | null;
+  item?: IArticle | null;
 }
 
+/**
+ * This is the initial state of the application.
+ */
 export const initialState: AppState = {
   searchQuery: "",
   isSearching: false,
@@ -49,11 +51,11 @@ export const initialState: AppState = {
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "UPDATE_SEARCH":
-      alert('waerw');
       if (isFeatureEnabled("HomeSearch")) {
         return { ...state, searchQuery: action.value ?? "", isSearching: true };
+      } else {
+        return state;
       }
-      break; // Added this line to prevent fallthrough
     case "NO_RESULTS_FOUND":
       if (isFeatureEnabled("HomeSearch")) {
         return {
@@ -61,8 +63,9 @@ export function reducer(state: AppState, action: Action): AppState {
           searchQuery: action.value ?? null,
           isSearching: false,
         };
+      } else {
+        return state;
       }
-      break; // Added this line to prevent fallthrough
     case "CLEAR_SEARCH":
       if (isFeatureEnabled("HomeSearch")) {
         return {
@@ -71,8 +74,9 @@ export function reducer(state: AppState, action: Action): AppState {
           isSearching: false,
           selectedItem: null,
         };
+      } else {
+        return state;
       }
-      break;
     case "UPDATE_LAST_ROUTE":
       return { ...state, lastRoute: action.value ?? null };
     case "SELECT_ITEM":
@@ -176,13 +180,17 @@ export function App(): VNode {
     }
   };
 
+
+  {isFeatureEnabled("HomeSearch") && (
   useEffect(() => {
     // Call handleRouteChange on mount to handle direct URL visits
     handleRouteChange();
 
     window.addEventListener("popstate", handleRouteChange);
     return () => window.removeEventListener("popstate", handleRouteChange);
-  }, [state.searchQuery]);
+  }, [state.searchQuery])
+)};
+
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -230,6 +238,8 @@ export function App(): VNode {
     return () => window.removeEventListener("popstate", handleRouteChange);
   }, []); // Ensure this effect runs only once on mount and unmount
 
+
+  {isFeatureEnabled("HomeSearch") && (
   useEffect(() => {
     if (searchTimeout) {
       window.clearTimeout(searchTimeout);
@@ -254,9 +264,10 @@ export function App(): VNode {
     } else {
       dispatch({ type: "STOP_SEARCH" });
     }
-  }, [state.searchQuery, state.selectedItem, state.isSearching]);
+  }, [state.searchQuery, state.selectedItem, state.isSearching])
+)};
 
-  function handleCardClick(item?: Card) {
+  function handleCardClick(item?: IArticle) {
     if (item) {
       dispatch({
         type: "UPDATE_LAST_ROUTE",
@@ -342,7 +353,7 @@ export function App(): VNode {
           <Header
             onSearchChange={handleSearchChange}
             onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-            searchQuery={state.searchQuery}
+            searchQuery={isFeatureEnabled("HomeSearch") ? state.searchQuery : null}
             onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
           />
           <main className="flex-1 relative">

@@ -2,9 +2,10 @@
 
 import { FunctionalComponent } from "preact";
 import { Link } from "preact-router";
-import { Card, content } from "../content";
-import { findCardById, findCardBySlug, generateSlug } from "../utils";
+import { findCardById, generateSlug } from "../utils";
 import { isFeatureEnabled } from "../featureFlags";
+import { useContext } from "preact/compat";
+import { Article, ContentContext } from "../contexts/ContentContext";
 
 interface BreadcrumbProps {
   path: string;
@@ -25,26 +26,28 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
   onBreadcrumbClick,
   onBreadcrumbClickHome,
 }) => {
+  
   let category = null;
-  let article: Card | null = null;
+  let article: Article | undefined = undefined;
+  const contentContext = useContext(ContentContext);
 
   if (categorySlug) {
-    category = Object.values(content.sections).find(
-      (section) =>
-        generateSlug(section.versions.slice(-1)[0].title) === categorySlug
-    );
+          // Find the category ID using the slug
+   category = contentContext?.categories.find(
+    (c: { Slug: string }) => generateSlug(c.Slug) === categorySlug
+  );
   }
 
-  if (articleTitle) {
-    article = findCardBySlug(articleTitle);
-    if (article && !category) {
-      category = Object.values(content.sections).find((section) =>
-        section.cards.includes(article as Card)
-      );
-      if (category) {
-        categorySlug = generateSlug(category.versions.slice(-1)[0].title);
-      }
-    }
+  if (articleId) {
+    // Find the article using the ID from the context
+    article = contentContext?.articles.find(
+      (a) => a.ArticleID === articleId
+    );
+  } else if (articleTitle) {
+    // Find the article using the title (slug) from the context
+    article = contentContext?.articles.find(
+      (a) => generateSlug(a.Title) === articleTitle
+    );
   }
 
   const breadcrumbItems = [];
@@ -157,31 +160,31 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
         }
       }
       if (isFeatureEnabled('EditArticle')) {
-      if (path.includes("/edit/article")) {
-        const card = articleId ? findCardById(articleId) : null;
-        breadcrumbItems.push(
-          <li key="edit" className="inline">
-            <span className="mx-2 text-gray-500">/</span>
-            <Link
-              href={`/admin/edit/article/${articleId}`}
-              className="text-indigo-600 hover:text-indigo-800"
-              onClick={onBreadcrumbClick}
-            >
-              {card?.versions.slice(-1)[0].title}
-            </Link>
-          </li>
-        );
-  
-        if (article && card) {
-          breadcrumbItems.push(
-            <li key={`article-${articleId}`} className="inline font-bold">
-              <span className="mx-2 text-gray-500">/</span>
-              {article.versions.slice(-1)[0].title}
-            </li>
-          );
+        if (path.includes("/edit/article") && articleId) {
+          // Since you already have the article from the context, you don't need to find it again
+          if (article) {
+            breadcrumbItems.push(
+              <li key="edit" className="inline">
+                <span className="mx-2 text-gray-500">/</span>
+                <Link
+                  href={`/admin/edit/article/${articleId}`}
+                  className="text-indigo-600 hover:text-indigo-800"
+                  onClick={onBreadcrumbClick}
+                >
+                  Edit Article
+                </Link>
+              </li>
+            );
+      
+            breadcrumbItems.push(
+              <li key={`article-${articleId}`} className="inline font-bold">
+                <span className="mx-2 text-gray-500">/</span>
+                {article.Title}
+              </li>
+            );
+          }
         }
       }
-    }
     }
   }
 
@@ -202,27 +205,27 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
   }
   }
   if (isFeatureEnabled('SpecificCategoryPage')) {
-  if (category) {
-    breadcrumbItems.push(
-      <li key={`category-${categorySlug}`} className="inline">
-        <span className="mx-2 text-gray-500">/</span>
-        <Link
-          href={`/category/${categorySlug}`}
-          className="text-indigo-600 hover:text-indigo-800"
-          onClick={onBreadcrumbClick}
-        >
-          {category.versions.slice(-1)[0].title}
-        </Link>
-      </li>
-    );
+    if (category) {
+      breadcrumbItems.push(
+        <li key={`category-${categorySlug}`} className="inline">
+          <span className="mx-2 text-gray-500">/</span>
+          <Link
+            href={`/category/${categorySlug}`}
+            className="text-indigo-600 hover:text-indigo-800"
+            onClick={onBreadcrumbClick}
+          >
+            {category.Title} {/* Use Title directly */}
+          </Link>
+        </li>
+      );
+    }
   }
-}
-
+  
   if (article) {
     breadcrumbItems.push(
       <li key={`article-${articleTitle}`} className="inline font-bold">
         <span className="mx-2 text-gray-500">/</span>
-        {article.versions.slice(-1)[0].title}
+        {article.Title} {/* Use Title directly */}
       </li>
     );
   }

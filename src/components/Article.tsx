@@ -1,6 +1,6 @@
 // src/components/Article.tsx
 
-import { useContext } from 'preact/hooks';
+import { useContext, useEffect } from 'preact/hooks';
 import { ContentContext } from '../contexts/ContentContext';
 import { generateSlug } from '../utils';
 import { AccessRestricted } from './AccessRestricted';
@@ -27,15 +27,31 @@ const Article = ({ title, path, onBreadcrumbClick }: ArticleProps) => {
   const content = useContext(ContentContext);
   
 
-      // Now find the article by slug within the selected category's articles
-      const article = title ? content?.articles.find(a => a.Slug === generateSlug(title)) : null;
+  // // Find the article by slug within the selected category's articles
+  // const article = title ? content?.articles.find(a => a.Slug === title) : null;
 
 
-      if (article === null) {
-        return <AccessRestricted message="Article not available" />;
+  useEffect(() => {
+    if (title) {
+      content?.fetchArticleBySlugDirectly(title); // Fetch the article by slug when the component mounts
+    }
+  }, [title]);
+
+  const article = content?.currentArticle;
+
+console.log(article); 
+  
+  const category = content?.categories.find(c => c.CategoryID === article?.CategoryID);
+
+      if (article === (null || undefined)) {
+        if(undefined) {
+
+        } else{
+          return <AccessRestricted message="Article not available" />;
+
+        }
+
       }
-
-      const category = content?.categories.find(c => c.CategoryID === article?.CategoryID);
 
 
   function handleBackAction() {
