@@ -114,7 +114,7 @@ interface AdminRouteProps {
 
 const AdminRoute: React.FC<AdminRouteProps> = ({
   component: Component,
-  path: path,
+  ...rest // Capture the rest of the props
 }) => {
   const { isAuthenticated, isLoading, setIsAuthenticated, setUser } = useAuth();
 
@@ -130,7 +130,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
       setIsAuthenticated(false);
     }
 
-    if (isAuthenticated && path === "/admin") {
+    if (isAuthenticated && window.location.pathname === "/admin") {
       <AdminDashboard path="/admin/dashboard" />;
       // This will replace the current entry in the history stack
       route("/admin/dashboard", true);
@@ -138,20 +138,20 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   }, [isAuthenticated]); // Only re-run the effect if isAuthenticated changes
 
   // Render dashboard if authenticated
-  if (isAuthenticated && path === "/admin") {
+  if (isAuthenticated && window.location.pathname === "/admin") {
     <AdminDashboard path="/admin/dashboard" />;
     // This will replace the current entry in the history stack
     route("/admin/dashboard", true);
   }
 
-  if (!isAuthenticated && path !== "/admin") {
+  if (!isAuthenticated && window.location.pathname !== "/admin") {
     <Admin path="/admin" />;
     // This will replace the current entry in the history stack
     route("/admin", true);
   }
 
   // Render the component
-  return <Component path={path} />;
+  return <Component {...rest} />;
 };
 
 export function App(): VNode {
@@ -425,10 +425,7 @@ export function App(): VNode {
                   />
                 )}
                 {isFeatureEnabled("EditArticle") && (
-                  <AdminRoute
-                    component={AdminEditArticle}
-                    path="/admin/edit/article/:articleId"
-                  />
+                  <AdminRoute component={AdminEditArticle} path="/admin/edit/article/:articleId" />
                 )}
                 {isFeatureEnabled("EditCategory") && (
                   <AdminRoute

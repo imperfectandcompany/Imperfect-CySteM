@@ -29,6 +29,9 @@
     AdminDashboard: boolean; // Feature flag for admin login
     PreviewArticle: boolean; // Feature flag for viewing previewing rendered view when editing an article 
     NotificationBanner: boolean; // Feature flag for the little notification / banner at the top of the page
+    ViewArticleChangelog: boolean // Feature flag for the article history lineage preview when editing an article
+    ViewPotentialArticleChanges: boolean // Feature flag for...
+    articleDetailedCharacterLimit: boolean // Feature flag for...
   };
 
   const featureFlags: FeatureFlags = {
@@ -50,7 +53,7 @@
     DeleteCategory: true, // Set this to true or false to enable/disable category deletion
     EditCategory: true, // Set this to true or false to enable/disable category editing
     ViewArticleHistoryDiff: true, // Set this to true or false to enable/disable viewing article history
-    ViewArticleHistoryChangelog: true, // Set this to true or false to enable/disable viewing article history
+    ViewArticleHistoryChangelog: false, // Set this to true or false to enable/disable viewing article history
     ViewChangeLog: true, // Set this to true or false to enable/disable viewing the change log for an article
     ViewAdminLogs: true, // Set this to true or false to enable/disable viewing admin logs
     CategoriesPage: true, // Set this to true or false to enable/disable the categories page
@@ -58,8 +61,11 @@
     BackButtonArticleView: true, // Set this to true or false to enable/disable the back button when viewing an article
     Breadcrumbs: false, // Set this to true or false to enable/disable breadcrumbs
     AdminDashboard: true, // Set this to true or false to enable/disable admin login
-    PreviewArticle: false, // Set this to true or false to enable/disable previewing articles
-    NotificationBanner: false // Feature flag for the little notification / banner at the top of the page
+    PreviewArticle: true, // Set this to true or false to enable/disable previewing articles
+    NotificationBanner: false, // Feature flag for the little notification / banner at the top of the page
+    ViewArticleChangelog: true, // Feature flag for the little notification / banner at the top of the page
+    ViewPotentialArticleChanges: true, // Feature flag for the little notification / banner at the top of the page
+    articleDetailedCharacterLimit: false // Feature flag for the little notification / banner at the top of the page
   };
     
   export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {

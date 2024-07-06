@@ -1,7 +1,5 @@
 import { FunctionalComponent } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
-import { Card, content } from "../content";
-import { findCardById } from "../utils";
+import { useState, useEffect, useRef, useContext } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
@@ -10,49 +8,44 @@ import { AdminError } from "./AdminError";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
-import { useAuth } from "../contexts/AuthContext";
+import { Article, ArticleVersion, ArticleVersionsResponse, ContentContext } from "../contexts/ContentContext";
+import { fetchArticleById } from "../api";
 
-interface MatchParams {
-  articleId: number;
+interface Props {
+  matches: {
+    articleId: string; // Route parameters are strings
+  };
 }
 
-export const AdminEditArticle: FunctionalComponent<{
-  matches: MatchParams;
-}> = ({ matches }) => {
-  const { articleId } = matches;
-  const [article, setArticle] = useState<Card | null>(null);
-  const [loadingError, setLoadingError] = useState<string>("");
+export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
+  const { articleId } = matches; // Access articleId from matches
+
+  const [article, setArticle] = useState<Article | null>(null);
+
+  const { fetchArticle, updateArticle, fetchArticleVersions, updateArticleById, loading, error } =
+    useContext(ContentContext); // Destructure the needed functions from the context
+
   // const { isAuthenticated, isStaff } = useMockAuth();
 
   useEffect(() => {
-    const fetchArticle = async () => {
+    const fetchArticleData = async () => {
       try {
-        const id = parseInt(articleId.toString(), 10); // Parse string to number
-        if (isNaN(id)) {
-          throw new Error("Invalid article ID");
-        }
-        const fetchedArticle = findCardById(id);
-        if (!fetchedArticle) {
-          throw new Error("Article not found");
-        }
-        // REINTRODUCE ONCE API IS UPDATED WITH PLANNED BITWISE PERMUTIL IMPLEMENTATION
-        // if (!isStaff()) throw new Error("Unauthorized access");
+        const fetchedArticle = await fetchArticle(articleId);
         setArticle(fetchedArticle);
       } catch (error: any) {
         console.error("Failed to fetch article:", error);
-        setLoadingError(error.message || "Failed to load the article.");
       }
     };
 
-    fetchArticle();
-  }, [articleId]);
+    fetchArticleData();
+  }, [articleId, fetchArticle]);
   // }, [articleId, isAuthenticated, isStaff]);
 
   // if (!isAuthenticated())
   //   return <AdminError message="Please log in to edit articles." />;
 
-  if (loadingError) {
-    return <AdminError message={loadingError} />;
+  if (loading) {
+    return <AdminError message={error} />;
   }
 
   if (!article) return <div>Loading...</div>;
@@ -67,9 +60,7 @@ export const AdminEditArticle: FunctionalComponent<{
     }
   };
 
-  const [articleText, setArticleText] = useState(
-    article.versions.slice(-1)[0].detailedDescription
-  );
+  const [articleText, setArticleText] = useState(article.DetailedDescription);
 
   const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target as HTMLTextAreaElement;
@@ -89,7 +80,7 @@ export const AdminEditArticle: FunctionalComponent<{
   };
 
   const [currentView, setCurrentView] = useState<
-    "raw" | "rendered" | "history"
+    "raw" | "rendered" | "potentialChanges"
   >("raw");
 
   const toggleRendered = () => {
@@ -97,8 +88,8 @@ export const AdminEditArticle: FunctionalComponent<{
     adjustTextAreaHeight(); // Ensure height adjusts on toggling
   };
 
-  const toggleHistory = () => {
-    setCurrentView("history");
+  const togglePotentialChanges = () => {
+    setCurrentView("potentialChanges");
     adjustTextAreaHeight(); // Ensure height adjusts on toggling
   };
 
@@ -113,52 +104,111 @@ export const AdminEditArticle: FunctionalComponent<{
     }
   }, [articleText, currentView]);
 
-  const contentElements = parseContent(articleText);
-  const renderedContent = renderContent(contentElements);
+  // Check if articleText is defined before parsing
+  const contentElements = articleText ? parseContent(articleText) : null;
+  const renderedContent = contentElements ? renderContent(contentElements) : null;
 
-  const [history, setHistory] = useState(article.versions);
+  const [history, setHistory] = useState<ArticleVersion[]>();
 
-  const saveEdit = (newContent: string) => {
-    const user = useAuth().user; // Get the current user details
-    if (!user) return null; // Add null check for user
-
-    const newVersion = {
-      versionId: history.length + 1,
-      title: article.versions.slice(-1)[0].title,
-      description: article.versions.slice(-1)[0].description,
-      detailedDescription: newContent,
-      editedBy: user.userId,
-      editDate: new Date().toISOString(),
-    };
-
-    const updatedHistory = [...history, newVersion];
-    setHistory(updatedHistory);
-
-    // Save the article edit
-    if (article) {
-      const newArticle = {
-        ...article,
-        versions: updatedHistory,
-      };
-      setArticle(newArticle);
-      // Update the content object here as well
-      const sectionKey = Object.keys(content.sections).find((key) =>
-        content.sections[parseInt(key)].cards.some((c) => c.id === article.id)
-      );
-      if (sectionKey) {
-        const section = content.sections[parseInt(sectionKey)];
-        const cardIndex = section.cards.findIndex((c) => c.id === article.id);
-        if (cardIndex > -1) {
-          section.cards[cardIndex] = newArticle;
+useEffect(() => {
+  // Fetch the article by ID
+  const fetchArticleData = async () => {
+    try {
+      const id = Number(articleId);
+      if (!isNaN(id)) {
+        // Now you can use id to fetch data
+        const response = await fetchArticleById(id);
+        if (response.status === 'success' && response.article.length > 0) {
+          const fetchedArticle = response.article[0]; // Access the first article in the array
+          setArticle(fetchedArticle);
+          setArticleText(fetchedArticle.DetailedDescription);
+          // If you need to fetch the history of article versions
+          // fetchArticleVersions is expecting an article ID and returns an array
+          const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+          setHistory(versionsData.versions);
+        } else {
+          // Handle the case where the response does not contain the article data
+          console.error("Article data is not in the expected format:", response);
         }
+      } else {
+        // Handle the case where articleId is not a valid number
+        throw new Error("Article ID is not a valid number");
       }
+    } catch (error) {
+      // Handle the error by setting an error message or logging it
+      console.error("Failed to fetch article data:", error);
     }
   };
+
+  fetchArticleData();
+}, [articleId, fetchArticleById, fetchArticleVersions]);
+
+  const saveEdit = async () => {
+    if (!article) return;
+
+    // // Prepare the updated article data
+    // const updatedArticleData = {
+    //   ...article,
+    //   detailedDescription: articleText,
+    //   // Include other fields that might have changed
+    // };
+
+  // Prepare the updated article data
+  const updatedArticleData = {
+    categoryId: article.CategoryID, // Ensure this is correctly sourced from the current article state or form
+    title: article.Title, // Ensure this is correctly sourced from the current article state or form
+    description: article.Description, // Ensure this is correctly sourced from the current article state or form
+    detailedDescription: articleText, // This comes from the state handling the text area
+    imgSrc: article.ImgSrc, // Ensure this is correctly sourced from the current article state or form
+  };
+
+
+    try {
+      // Use the API to update the article
+      const updatedArticle = await updateArticleById(
+        article.ArticleID,
+        updatedArticleData
+      );
+      setArticle(updatedArticle);
+      // Optionally, fetch the updated history
+      const versionsHistory = await fetchArticleVersions(article.ArticleID);
+      setHistory(versionsHistory);
+    } catch (error) {
+      // Handle error
+      console.error("Failed to update article:", error);
+    }
+  };
+
+  // const saveEdit = (newContent: string) => {
+
+  //   const updatedHistory = [...history, newVersion];
+  //   setHistory(updatedHistory);
+
+  //   // Save the article edit
+  //   if (article) {
+  //     const newArticle = {
+  //       ...article,
+  //       versions: updatedHistory,
+  //     };
+  //     setArticle(newArticle);
+  //     // Update the content object here as well
+  //     const sectionKey = Object.keys(content.sections).find((key) =>
+  //       content.sections[parseInt(key)].cards.some((c) => c.id === article.id)
+  //     );
+  //     if (sectionKey) {
+  //       const section = content.sections[parseInt(sectionKey)];
+  //       const cardIndex = section.cards.findIndex((c) => c.id === article.id);
+  //       if (cardIndex > -1) {
+  //         section.cards[cardIndex] = newArticle;
+  //       }
+  //     }
+  //   }
+  // };
 
   // This will determine if the articleText is different from the original article content
   const isContentChanged =
     article &&
-    articleText !== article?.versions.slice(-1)[0].detailedDescription;
+    articleText !== article?.DetailedDescription;
 
   // Content display based on the current view
   const displayContent = () => {
@@ -203,7 +253,7 @@ export const AdminEditArticle: FunctionalComponent<{
                   <button
                     id="updateArticle"
                     type="button"
-                    onClick={() => saveEdit(articleText)}
+                    onClick={() => saveEdit()}
                     disabled={!isContentChanged}
                     className="ml-2 p-1 px-4 font-semibold text-white bg-indigo-500 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 transition rounded-md disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none"
                     title={
@@ -219,7 +269,7 @@ export const AdminEditArticle: FunctionalComponent<{
                     type="button"
                     onClick={() =>
                       setArticleText(
-                        article?.versions.slice(-1)[0].detailedDescription
+                        article?.DetailedDescription
                       )
                     }
                     disabled={!isContentChanged}
@@ -244,37 +294,36 @@ export const AdminEditArticle: FunctionalComponent<{
         return (
           <>
             <section className="mt-8"></section>
-
             <div className="flex">
-            {isFeatureEnabled('PreviewArticle')&& (
-              <div className="m-5">
-              <div
-                className="w-10 h-10 font-bold text-center text-white bg-stone-500 border-4 border-stone-400 transition duration-300 rounded-full cursor-pointer hover:bg-stone-600"
-                onClick={toggleRaw}
-              >
-                <svg
-                  fill="#FFFFFF"
-                  className="h-4 w-4 mx-auto mt-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 512 512"
-                >
-                  <path d="m494.8,241.4l-50.6-49.4c-50.1-48.9-116.9-75.8-188.2-75.8s-138.1,26.9-188.2,75.8l-50.6,49.4c-11.3,12.3-4.3,25.4 0,29.2l50.6,49.4c50.1,48.9 116.9,75.8 188.2,75.8s138.1-26.9 188.2-75.8l50.6-49.4c4-3.8 11.7-16.4 0-29.2zm-238.8,84.4c-38.5,0-69.8-31.3-69.8-69.8 0-38.5 31.3-69.8 69.8-69.8 38.5,0 69.8,31.3 69.8,69.8 0,38.5-31.3,69.8-69.8,69.8zm-195.3-69.8l35.7-34.8c27-26.4 59.8-45.2 95.7-55.4-28.2,20.1-46.6,53-46.6,90.1 0,37.1 18.4,70.1 46.6,90.1-35.9-10.2-68.7-29-95.7-55.3l-35.7-34.7zm355,34.8c-27,26.3-59.8,45.1-95.7,55.3 28.2-20.1 46.6-53 46.6-90.1 0-37.2-18.4-70.1-46.6-90.1 35.9,10.2 68.7,29 95.7,55.4l35.6,34.8-35.6,34.7z" />
-                </svg>
-              </div>
-            </div>
-            )}
+              {isFeatureEnabled("PreviewArticle") && (
+                <div className="m-5">
+                  <div
+                    className="w-10 h-10 font-bold text-center text-white bg-stone-500 border-4 border-stone-400 transition duration-300 rounded-full cursor-pointer hover:bg-stone-600"
+                    onClick={toggleRaw}
+                  >
+                    <svg
+                      fill="#FFFFFF"
+                      className="h-4 w-4 mx-auto mt-2"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 512 512"
+                    >
+                      <path d="m494.8,241.4l-50.6-49.4c-50.1-48.9-116.9-75.8-188.2-75.8s-138.1,26.9-188.2,75.8l-50.6,49.4c-11.3,12.3-4.3,25.4 0,29.2l50.6,49.4c50.1,48.9 116.9,75.8 188.2,75.8s138.1-26.9 188.2-75.8l50.6-49.4c4-3.8 11.7-16.4 0-29.2zm-238.8,84.4c-38.5,0-69.8-31.3-69.8-69.8 0-38.5 31.3-69.8 69.8-69.8 38.5,0 69.8,31.3 69.8,69.8 0,38.5-31.3,69.8-69.8,69.8zm-195.3-69.8l35.7-34.8c27-26.4 59.8-45.2 95.7-55.4-28.2,20.1-46.6,53-46.6,90.1 0,37.1 18.4,70.1 46.6,90.1-35.9-10.2-68.7-29-95.7-55.3l-35.7-34.7zm355,34.8c-27,26.3-59.8,45.1-95.7,55.3 28.2-20.1 46.6-53 46.6-90.1 0-37.2-18.4-70.1-46.6-90.1 35.9,10.2 68.7,29 95.7,55.4l35.6,34.8-35.6,34.7z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
               <div className="detail-description">{renderedContent}</div>
             </div>
           </>
         );
-      case "history":
-        return history.length > 1 ? (
+      case "potentialChanges":
+        return (history?.length ?? 0) > 1 ? (
           <TextDiffViewer
-            oldText={article.versions.slice(-2)[0].detailedDescription}
+            oldText={article.DetailedDescription}
             newText={articleText}
           />
         ) : (
-          <p>No previous versions to display.</p>
+          <p>No active changes to display.</p>
         );
       default:
         return null;
@@ -285,32 +334,33 @@ export const AdminEditArticle: FunctionalComponent<{
     <>
       <Breadcrumb
         path={`/admin/edit/article/${articleId}`}
-        articleId={article.id}
+        articleId={article.ArticleID}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-          Editing: {article.versions.slice(-1)[0].title}
+          Editing: {article.Title}
         </h1>
-        {isFeatureEnabled("ViewArticleHistoryDiff") && (
+        {isFeatureEnabled("ViewPotentialArticleChanges") && (
           <button
+          className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out disabled:cursor-default disabled:opacity-20"
             onClick={() =>
               currentView === "raw" || currentView === "rendered"
-                ? toggleHistory()
+                ? togglePotentialChanges()
                 : toggleRaw()
             }
             disabled={
-              history.length <= 1 &&
+              article.DetailedDescription === articleText &&
               (currentView === "raw" || currentView === "rendered")
             }
           >
             {currentView === "raw" || currentView === "rendered"
-              ? "View History"
+              ? "View Potential Changes"
               : "Back to Edit"}
           </button>
         )}
         {displayContent()}
-        {isFeatureEnabled("ViewArticleHistoryChangelog") && (
-          <AdminArticleHistoryView card={article} />
+        {(isFeatureEnabled("ViewArticleChangelog") && history) && (
+        <AdminArticleHistoryView versions={history} />
         )}
       </div>
     </>

@@ -8,7 +8,10 @@ import {
   fetchArticleBySlug,
   toggleArticleArchiveStatus,
   toggleArticleStaffOnlyStatus,
+  API_BASE_URL,
+  fetchArticleActionLogsCall
 } from "../api";
+import { getToken } from "../utils";
 
 interface ContentProviderProps {
   children: React.ReactNode;
@@ -38,12 +41,16 @@ interface ContentContextType {
   loading: boolean;
   error: string | null;
   selectCategory: (categoryId: number) => void;
-  fetchArticle: (articleId: string) => Promise<any>; // Adjust the return type as needed
+  fetchArticle: (articleId: number) => Promise<any>; // Adjust the return type as needed
   fetchArticleBySlugDirectly: (articleSlug: string) => Promise<any>;
   currentArticle: Article | IArticle | null;
   toggleArticleArchive: (articleId: number) => Promise<void>; // Add this line
   toggleArticleStaffOnly: (articleId: number) => Promise<void>; // Add this line
   setArticles: (articles: Article[] | IArticle[]) => void;
+  updateArticleById: (articleId: number, updatedData: Partial<Article>) => void; // Fix the implicit 'any' type
+  fetchArticleVersions: (articleId: number) => Promise<ArticleVersionsResponse>; // Fix the implicit 'any' type
+  fetchArticleActionLogs: (articleId: number) => Promise<void>;
+  actionLogs:any;
 }
 
 export interface Article {
@@ -76,6 +83,26 @@ export interface Article {
     UpdatedAt: string | null;
   }
   
+  export interface ArticleVersion {
+    VersionID: number;
+    ArticleID: number;
+    CategoryID: number;
+    Title: string;
+    Description: string;
+    DetailedDescription: string;
+    Slug: string;
+    ImgSrc: string;
+    CreatedAt: string;
+    StaffOnly: number;
+    Archived: number;
+  }
+
+  export interface ArticleVersionsResponse {
+    status: string;
+    versions: ArticleVersion[];
+  }
+
+  
   interface ArticlesResponse {
     status: string;
     articles: Article[];
@@ -86,17 +113,23 @@ export interface Article {
     article: Article[];
   }
 
+// Define an interface for a single log entry
+export interface ActionLog {
+  LogID: number;
+  UserID: number;
+  Username: string;
+  VersionID: number;
+  ActionType: string;
+  CreatedAt: string;
+}
+
+// Define an interface for the respo nse from the fetchArticleActionLogs API call
+interface ActionLogsResponse {
+  status: string;
+  logs: ActionLog[];
+}
+
 export const ContentContext = createContext<ContentContextType | null>(null);
-
-
-interface CategoryWithArticles {
-  category: Category;
-  articles: Article[];
-}
-
-interface ContentContextType {
-  categoryArticles: CategoryWithArticles[];
-}
 
 export const ContentProvider: React.FC<ContentProviderProps> = ({
   children,
@@ -108,6 +141,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [categoryArticles, setCategoryArticles] = useState<CategoryWithArticles[]>([]);
+  const [actionLogs, setActionLogs] = useState<{ [versionId: number]: any[] }>({});
 
     // This will hold the articles for each category that has been fetched
     const [categoryArticlesCache, setCategoryArticlesCache] = useState<{ [categoryId: number]: Article[] }>({});
@@ -200,9 +234,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
   };
 
 
-
-
-
   // Function to fetch an article by slug with caching
   const fetchArticleBySlugDirectly = async (slug: string) => {
     // Check if the article is already in the cache
@@ -235,8 +266,25 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
     }
   };
 
+// Update the fetchArticleActionLogs function with proper typing
+const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> => {
+  setLoading(true);
+  try {
+    const logsData: ActionLogsResponse = await fetchArticleActionLogsCall(articleId);
+    setActionLogs(prev => ({ ...prev, [articleId]: logsData.logs }));
+    setLoading(false);
+  } catch (e) {
+    if (e instanceof Error) {
+      setError(e.message);
+    } else {
+      setError("An unknown error occurred");
+    }
+    setLoading(false);
+  }
+};
+
   // Function to fetch an article by ID, with caching
-  const fetchArticle = async (articleId: string) => {
+  const fetchArticle = async (articleId: number) => {
     setLoading(true); // Set loading to true at the start of the fetchArticle function
     if (articleCache.hasOwnProperty(articleId)) {
       setLoading(false); // Set loading to false if the article is already in the cache
@@ -285,6 +333,43 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
     }
   };
 
+
+  const updateArticleById = async (articleId: number, updatedArticleData: Partial<Article>) => {
+
+    const token = getToken();
+
+    // Call the API endpoint to update the article
+    const response = await fetch(`${API_BASE_URL}/article/update/${articleId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${token}`,
+      },
+      body: JSON.stringify(updatedArticleData),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update article');
+    }
+    return await response.json();
+  };
+
+  async function fetchArticleVersions(articleId: number): Promise<ArticleVersionsResponse> {
+    
+    const token = getToken();
+
+    // Call the API endpoint to fetch article versions
+    const response = await fetch(`${API_BASE_URL}/article/fetchVersions/${articleId}`, {
+      headers: {
+        'Authorization': `${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch article versions');
+    }
+    const data: ArticleVersionsResponse = await response.json();
+    return data;
+  };
+
   return (
     <ContentContext.Provider
       value={{
@@ -296,9 +381,13 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
         fetchArticle,
         fetchArticleBySlugDirectly, // Add this to the context
         currentArticle, // Add this to the context     
+        actionLogs,
+        fetchArticleActionLogs: fetchAndSetArticleActionLogs,
         toggleArticleArchive,
         toggleArticleStaffOnly,
-        setArticles
+        setArticles,
+        updateArticleById,
+        fetchArticleVersions
       }}
     >
       {children}

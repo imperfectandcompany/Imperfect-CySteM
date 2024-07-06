@@ -1,16 +1,15 @@
-import { FunctionalComponent, h } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { FunctionalComponent } from "preact";
+import { useState, useRef, useContext } from "preact/hooks";
 import { route } from "preact-router";
-import { checkCategoryExists, findCategoryById, updateCategory } from "../utils";
-import { useMockAuth } from "./models/userModel";
 import Breadcrumb from "./Breadcrumb";
+import { ContentContext } from "../contexts/ContentContext";
+import { checkCategoryExists, updateCategory } from "../utils";
 
 interface CategoryProps {
   id: number;
 }
 
 const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
-  const { isAuthenticated } = useMockAuth();
   const [category, setCategory] = useState<{ id: number; title: string; } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,19 +20,11 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
 
 
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      route("/admin");
-    } else {
-      fetchCategory();
-    }
-  }, [id]);
-
   const fetchCategory = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await findCategoryById(id);
+      const data = await fetchArticle(id);
       if (data) {
         const latestTitle = data.versions[data.versions.length - 1].title;
         setCategory({ id: data.versions[data.versions.length - 1].versionId, title: latestTitle });

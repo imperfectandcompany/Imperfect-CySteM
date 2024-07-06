@@ -1,13 +1,11 @@
 // src/components/CategoryItems.tsx
 
 import { FunctionalComponent } from "preact";
-import { Card } from "../content";
 import { generateSlug } from "../utils";
 import { FeatureCard } from "./FeatureCard";
 import Breadcrumb from "./Breadcrumb";
 import { AccessRestricted } from "./AccessRestricted";
-import { useMockAuth } from "./models/userModel";
-import { useContext, useEffect } from "preact/hooks";
+import { useContext } from "preact/hooks";
 import { Article, ContentContext } from "../contexts/ContentContext";
 
 interface CategoryItemsProps {
@@ -32,7 +30,6 @@ export const CategoryItems: FunctionalComponent<
   if (!category) {
     return <AccessRestricted message="Category not found" />;
   }
-  const { isStaff } = useMockAuth(); // Use the custom hook
 
   // const userIsStaff = isStaff(); // Call the method to check if user is staff
 content?.selectCategory(category.CategoryID)

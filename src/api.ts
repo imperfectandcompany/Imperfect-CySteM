@@ -2,7 +2,7 @@
 
 import { getToken } from "./utils";
 
-const API_BASE_URL = 'https://api.imperfectgamers.org/support';
+export const API_BASE_URL = 'https://api.imperfectgamers.org/support';
 
 export const fetchArticlesByCategoryId = async (categoryId: string) => {
     const response = await fetch(`${API_BASE_URL}/articles/fetchByCategory/${categoryId}`);
@@ -12,7 +12,7 @@ export const fetchArticlesByCategoryId = async (categoryId: string) => {
     return response.json();
   };
   
-  export const fetchArticleById = async (articleId: string) => {
+  export const fetchArticleById = async (articleId: number) => {
     const response = await fetch(`${API_BASE_URL}/article/fetchById/${articleId}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch article with id ${articleId}`);
@@ -46,6 +46,21 @@ export const fetchArticleBySlug = async (slug: string) => {
     }
     return response.json();
   };
+
+
+// Function to fetch action logs for an article version
+export const fetchArticleActionLogsCall = async (articleId: number) => {
+  const token = getToken();
+  const response = await fetch(`${API_BASE_URL}/article/fetchActionLogs/${articleId}`, {
+    headers: {
+      'Authorization': `${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch action logs for article ${articleId}`);
+  }
+  return response.json();
+};
 
 export const toggleArticleStaffOnlyStatus = async (articleId: number) => {
 
