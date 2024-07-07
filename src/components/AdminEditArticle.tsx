@@ -20,25 +20,30 @@ interface Props {
 export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const { articleId } = matches; // Access articleId from matches
 
-  const [article, setArticle] = useState<Article | null>(null);
 
-  const { fetchArticle, updateArticle, fetchArticleVersions, updateArticleById, loading, error } =
+  const { fetchArticle, updateArticle, fetchArticleVersions, updateArticleById, loading, fetchArticleActionLogs, error } =
     useContext(ContentContext); // Destructure the needed functions from the context
 
   // const { isAuthenticated, isStaff } = useMockAuth();
+  const [history, setHistory] = useState<ArticleVersion[]>();
+
+
+  const [articleText, setArticleText] = useState('');
 
   useEffect(() => {
     const fetchArticleData = async () => {
       try {
-        const fetchedArticle = await fetchArticle(articleId);
-        setArticle(fetchedArticle);
+        const fetchedArticle:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+        setHistory(fetchedArticle.versions);
+        setArticleText(fetchedArticle.versions[0].DetailedDescription);
+          fetchArticleActionLogs(articleId);
       } catch (error: any) {
         console.error("Failed to fetch article:", error);
       }
     };
 
     fetchArticleData();
-  }, [articleId, fetchArticle]);
+  }, []);
   // }, [articleId, isAuthenticated, isStaff]);
 
   // if (!isAuthenticated())
@@ -48,19 +53,20 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     return <AdminError message={error} />;
   }
 
-  if (!article) return <div>Loading...</div>;
 
   const [count, setCount] = useState(0);
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyUp = () => {
-    if (textAreaRef.current) {
-      setCount(textAreaRef.current.value.length);
-    }
-  };
 
-  const [articleText, setArticleText] = useState(article.DetailedDescription);
+  
+  const handleKeyUp = () => {
+    if(isFeatureEnabled("articleDetailedCharacterLimit")){
+      if (textAreaRef.current) {
+        setCount(textAreaRef.current.value.length);
+      }}
+    };
+
 
   const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target as HTMLTextAreaElement;
@@ -108,43 +114,44 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const contentElements = articleText ? parseContent(articleText) : null;
   const renderedContent = contentElements ? renderContent(contentElements) : null;
 
-  const [history, setHistory] = useState<ArticleVersion[]>();
 
-useEffect(() => {
-  // Fetch the article by ID
-  const fetchArticleData = async () => {
-    try {
-      const id = Number(articleId);
-      if (!isNaN(id)) {
-        // Now you can use id to fetch data
-        const response = await fetchArticleById(id);
-        if (response.status === 'success' && response.article.length > 0) {
-          const fetchedArticle = response.article[0]; // Access the first article in the array
-          setArticle(fetchedArticle);
-          setArticleText(fetchedArticle.DetailedDescription);
-          // If you need to fetch the history of article versions
-          // fetchArticleVersions is expecting an article ID and returns an array
-          const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
-          setHistory(versionsData.versions);
-        } else {
-          // Handle the case where the response does not contain the article data
-          console.error("Article data is not in the expected format:", response);
-        }
-      } else {
-        // Handle the case where articleId is not a valid number
-        throw new Error("Article ID is not a valid number");
-      }
-    } catch (error) {
-      // Handle the error by setting an error message or logging it
-      console.error("Failed to fetch article data:", error);
-    }
-  };
+// useEffect(() => {
+//   // Fetch the article by ID
+//   const fetchArticleData = async () => {
+//     try {
+//       const id = Number(articleId);
+//       if (!isNaN(id)) {
+//         // Now you can use id to fetch data
+//         const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+//         if (versionsData.status === 'success' && versionsData.versions.length > 0) {
+//           const fetchedArticle = versionsData.versions[0]; // Access the first article in the array
+//           setArticle(fetchedArticle);
+//           setArticleText(fetchedArticle.DetailedDescription);
+//           // If you need to fetch the history of article versions
+//           // fetchArticleVersions is expecting an article ID and returns an array
+//           // if(isFeatureEnabled("ViewArticleChangelog")){
+//           //   const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+//             setHistory(versionsData.versions);
+//           // }
+//         } else {
+//           // Handle the case where the response does not contain the article data
+//           console.error("Article data is not in the expected format:", versionsData);
+//         }
+//       } else {
+//         // Handle the case where articleId is not a valid number
+//         throw new Error("Article ID is not a valid number");
+//       }
+//     } catch (error) {
+//       // Handle the error by setting an error message or logging it
+//       console.error("Failed to fetch article data:", error);
+//     }
+//   };
 
-  fetchArticleData();
-}, [articleId, fetchArticleById, fetchArticleVersions]);
+//   fetchArticleData();
+// }, []);
 
   const saveEdit = async () => {
-    if (!article) return;
+    if (!history) return;
 
     // // Prepare the updated article data
     // const updatedArticleData = {
@@ -155,24 +162,26 @@ useEffect(() => {
 
   // Prepare the updated article data
   const updatedArticleData = {
-    categoryId: article.CategoryID, // Ensure this is correctly sourced from the current article state or form
-    title: article.Title, // Ensure this is correctly sourced from the current article state or form
-    description: article.Description, // Ensure this is correctly sourced from the current article state or form
+    categoryId: history[0].CategoryID, // Ensure this is correctly sourced from the current article state or form
+    title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
+    description: history[0].Description, // Ensure this is correctly sourced from the current article state or form
     detailedDescription: articleText, // This comes from the state handling the text area
-    imgSrc: article.ImgSrc, // Ensure this is correctly sourced from the current article state or form
+    imgSrc: history[0].ImgSrc, // Ensure this is correctly sourced from the current article state or form
   };
 
 
     try {
       // Use the API to update the article
-      const updatedArticle = await updateArticleById(
-        article.ArticleID,
+      await updateArticleById(
+        history[0].ArticleID,
         updatedArticleData
       );
-      setArticle(updatedArticle);
-      // Optionally, fetch the updated history
-      const versionsHistory = await fetchArticleVersions(article.ArticleID);
-      setHistory(versionsHistory);
+      // setArticle(updatedArticle);
+      // Update the history with the new version
+      const versionsHistory:ArticleVersionsResponse = await fetchArticleVersions(history[0].ArticleID);
+      setHistory(versionsHistory.versions);           
+                      // Reset the isContentChanged state
+                      setArticleText(versionsHistory.versions[0].DetailedDescription); 
     } catch (error) {
       // Handle error
       console.error("Failed to update article:", error);
@@ -207,8 +216,8 @@ useEffect(() => {
 
   // This will determine if the articleText is different from the original article content
   const isContentChanged =
-    article &&
-    articleText !== article?.DetailedDescription;
+    history &&
+    articleText !== history[0]?.DetailedDescription;
 
   // Content display based on the current view
   const displayContent = () => {
@@ -267,11 +276,11 @@ useEffect(() => {
                   <button
                     id="resetArticle"
                     type="button"
-                    onClick={() =>
-                      setArticleText(
-                        article?.DetailedDescription
-                      )
-                    }
+                    onClick={() => {
+                      if (history && history.length > 0) {
+                        setArticleText(history[0].DetailedDescription);
+                      }
+                    }}
                     disabled={!isContentChanged}
                     className="p-1 px-4 font-semibold text-white bg-stone-500 hover:bg-stone-600 focus:ring-2 focus:ring-stone-400 transition rounded-md select-none disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none"
                     title={
@@ -283,9 +292,10 @@ useEffect(() => {
                     Reset
                   </button>
                 </div>
+        {(isFeatureEnabled("articleDetailedCharacterLimit")) && (
                 <div className="ml-auto text-xs font-semibold text-gray-400 count">
                   {count} / {280}
-                </div>
+                </div>)}
               </div>
             </form>
           </>
@@ -317,9 +327,8 @@ useEffect(() => {
           </>
         );
       case "potentialChanges":
-        return (history?.length ?? 0) > 1 ? (
-          <TextDiffViewer
-            oldText={article.DetailedDescription}
+        return history && history[0]?.DetailedDescription !== articleText ? (      <TextDiffViewer
+            oldText={history[0].DetailedDescription}
             newText={articleText}
           />
         ) : (
@@ -334,11 +343,11 @@ useEffect(() => {
     <>
       <Breadcrumb
         path={`/admin/edit/article/${articleId}`}
-        articleId={article.ArticleID}
+        articleId={history && history[0]?.ArticleID}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-          Editing: {article.Title}
+          Editing: {history && history[0]?.Title}
         </h1>
         {isFeatureEnabled("ViewPotentialArticleChanges") && (
           <button
@@ -349,7 +358,7 @@ useEffect(() => {
                 : toggleRaw()
             }
             disabled={
-              article.DetailedDescription === articleText &&
+              history && history[0]?.DetailedDescription === articleText &&
               (currentView === "raw" || currentView === "rendered")
             }
           >

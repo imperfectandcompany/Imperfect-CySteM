@@ -1,5 +1,6 @@
 // src/utils/api.ts
 
+import { ActionLogsResponse } from "./contexts/ContentContext";
 import { getToken } from "./utils";
 
 export const API_BASE_URL = 'https://api.imperfectgamers.org/support';
@@ -48,7 +49,7 @@ export const fetchArticleBySlug = async (slug: string) => {
   };
 
 
-// Function to fetch action logs for an article version
+// Function to fetch action logs for an article 
 export const fetchArticleActionLogsCall = async (articleId: number) => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/article/fetchActionLogs/${articleId}`, {
@@ -59,7 +60,8 @@ export const fetchArticleActionLogsCall = async (articleId: number) => {
   if (!response.ok) {
     throw new Error(`Failed to fetch action logs for article ${articleId}`);
   }
-  return response.json();
+  const jsonResponse:ActionLogsResponse = await response.json();
+  return jsonResponse;
 };
 
 export const toggleArticleStaffOnlyStatus = async (articleId: number) => {

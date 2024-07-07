@@ -124,7 +124,7 @@ export interface ActionLog {
 }
 
 // Define an interface for the respo nse from the fetchArticleActionLogs API call
-interface ActionLogsResponse {
+export interface ActionLogsResponse {
   status: string;
   logs: ActionLog[];
 }
@@ -322,6 +322,7 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
         // Update the cache with the new articles
         setCategoryArticlesCache(prev => ({ ...prev, [categoryId]: data.articles }));
         setLoading(false);
+        return data;
       } catch (e) {
         if (e instanceof Error) {
           setError(e.message);
@@ -350,7 +351,9 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
     if (!response.ok) {
       throw new Error('Failed to update article');
     }
-    return await response.json();
+
+    const result = await response.json();
+    return result;
   };
 
   async function fetchArticleVersions(articleId: number): Promise<ArticleVersionsResponse> {

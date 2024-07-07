@@ -7,23 +7,19 @@ interface AdminArticleHistoryViewProps {
 }
 
 export const AdminArticleHistoryView: FunctionalComponent<AdminArticleHistoryViewProps> = ({ versions }) => {
-  const { actionLogs, fetchArticleActionLogs } = useContext(ContentContext);
+  const { actionLogs, fetchArticleActionLogs, loading } = useContext(ContentContext);
 
   // Assuming versions is always an array (even if empty)
   const articleId = versions.length > 0 ? versions[0].ArticleID : null;
 
-  useEffect(() => {
-    // Fetch action logs if articleId is available
-    if (articleId) {
-      fetchArticleActionLogs(articleId);
-    }
-  }, [articleId]); // Ensure that the effect runs when articleId changes
+  // useEffect(() => {
+  //   //Fetch action logs if articleId is available
+  //   if (articleId) {
+  //     fetchArticleActionLogs(articleId);
+  //   }
+  // }, [articleId]); // Ensure that the effect runs when articleId changes
 
 
-
-
-  // Sort versions by CreatedAt in descending order
-  const sortedVersions = versions.slice().sort((a, b) => new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime());
 
   function getActionStyle(actionType: string) {
     switch (actionType) {
@@ -46,10 +42,6 @@ const toggleVersionDetail = (versionId: number) => {
 };
 
 
-  const [loading, setLoading] = useState(true); // State to track loading status
-
-
-
 const SkeletonVersionLog: FunctionalComponent = () => {
   return (
     <div className="space-y-4">
@@ -61,13 +53,11 @@ const SkeletonVersionLog: FunctionalComponent = () => {
 };
 
 
-useEffect(() => {
-  if (articleId) {
-    fetchArticleActionLogs(articleId)
-      .then(() => setLoading(false))
-      .catch(() => setLoading(false)); // Ensure loading is set to false after fetch
-  }
-}, [articleId]);
+// useEffect(() => {
+//   if (articleId) {
+//     fetchArticleActionLogs(articleId)
+//   }
+// }, [articleId]);
 
 if (loading) {
   return (

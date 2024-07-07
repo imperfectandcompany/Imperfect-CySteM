@@ -14,7 +14,7 @@ export const AdminDashboard: FunctionalComponent = () => {
     selectCategory,
     toggleArticleStaffOnly,
     setArticles,
-    toggleArticleArchive
+    toggleArticleArchive,
   } = useContext(ContentContext);
 
   const handleToggleSection = (categoryId: number) => {
@@ -74,7 +74,6 @@ export const AdminDashboard: FunctionalComponent = () => {
     }
   };
 
-
   const handleToggleArchive = async (articleId: number) => {
     setArticles((prevArticles: Article[]) =>
       prevArticles.map((article) =>
@@ -111,12 +110,14 @@ export const AdminDashboard: FunctionalComponent = () => {
               Content Management
             </h2>
             <div className="relative popover-container space-x-2">
-              <button
-                onClick={() => route("/admin/logs")}
-                className="px-4 py-2 bg-indigo-100 text-stone-800 hover:text-white font-bold rounded hover:bg-indigo-600 transition duration-300 ease-in-out"
-              >
-                Visit Admin Logs
-              </button>
+              {isFeatureEnabled("ViewAdminLogs") && (
+                <button
+                  onClick={() => route("/admin/logs")}
+                  className="px-4 py-2 bg-indigo-100 text-stone-800 hover:text-white font-bold rounded hover:bg-indigo-600 transition duration-300 ease-in-out"
+                >
+                  Visit Admin Logs
+                </button>
+              )}
               <button
                 onClick={() => setIsPopoverOpen(!isPopoverOpen)}
                 className="px-4 py-2 bg-indigo-50 text-stone-800 transition hover:text-white font-medium rounded-md inline-flex items-center"
@@ -209,9 +210,7 @@ export const AdminDashboard: FunctionalComponent = () => {
                       {isFeatureEnabled("EditCategory") && (
                         <button
                           onClick={() =>
-                            route(
-                              `/admin/edit/category/${category.CategoryID}`
-                            )
+                            route(`/admin/edit/category/${category.CategoryID}`)
                           }
                           className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out"
                         >
@@ -226,10 +225,11 @@ export const AdminDashboard: FunctionalComponent = () => {
                           className={`flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ${
                             article.Archived ? "bg-stone-50" : ""
                           } ${
-                            article.StaffOnly ? "border-l-4 border-indigo-600" : ""
+                            article.StaffOnly
+                              ? "border-l-4 border-indigo-600"
+                              : ""
                           }`}
-                        >                          
-
+                        >
                           <div>
                             <h4 className="font-medium text-lg">
                               {article.Title}
@@ -238,10 +238,11 @@ export const AdminDashboard: FunctionalComponent = () => {
                             <div className="flex space-x-4 text-sm mt-1">
                               {isFeatureEnabled("ArchiveArticle") && (
                                 <button
-                                onClick={() =>
-                                  handleToggleArchive(article.ArticleID)
-                                }
-                                className="text-indigo-500 hover:underline">
+                                  onClick={() =>
+                                    handleToggleArchive(article.ArticleID)
+                                  }
+                                  className="text-indigo-500 hover:underline"
+                                >
                                   {article.Archived ? "Unarchive" : "Archive"}
                                 </button>
                               )}
@@ -260,7 +261,7 @@ export const AdminDashboard: FunctionalComponent = () => {
                             </div>
                           </div>
 
-                          {isFeatureEnabled("StaffOnly") && (
+                          {isFeatureEnabled("EditArticle") && (
                             <button
                               onClick={() => handleEdit(article.ArticleID)}
                               className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"

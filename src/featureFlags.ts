@@ -45,26 +45,26 @@
     // TextDiffViewer: false, // Set this to true or false to enable/disable text diff viewer
     HomeSearch: false, // Set this to true or false to enable/disable home search
     StaffOnly: true, // Set this to true or false to enable/disable the staff only feature
-    ArchiveArticle: true, // Set this to true or false to enable/disable archiving articles
-    CreateCategory: true, // Set this to true or false to enable/disable category creation
-    CreateArticle: true, // Set this to true or false to enable/disable article creation
+    ArchiveArticle: false, // Set this to true or false to enable/disable archiving articles
+    CreateCategory: false, // Set this to true or false to enable/disable category creation
+    CreateArticle: false, // Set this to true or false to enable/disable article creation
     EditArticle: true, // Set this to true or false to enable/disable article editing
-    DeleteArticle: true, // Set this to true or false to enable/disable article deletion
-    DeleteCategory: true, // Set this to true or false to enable/disable category deletion
-    EditCategory: true, // Set this to true or false to enable/disable category editing
-    ViewArticleHistoryDiff: true, // Set this to true or false to enable/disable viewing article history
+    DeleteArticle: false, // Set this to true or false to enable/disable article deletion
+    DeleteCategory: false, // Set this to true or false to enable/disable category deletion
+    EditCategory: false, // Set this to true or false to enable/disable category editing
+    ViewArticleHistoryDiff: false, // Set this to true or false to enable/disable viewing article history
     ViewArticleHistoryChangelog: false, // Set this to true or false to enable/disable viewing article history
-    ViewChangeLog: true, // Set this to true or false to enable/disable viewing the change log for an article
-    ViewAdminLogs: true, // Set this to true or false to enable/disable viewing admin logs
-    CategoriesPage: true, // Set this to true or false to enable/disable the categories page
-    SpecificCategoryPage: true, // Set this to true or false to enable/disable the specific category page
-    BackButtonArticleView: true, // Set this to true or false to enable/disable the back button when viewing an article
+    ViewChangeLog: false, // Set this to true or false to enable/disable viewing the change log for an article
+    ViewAdminLogs: false, // Set this to true or false to enable/disable viewing admin logs
+    CategoriesPage: false, // Set this to true or false to enable/disable the categories page
+    SpecificCategoryPage: false, // Set this to true or false to enable/disable the specific category page
+    BackButtonArticleView: false, // Set this to true or false to enable/disable the back button when viewing an article
     Breadcrumbs: false, // Set this to true or false to enable/disable breadcrumbs
     AdminDashboard: true, // Set this to true or false to enable/disable admin login
     PreviewArticle: true, // Set this to true or false to enable/disable previewing articles
     NotificationBanner: false, // Feature flag for the little notification / banner at the top of the page
-    ViewArticleChangelog: true, // Feature flag for the little notification / banner at the top of the page
-    ViewPotentialArticleChanges: true, // Feature flag for the little notification / banner at the top of the page
+    ViewArticleChangelog: false, // Feature flag for the little notification / banner at the top of the page
+    ViewPotentialArticleChanges: false, // Feature flag for the little notification / banner at the top of the page
     articleDetailedCharacterLimit: false // Feature flag for the little notification / banner at the top of the page
   };
     

@@ -163,25 +163,25 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
         if (path.includes("/edit/article") && articleId) {
           // Since you already have the article from the context, you don't need to find it again
           if (article) {
-            breadcrumbItems.push(
-              <li key="edit" className="inline">
-                <span className="mx-2 text-gray-500">/</span>
-                <Link
-                  href={`/admin/edit/article/${articleId}`}
-                  className="text-indigo-600 hover:text-indigo-800"
-                  onClick={onBreadcrumbClick}
-                >
-                  Edit Article
-                </Link>
-              </li>
-            );
+            // breadcrumbItems.push(
+            //   <li key="edit" className="inline">
+            //     <span className="mx-2 text-gray-500">/</span>
+            //     <Link
+            //       href={`/admin/edit/article/${articleId}`}
+            //       className="text-indigo-600 hover:text-indigo-800"
+            //       onClick={onBreadcrumbClick}
+            //     >
+            //       Edit Article
+            //     </Link>
+            //   </li>
+            // );
       
-            breadcrumbItems.push(
-              <li key={`article-${articleId}`} className="inline font-bold">
-                <span className="mx-2 text-gray-500">/</span>
-                {article.Title}
-              </li>
-            );
+            // breadcrumbItems.push(
+            //   <li key={`article-${articleId}`} className="inline font-bold">
+            //     <span className="mx-2 text-gray-500">/</span>
+            //     {article.Title}
+            //   </li>
+            // );
           }
         }
       }
