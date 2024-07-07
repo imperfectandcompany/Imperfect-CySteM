@@ -46,7 +46,7 @@
     HomeSearch: false, // Set this to true or false to enable/disable home search
     StaffOnly: true, // Set this to true or false to enable/disable the staff only feature
     ArchiveArticle: false, // Set this to true or false to enable/disable archiving articles
-    CreateCategory: false, // Set this to true or false to enable/disable category creation
+    CreateCategory: true, // Set this to true or false to enable/disable category creation
     CreateArticle: false, // Set this to true or false to enable/disable article creation
     EditArticle: true, // Set this to true or false to enable/disable article editing
     DeleteArticle: false, // Set this to true or false to enable/disable article deletion
