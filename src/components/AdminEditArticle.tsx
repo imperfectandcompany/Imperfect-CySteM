@@ -1,5 +1,11 @@
 import { FunctionalComponent } from "preact";
-import { useState, useEffect, useRef, useContext } from "preact/hooks";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  StateUpdater,
+} from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
@@ -8,7 +14,12 @@ import { AdminError } from "./AdminError";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
-import { ArticleVersion, ArticleVersionsResponse, ContentContext } from "../contexts/ContentContext";
+import {
+  ArticleVersion,
+  ArticleVersionsResponse,
+  Category,
+  ContentContext,
+} from "../contexts/ContentContext";
 
 interface Props {
   matches: {
@@ -19,23 +30,36 @@ interface Props {
 export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const { articleId } = matches; // Access articleId from matches
 
-
-  const { fetchArticle, updateArticle, fetchArticleVersions, updateArticleById, loading, fetchArticleActionLogs, error } =
-    useContext(ContentContext); // Destructure the needed functions from the context
+  const {
+    fetchArticle,
+    updateArticle,
+    fetchArticleVersions,
+    updateArticleById,
+    loading,
+    fetchArticleActionLogs,
+    categories,
+    error,
+  } = useContext(ContentContext); // Destructure the needed functions from the context
 
   // const { isAuthenticated, isStaff } = useMockAuth();
   const [history, setHistory] = useState<ArticleVersion[]>();
 
+  const [articleText, setArticleText] = useState("");
 
-  const [articleText, setArticleText] = useState('');
+// Initialize selectedCategory with a numeric value or undefined
+const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     const fetchArticleData = async () => {
       try {
-        const fetchedArticle:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+        const fetchedArticle: ArticleVersionsResponse =
+          await fetchArticleVersions(articleId);
         setHistory(fetchedArticle.versions);
         setArticleText(fetchedArticle.versions[0].DetailedDescription);
-          fetchArticleActionLogs(articleId);
+        if (fetchedArticle && fetchedArticle.versions.length > 0) {
+          setSelectedCategory(Number(fetchedArticle.versions[0].CategoryID));
+        }
+        fetchArticleActionLogs(articleId);
       } catch (error: any) {
         console.error("Failed to fetch article:", error);
       }
@@ -52,20 +76,17 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     return <AdminError message={error} />;
   }
 
-
   const [count, setCount] = useState(0);
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-
-  
   const handleKeyUp = () => {
-    if(isFeatureEnabled("articleDetailedCharacterLimit")){
+    if (isFeatureEnabled("articleDetailedCharacterLimit")) {
       if (textAreaRef.current) {
         setCount(textAreaRef.current.value.length);
-      }}
-    };
-
+      }
+    }
+  };
 
   const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target as HTMLTextAreaElement;
@@ -111,46 +132,47 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
 
   // Check if articleText is defined before parsing
   const contentElements = articleText ? parseContent(articleText) : null;
-  const renderedContent = contentElements ? renderContent(contentElements) : null;
+  const renderedContent = contentElements
+    ? renderContent(contentElements)
+    : null;
 
+  // useEffect(() => {
+  //   // Fetch the article by ID
+  //   const fetchArticleData = async () => {
+  //     try {
+  //       const id = Number(articleId);
+  //       if (!isNaN(id)) {
+  //         // Now you can use id to fetch data
+  //         const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+  //         if (versionsData.status === 'success' && versionsData.versions.length > 0) {
+  //           const fetchedArticle = versionsData.versions[0]; // Access the first article in the array
+  //           setArticle(fetchedArticle);
+  //           setArticleText(fetchedArticle.DetailedDescription);
+  //           // If you need to fetch the history of article versions
+  //           // fetchArticleVersions is expecting an article ID and returns an array
+  //           // if(isFeatureEnabled("ViewArticleChangelog")){
+  //           //   const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
+  //             setHistory(versionsData.versions);
+  //           // }
+  //         } else {
+  //           // Handle the case where the response does not contain the article data
+  //           console.error("Article data is not in the expected format:", versionsData);
+  //         }
+  //       } else {
+  //         // Handle the case where articleId is not a valid number
+  //         throw new Error("Article ID is not a valid number");
+  //       }
+  //     } catch (error) {
+  //       // Handle the error by setting an error message or logging it
+  //       console.error("Failed to fetch article data:", error);
+  //     }
+  //   };
 
-// useEffect(() => {
-//   // Fetch the article by ID
-//   const fetchArticleData = async () => {
-//     try {
-//       const id = Number(articleId);
-//       if (!isNaN(id)) {
-//         // Now you can use id to fetch data
-//         const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
-//         if (versionsData.status === 'success' && versionsData.versions.length > 0) {
-//           const fetchedArticle = versionsData.versions[0]; // Access the first article in the array
-//           setArticle(fetchedArticle);
-//           setArticleText(fetchedArticle.DetailedDescription);
-//           // If you need to fetch the history of article versions
-//           // fetchArticleVersions is expecting an article ID and returns an array
-//           // if(isFeatureEnabled("ViewArticleChangelog")){
-//           //   const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
-//             setHistory(versionsData.versions);
-//           // }
-//         } else {
-//           // Handle the case where the response does not contain the article data
-//           console.error("Article data is not in the expected format:", versionsData);
-//         }
-//       } else {
-//         // Handle the case where articleId is not a valid number
-//         throw new Error("Article ID is not a valid number");
-//       }
-//     } catch (error) {
-//       // Handle the error by setting an error message or logging it
-//       console.error("Failed to fetch article data:", error);
-//     }
-//   };
-
-//   fetchArticleData();
-// }, []);
+  //   fetchArticleData();
+  // }, []);
 
   const saveEdit = async () => {
-    if (!history) return;
+    if (!history || !selectedCategory) return;
 
     // // Prepare the updated article data
     // const updatedArticleData = {
@@ -159,28 +181,25 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     //   // Include other fields that might have changed
     // };
 
-  // Prepare the updated article data
-  const updatedArticleData = {
-    categoryId: history[0].CategoryID, // Ensure this is correctly sourced from the current article state or form
-    title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
-    description: history[0].Description, // Ensure this is correctly sourced from the current article state or form
-    detailedDescription: articleText, // This comes from the state handling the text area
-    imgSrc: history[0].ImgSrc, // Ensure this is correctly sourced from the current article state or form
-  };
-
+    // Prepare the updated article data
+    const updatedArticleData = {
+      categoryId: selectedCategory, // Ensure this is correctly sourced from the selected category dropdown
+      title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
+      description: history[0].Description, // Ensure this is correctly sourced from the current article state or form
+      detailedDescription: articleText, // This comes from the state handling the text area
+      imgSrc: history[0].ImgSrc, // Ensure this is correctly sourced from the current article state or form
+    };
 
     try {
       // Use the API to update the article
-      await updateArticleById(
-        history[0].ArticleID,
-        updatedArticleData
-      );
+      await updateArticleById(history[0].ArticleID, updatedArticleData);
       // setArticle(updatedArticle);
       // Update the history with the new version
-      const versionsHistory:ArticleVersionsResponse = await fetchArticleVersions(history[0].ArticleID);
-      setHistory(versionsHistory.versions);           
-                      // Reset the isContentChanged state
-                      setArticleText(versionsHistory.versions[0].DetailedDescription); 
+      const versionsHistory: ArticleVersionsResponse =
+      await fetchArticleVersions(history[0].ArticleID);
+      setHistory(versionsHistory.versions);
+      // Reset the isContentChanged state
+      setArticleText(versionsHistory.versions[0].DetailedDescription);
     } catch (error) {
       // Handle error
       console.error("Failed to update article:", error);
@@ -213,11 +232,11 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   //   }
   // };
 
-  // This will determine if the articleText is different from the original article content
-  const isContentChanged =
-    history &&
-    articleText !== history[0]?.DetailedDescription;
-
+// This will determine if the articleText or the category is different from the original
+const isContentChanged = history && (
+  articleText !== history[0]?.DetailedDescription ||
+  selectedCategory !== history[0]?.CategoryID
+);
   // Content display based on the current view
   const displayContent = () => {
     switch (currentView) {
@@ -291,10 +310,11 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
                     Reset
                   </button>
                 </div>
-        {(isFeatureEnabled("articleDetailedCharacterLimit")) && (
-                <div className="ml-auto text-xs font-semibold text-gray-400 count">
-                  {count} / {280}
-                </div>)}
+                {isFeatureEnabled("articleDetailedCharacterLimit") && (
+                  <div className="ml-auto text-xs font-semibold text-gray-400 count">
+                    {count} / {280}
+                  </div>
+                )}
               </div>
             </form>
           </>
@@ -326,7 +346,8 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
           </>
         );
       case "potentialChanges":
-        return history && history[0]?.DetailedDescription !== articleText ? (      <TextDiffViewer
+        return history && history[0]?.DetailedDescription !== articleText ? (
+          <TextDiffViewer
             oldText={history[0].DetailedDescription}
             newText={articleText}
           />
@@ -336,6 +357,12 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
       default:
         return null;
     }
+  };
+
+  const handleCategoryChange = (event: {
+    target: { value: StateUpdater<string> };
+  }) => {
+    setSelectedCategory(event.target.value);
   };
 
   return (
@@ -350,14 +377,15 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
         </h1>
         {isFeatureEnabled("ViewPotentialArticleChanges") && (
           <button
-          className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out disabled:cursor-default disabled:opacity-20"
+            className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out disabled:cursor-default disabled:opacity-20"
             onClick={() =>
               currentView === "raw" || currentView === "rendered"
                 ? togglePotentialChanges()
                 : toggleRaw()
             }
             disabled={
-              history && history[0]?.DetailedDescription === articleText &&
+              history &&
+              history[0]?.DetailedDescription === articleText &&
               (currentView === "raw" || currentView === "rendered")
             }
           >
@@ -366,9 +394,34 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
               : "Back to Edit"}
           </button>
         )}
+
+<div className="my-4">
+          <label
+            htmlFor="categorySelect"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Category
+          </label>
+          <select
+            id="categorySelect"
+            value={selectedCategory}
+            onChange={(event) => {
+              const target = event.target as HTMLSelectElement;
+              setSelectedCategory(Number(target.value));
+            }}
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          >
+            {categories.map((category: Category) => (
+              <option key={category.CategoryID} value={category.CategoryID}>
+                {category.Title}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {displayContent()}
-        {(isFeatureEnabled("ViewArticleChangelog") && history) && (
-        <AdminArticleHistoryView versions={history} />
+        {isFeatureEnabled("ViewArticleChangelog") && history && (
+          <AdminArticleHistoryView versions={history} />
         )}
       </div>
     </>
