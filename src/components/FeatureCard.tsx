@@ -33,11 +33,12 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
   matches,
   onClick,
   detailedDescription,
+  slug,
   searchQuery,
+  staffOnly,
   showImage = true, // Default true to show images for articles
 }) => {
-  const titleSlug = generateSlug(title);
-  const href = `/article/${titleSlug}`;
+  const href = `/article/${slug}`;
   const [pressTimer, setPressTimer] = useState<number | null>(null);
   const [pressStartTime, setPressStartTime] = useState<number | null>(null);
   const [pressType, setPressType] = useState<"none" | "short" | "long">("none");
@@ -96,7 +97,7 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
   };
 
   const handleContextMenu = (event: MouseEvent) => {
-    if (isFeatureEnabled('ContextMenu')) {
+    if (isFeatureEnabled("ContextMenu")) {
       event.preventDefault();
       const xPosition = event.clientX;
       const yPosition = event.clientY;
@@ -112,13 +113,13 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
 
   useEffect(() => {
     if (contextMenuVisible) {
-      window.addEventListener('scroll', handleScroll);
+      window.addEventListener("scroll", handleScroll);
     } else {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     }
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [contextMenuVisible]);
 
@@ -143,25 +144,26 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
     };
   }, [pressTimer]);
 
-
   const handleOpen = () => {
     onClick();
     route(href);
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.origin + href)
+    navigator.clipboard
+      .writeText(window.location.origin + href)
       .then(() => alert("Link copied to clipboard!"))
-      .catch(err => console.error("Failed to copy link: ", err));
+      .catch((err) => console.error("Failed to copy link: ", err));
   };
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: title,
-        url: window.location.origin + href,
-      })
-        .catch(err => console.error("Error sharing: ", err));
+      navigator
+        .share({
+          title: title,
+          url: window.location.origin + href,
+        })
+        .catch((err) => console.error("Error sharing: ", err));
     } else {
       alert("Share not supported on this browser.");
     }
@@ -171,7 +173,9 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
     <div
       ref={cardRef}
       aria-label={`Learn more about ${title}`}
-      className={`clickable overflow-visible ${pressType === "long" ? "cursor-auto" : ""}`}
+      className={`clickable overflow-visible ${
+        pressType === "long" ? "cursor-auto" : ""
+      }`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
@@ -179,7 +183,8 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
       style={{ opacity: pressType === "long" ? 0.5 : 1 }}
     >
       <article className="card">
-      {showImage && ( // Conditionally render the image
+        {showImage && ( // Conditionally render the image
+        
           <img
             alt={`Icon representing ${title}`}
             height="100"
@@ -188,6 +193,11 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
           />
         )}
         <div className="card-content">
+        {staffOnly && (
+<div className="center relative select-none whitespace-nowrap rounded-lg bg-pink-500 py-2 px-3.5 align-baseline font-sans text-xs font-bold uppercase leading-none text-white">
+Staff Only
+</div>
+    )}
           <h3
             className="mt-5 text-sm font-medium leading-6 text-black/75"
             dangerouslySetInnerHTML={{
@@ -221,7 +231,7 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
           )}
         </div>
       </article>
-      {isFeatureEnabled('ContextMenu') && (
+      {isFeatureEnabled("ContextMenu") && (
         <ContextMenu
           x={contextMenuPosition.x}
           y={contextMenuPosition.y}

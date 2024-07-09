@@ -145,7 +145,7 @@ export interface Article {
 
   interface ArticleResponse {
     status: string;
-    article: Article;
+    article: Article[];
   }
 
 export  interface DeletedArticlesResponse {
@@ -296,7 +296,7 @@ const [deletedArticles, setDeletedArticles] = useState<Article[]>([]);
     setLoading(true);
     try {
       const articleData: ArticleResponse = await fetchArticleBySlug(slug);
-      const article = articleData.article;
+      const article = articleData.article[0];
       if (article) {
         // Update the cache with the new article
         setArticleCache((prev) => ({ ...prev, [article.ArticleID]: article }));
