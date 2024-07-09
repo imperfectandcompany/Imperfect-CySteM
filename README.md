@@ -14,6 +14,25 @@
 	<img src="https://img.shields.io/github/last-commit/imperfectandcompany/Imperfect-Gamers-Site-Support?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 <p>
 
+
+
+Screenshots (july 9):
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/8a80493a-b8c4-4f00-946d-3cf404c18fdf">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/65c1e04e-b876-43c6-b44c-6a90635e68ce">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/9c4a5300-cae0-41f7-9ede-3c17a48d6976">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/7c8d898e-be22-4201-9794-5cab6334b640">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/b4928f62-528a-4560-a5d0-31a98ac05329">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/69e91e0d-c07e-47bc-8bd5-b87185c4697e">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/ca8a557f-2f96-4dfa-8661-0b21c0fd3ecd">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/f59b412f-9d02-41ea-839b-bafc0025f53a">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/78e6e755-fdca-441d-ad8a-7aae20fec0d1">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/0b109ef2-f488-4ef5-82c9-a7430df4f659">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/a8cfce92-1191-4886-94f1-0d83ddea6258">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/def3f502-784e-47ce-96e7-ee9f227a4cd8">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/4aba0d5b-c6d4-4a39-876f-68b3e73110a3">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/06117b85-d21e-41be-9cd5-901fa9964625">
+<img width="1453" alt="image" src="https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support/assets/3193289/3677ad44-543f-4d12-87d8-48286ca6e7c5">
+
 ---
 
 ## 📍 Overview
