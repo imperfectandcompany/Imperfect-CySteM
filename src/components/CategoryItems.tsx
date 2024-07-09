@@ -7,6 +7,7 @@ import Breadcrumb from "./Breadcrumb";
 import { AccessRestricted } from "./AccessRestricted";
 import { useContext } from "preact/hooks";
 import { Article, ContentContext } from "../contexts/ContentContext";
+import { useAuth } from "../contexts/AuthContext";
 
 interface CategoryItemsProps {
   categorySlug: string;
@@ -33,9 +34,18 @@ export const CategoryItems: FunctionalComponent<
 
   // const userIsStaff = isStaff(); // Call the method to check if user is staff
 content?.selectCategory(category.CategoryID)
+
+const { isAuthenticated } = useAuth();
+
   // Now you have the category ID, you can use it as needed to fetch or reference articles
   const filteredArticles = content?.articles.filter(
-    (article) => article.CategoryID === category.CategoryID
+    (article) => {
+      if (isAuthenticated) {
+        return (article.CategoryID === category.CategoryID) && (article.Archived === 0);
+      } else {
+        return (article.CategoryID === category.CategoryID) && (article.Archived === 0) && (article.StaffOnly === 0);
+      }
+    }
   );
 
   return (
