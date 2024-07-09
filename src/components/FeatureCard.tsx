@@ -33,11 +33,12 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
   matches,
   onClick,
   detailedDescription,
+  slug,
   searchQuery,
   showImage = true, // Default true to show images for articles
 }) => {
-  const titleSlug = generateSlug(title);
-  const href = `/article/${titleSlug}`;
+
+  const href = `/article/${slug}`;
   const [pressTimer, setPressTimer] = useState<number | null>(null);
   const [pressStartTime, setPressStartTime] = useState<number | null>(null);
   const [pressType, setPressType] = useState<"none" | "short" | "long">("none");

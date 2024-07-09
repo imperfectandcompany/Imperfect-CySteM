@@ -1,14 +1,20 @@
 // src/components/Categories.tsx
 
-import { Link } from 'preact-router';
-import { content } from '../content';
-import { generateSlug } from '../utils';
-import Breadcrumb from './Breadcrumb';
-import { useContext } from 'preact/hooks';
-import { ContentContext } from '../contexts/ContentContext';
+import { Link } from "preact-router";
+import { content } from "../content";
+import { generateSlug } from "../utils";
+import Breadcrumb from "./Breadcrumb";
+import { useContext } from "preact/hooks";
+import { ContentContext } from "../contexts/ContentContext";
+import { Category } from "../contexts/ContentContext";
 
-
-export const Categories = ({ path, onBreadcrumbClick }: { path: string, onBreadcrumbClick: () => void }) => {
+export const Categories = ({
+  path,
+  onBreadcrumbClick,
+}: {
+  path: string;
+  onBreadcrumbClick: () => void;
+}) => {
   // const categories = Object.values(content.sections).map(
   //   section => {
   //     const latestVersion = section.versions.slice(-1)[0];
@@ -19,7 +25,7 @@ export const Categories = ({ path, onBreadcrumbClick }: { path: string, onBreadc
   //   }
   // );
 
-  const content = useContext(ContentContext);
+  const { categories } = useContext(ContentContext);
 
   if (!content) {
     return <div>Loading...</div>;
@@ -33,7 +39,7 @@ export const Categories = ({ path, onBreadcrumbClick }: { path: string, onBreadc
           Categories
         </h1>
         <ul className="mt-8">
-          {content.categories.map((category) => (
+          {categories?.map((category: Category) => (
             <li key={category.CategoryID} className="mb-4">
               <Link
                 href={`/category/${category.Slug}`}

@@ -49,6 +49,7 @@ content?.selectCategory(category.CategoryID)
           {category.Title}
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
+          
           {filteredArticles?.map((article: Article) => (
             <FeatureCard
               key={article.ArticleID} // Use card ID as key
