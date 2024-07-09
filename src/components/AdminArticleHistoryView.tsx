@@ -1,5 +1,5 @@
 import { FunctionalComponent } from "preact";
-import { useContext, useEffect, useState } from "preact/hooks";
+import { useContext, useState } from "preact/hooks";
 import { ContentContext, ActionLog, ArticleVersion } from "../contexts/ContentContext";
 
 interface AdminArticleHistoryViewProps {
@@ -7,7 +7,7 @@ interface AdminArticleHistoryViewProps {
 }
 
 export const AdminArticleHistoryView: FunctionalComponent<AdminArticleHistoryViewProps> = ({ versions }) => {
-  const { actionLogs, fetchArticleActionLogs, loading } = useContext(ContentContext);
+  const { actionLogs, loading } = useContext(ContentContext);
 
   // Assuming versions is always an array (even if empty)
   const articleId = versions.length > 0 ? versions[0].ArticleID : null;
@@ -75,16 +75,16 @@ if (loading) {
 
 
   return (
-    <div className="xl mx-auto p-5 bg-gray-100 rounded-lg shadow">
+    <div className="xl mx-auto p-5 bg-yellow-50/25 rounded-sm shadow mt-12">
       <h2 className="text-xl font-bold mb-4">Change History ({versions.length})</h2>
       {versions.map((version, index) => {
         const isActive = expandedVersion === version.VersionID;
         const logsForVersion = actionLogs[articleId].filter((log: ActionLog) => log.VersionID === version.VersionID) || [];
         return (
-          <div key={version.VersionID} className="mb-4 p-4 bg-white rounded shadow-sm">
+          <div key={version.VersionID} className="mb-4 p-4 bg-stone-50/25 rounded shadow-sm">
             <button onClick={() => toggleVersionDetail(version.VersionID)} className="flex justify-between items-center w-full text-left">
               <p className="font-semibold text-gray-800">
-                Version {versions.length - index} edited on {new Date(version.CreatedAt).toLocaleString()}
+                Version {versions.length - index} {versions.length - index === 1 ? 'created' : 'edited'} on {new Date(version.CreatedAt).toLocaleString()}
               </p>
               <span className={`transform transition-transform duration-300 text-indigo-500 ${isActive ? "rotate-180" : "rotate-0"}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

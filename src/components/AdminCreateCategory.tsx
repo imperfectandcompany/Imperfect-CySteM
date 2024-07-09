@@ -1,9 +1,10 @@
 import { FunctionalComponent } from "preact";
-import { useState, useRef } from "preact/hooks";
+import { useState, useRef, useContext } from "preact/hooks";
 import { route } from "preact-router";
 import Breadcrumb from "./Breadcrumb";
 import { API_BASE_URL } from "../api";
-import { getToken } from "../utils";
+import { generateSlug, getToken } from "../utils";
+import { Category, CategoryCreateResponse, ContentContext } from "../contexts/ContentContext";
 
 export const AdminCreateCategory: FunctionalComponent = () => {
   const [categoryName, setCategoryName] = useState("");
@@ -29,6 +30,8 @@ export const AdminCreateCategory: FunctionalComponent = () => {
     }, 500);
   };
 
+  const { setCategories } = useContext(ContentContext);
+
   const handleCreate = async (event: Event) => {
     event.preventDefault();
     if (formRef.current?.checkValidity() === false || categoryExists) {
@@ -48,13 +51,18 @@ export const AdminCreateCategory: FunctionalComponent = () => {
       body: JSON.stringify({ categoryTitle: categoryName }),
     });
 
-    const result = await response.json();
+    const result:CategoryCreateResponse = await response.json();
     console.log('result: ', result);
 
     setLoading(false);
     if (result && result.status == 'success') {
       // alert("Category created successfully!");
       console.log({result});
+          // Update the categories in the context
+    setCategories((prevCategories: Category[]) => [
+      ...prevCategories,
+      { CategoryID: result.categoryId, Title: categoryName, ArticleCount: 0, Slug:generateSlug(categoryName) }
+    ]);
       route("/admin/dashboard");
     } else {
       console.log({result});

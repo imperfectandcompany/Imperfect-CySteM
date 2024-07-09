@@ -22,6 +22,7 @@ import AdminEditCategory from "./components/AdminEditCategory";
 import { isFeatureEnabled } from "./featureFlags";
 import { getToken, removeUserToken } from "./utils";
 import { ContentProvider, IArticle } from "./contexts/ContentContext";
+import { AdminRecycleBin } from "./components/AdminRecycleBin";
 
 export interface AppState {
   searchQuery: string | null;
@@ -424,6 +425,15 @@ export function App(): VNode {
                     path="/admin/create/category"
                   />
                 )}
+
+
+{isFeatureEnabled("ViewRecycleBin") && (
+                  <AdminRoute
+                    component={AdminRecycleBin}
+                    path="/admin/recycle-bin"
+                  />
+                )}
+
                 {isFeatureEnabled("EditArticle") && (
                   <AdminRoute component={AdminEditArticle} path="/admin/edit/article/:articleId" />
                 )}

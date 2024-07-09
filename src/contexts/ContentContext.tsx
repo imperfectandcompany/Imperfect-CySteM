@@ -9,7 +9,11 @@ import {
   toggleArticleArchiveStatus,
   toggleArticleStaffOnlyStatus,
   API_BASE_URL,
-  fetchArticleActionLogsCall
+  fetchArticleActionLogsCall,
+  restoreArticle,
+  restoreCategory,
+  fetchDeletedArticles,
+  fetchDeletedCategories
 } from "../api";
 import { getToken } from "../utils";
 
@@ -27,6 +31,7 @@ export interface Category {
     Slug: string;
     CreatedAt: string;
     UpdatedAt: string | null;
+    DeletedAt: string | null;
     ArticleCount: number;
   }
   
@@ -47,10 +52,17 @@ interface ContentContextType {
   toggleArticleArchive: (articleId: number) => Promise<void>; // Add this line
   toggleArticleStaffOnly: (articleId: number) => Promise<void>; // Add this line
   setArticles: (articles: Article[] | IArticle[]) => void;
+  setCategories: (categories: Category[]) => void;
   updateArticleById: (articleId: number, updatedData: Partial<Article>) => void; // Fix the implicit 'any' type
   fetchArticleVersions: (articleId: number) => Promise<ArticleVersionsResponse>; // Fix the implicit 'any' type
   fetchArticleActionLogs: (articleId: number) => Promise<void>;
   actionLogs:any;
+  deletedCategories: Category[];
+  deletedArticles: Article[];
+  handleRestoreArticle: (articleId: number) => Promise<void>;
+  handleRestoreCategory: (categoryId: number) => Promise<void>;
+  fetchAndSetDeletedCategories: () => Promise<void>;
+  fetchAndSetDeletedArticles: () => Promise<void>;
 }
 
 export interface Article {
@@ -66,6 +78,7 @@ export interface Article {
     Version: number;
     CreatedAt: string;
     UpdatedAt: string | null;
+    DeletedAt: string | null;
   }
 
   export interface IArticle {
@@ -81,6 +94,7 @@ export interface Article {
     Version: number;
     CreatedAt: string;
     UpdatedAt: string | null;
+    DeletedAt: string | null;
   }
   
   export interface ArticleVersion {
@@ -102,6 +116,27 @@ export interface Article {
     versions: ArticleVersion[];
   }
 
+  // export interface CreateArticleResponse {
+  //   status: string;
+  //   versions: ArticleVers[];
+  // }
+
+  export interface ArticleSlugCheckResponse {
+    status: string;
+    article: Article | 'Article not found';
+  }
+
+  export interface CategoryCreateResponse {
+    status: string;
+    message: string;
+    categoryId: number;
+  }
+
+  export interface ArticleCreateResponse {
+    status: string;
+    message: string;
+    articleID: number;
+  }
   
   interface ArticlesResponse {
     status: string;
@@ -110,7 +145,17 @@ export interface Article {
 
   interface ArticleResponse {
     status: string;
-    article: Article[];
+    article: Article;
+  }
+
+export  interface DeletedArticlesResponse {
+    status: string;
+    deletedArticles: Article[];
+  }
+
+  export interface DeletedCategoriesResponse {
+    status: string;
+    deletedCategories: Category[];
   }
 
 // Define an interface for a single log entry
@@ -146,7 +191,9 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
     // This will hold the articles for each category that has been fetched
     const [categoryArticlesCache, setCategoryArticlesCache] = useState<{ [categoryId: number]: Article[] }>({});
 
-
+// Add new state hooks for deleted categories and articles
+const [deletedCategories, setDeletedCategories] = useState<Category[]>([]);
+const [deletedArticles, setDeletedArticles] = useState<Article[]>([]);
 
   // const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
   //   null
@@ -249,7 +296,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
     setLoading(true);
     try {
       const articleData: ArticleResponse = await fetchArticleBySlug(slug);
-      const article = articleData.article[0];
+      const article = articleData.article;
       if (article) {
         // Update the cache with the new article
         setArticleCache((prev) => ({ ...prev, [article.ArticleID]: article }));
@@ -372,6 +419,58 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
     const data: ArticleVersionsResponse = await response.json();
     return data;
   };
+  
+// Function to fetch deleted categories
+const fetchAndSetDeletedCategories = async () => {
+  setLoading(true);
+  try {
+    const response:DeletedCategoriesResponse = await fetchDeletedCategories();
+    setDeletedCategories(response.deletedCategories);
+    setLoading(false);
+  } catch (error) {
+    setError('Failed to fetch deleted categories');
+    setLoading(false);
+  }
+};
+
+// Function to fetch deleted articles
+const fetchAndSetDeletedArticles = async () => {
+  setLoading(true);
+  try {
+    const response:DeletedArticlesResponse = await fetchDeletedArticles();
+    setDeletedArticles(response.deletedArticles);
+    setLoading(false);
+  } catch (error) {
+    setError('Failed to fetch deleted articles');
+    setLoading(false);
+  }
+};
+
+
+// Function to restore an article and update context
+const handleRestoreArticle = async (articleId: number) => {
+  try {
+    await restoreArticle(articleId);
+    // Optionally remove the article from deletedArticles state or refetch deleted articles
+    setDeletedArticles(prev => prev.filter(article => article.ArticleID !== articleId));
+    // You might also want to update the articles state if needed
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+// Function to restore a category and update context
+const handleRestoreCategory = async (categoryId: number) => {
+  try {
+    await restoreCategory(categoryId);
+    // Optionally remove the category from deletedCategories state or refetch deleted categories
+    setDeletedCategories(prev => prev.filter(category => category.CategoryID !== categoryId));
+    // You might also want to update the categories state if needed
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 
   return (
     <ContentContext.Provider
@@ -390,7 +489,14 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
         toggleArticleStaffOnly,
         setArticles,
         updateArticleById,
-        fetchArticleVersions
+        setCategories,
+        fetchArticleVersions,
+        deletedCategories,
+        deletedArticles,
+        handleRestoreArticle,
+        handleRestoreCategory,
+        fetchAndSetDeletedCategories,
+        fetchAndSetDeletedArticles,
       }}
     >
       {children}

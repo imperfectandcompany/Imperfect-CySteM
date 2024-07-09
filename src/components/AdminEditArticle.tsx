@@ -8,8 +8,7 @@ import { AdminError } from "./AdminError";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
-import { Article, ArticleVersion, ArticleVersionsResponse, ContentContext } from "../contexts/ContentContext";
-import { fetchArticleById } from "../api";
+import { ArticleVersion, ArticleVersionsResponse, ContentContext } from "../contexts/ContentContext";
 
 interface Props {
   matches: {
