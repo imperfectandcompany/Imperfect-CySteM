@@ -1,5 +1,5 @@
 import { FunctionalComponent } from "preact";
-import { useContext, useState } from "preact/hooks";
+import { useContext, useMemo, useState } from "preact/hooks";
 import { ContentContext, ActionLog, ArticleVersion } from "../contexts/ContentContext";
 
 interface AdminArticleHistoryViewProps {
@@ -21,19 +21,43 @@ export const AdminArticleHistoryView: FunctionalComponent<AdminArticleHistoryVie
 
 
 
-  function getActionStyle(actionType: string) {
-    switch (actionType) {
-      case 'toggle_staff_only':
-        return { icon: '🔒', color: 'text-blue-500', tooltip: 'Toggled staff-only access' };
-      case 'archive_enabled':
-        return { icon: '📦', color: 'text-gray-500', tooltip: 'Archived this version' };
-      case 'updated_detailed_description':
-        return { icon: '✏️', color: 'text-green-500', tooltip: 'Updated detailed description' };
-      default:
-        return { icon: '', color: '', tooltip: '' };
-    }
+  function getActionStyles(actionTypes: string[]) {
+    return actionTypes.map((actionType) => {
+      switch (actionType) {
+        case 'article_created':
+          return { icon: '🆕', color: 'text-green-500', tooltip: 'Article created' };
+        case 'article_deleted':
+          return { icon: '🗑️', color: 'text-red-500', tooltip: 'Article deleted' };
+        case 'article_archived':
+          return { icon: '📦', color: 'text-yellow-500', tooltip: 'Article archived' };
+        case 'article_unarchived':
+          return { icon: '📤', color: 'text-yellow-500', tooltip: 'Article unarchived' };
+        case 'article_category_moved':
+          return { icon: '🔀', color: 'text-purple-500', tooltip: 'Article moved to another category' };
+        case 'article_title_changed':
+          return { icon: '✏️', color: 'text-blue-500', tooltip: 'Article title changed' };
+        case 'article_description_changed':
+          return { icon: '✏️', color: 'text-blue-500', tooltip: 'Article description changed' };
+        case 'article_detailed_description_changed':
+          return { icon: '✏️', color: 'text-green-500', tooltip: 'Detailed description updated' };
+        case 'article_img_src_changed':
+          return { icon: '🖼️', color: 'text-indigo-500', tooltip: 'Article image source changed' };
+        case 'article_set_staff_only':
+          return { icon: '🔒', color: 'text-blue-500', tooltip: 'Article set to staff-only' };
+        case 'article_set_public':
+          return { icon: '🔓', color: 'text-blue-500', tooltip: 'Article set to public' };
+        case 'article_restored':
+          return { icon: '♻️', color: 'text-green-500', tooltip: 'Article restored' };
+        case 'article_content_update_failed':
+          return { icon: '⚠️', color: 'text-red-500', tooltip: 'Article update failed' };
+        default:
+          return { icon: '❓', color: 'text-gray-500', tooltip: 'Unknown action' };
+      }
+    });
   }
   
+
+
 
 const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
 
@@ -80,11 +104,31 @@ if (loading) {
       {versions.map((version, index) => {
         const isActive = expandedVersion === version.VersionID;
         const logsForVersion = actionLogs[articleId].filter((log: ActionLog) => log.VersionID === version.VersionID) || [];
+
+        const groupedLogs = useMemo(() => {
+          const groups = new Map();
+          logsForVersion.forEach((log:ActionLog) => {
+            const groupKey = `${log.VersionID}-${log.CreatedAt}`;
+            if (!groups.has(groupKey)) {
+              groups.set(groupKey, {
+                versionID: log.VersionID,
+                createdAt: log.CreatedAt,
+                username: log.Username,
+                userID: log.UserID,
+                actions: []
+              });
+            }
+            const group = groups.get(groupKey);
+            group.actions.push(...JSON.parse(log.ActionType));
+          });
+          return Array.from(groups.values());
+        }, [logsForVersion]);
+
         return (
           <div key={version.VersionID} className="mb-4 p-4 bg-stone-50/25 rounded shadow-sm">
             <button onClick={() => toggleVersionDetail(version.VersionID)} className="flex justify-between items-center w-full text-left">
               <p className="font-semibold text-gray-800">
-                Version {versions.length - index} {versions.length - index === 1 ? 'created' : 'edited'} on {new Date(version.CreatedAt).toLocaleString()}
+                [Version {versions.length - index}] Article {versions.length - index === 1 ? 'created' : 'edited'} on {new Date(version.CreatedAt).toLocaleString()}
               </p>
               <span className={`transform transition-transform duration-300 text-indigo-500 ${isActive ? "rotate-180" : "rotate-0"}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,16 +137,25 @@ if (loading) {
               </span>
             </button>
             <div className={`transition-max-height duration-500 ease-in-out overflow-hidden ${isActive ? "max-h-screen" : "max-h-0"}`}>
-              {logsForVersion.map((log: ActionLog) => {
-                const { icon, color, tooltip } = getActionStyle(log.ActionType);
-                return (
-                  <div key={log.LogID} className="py-1 flex items-center">
-                    <span className={`${color} tooltip`} title={tooltip}>
-                      {icon} {log.ActionType} by {log.Username} (User {log.UserID}) at {new Date(log.CreatedAt).toLocaleString()}
-                    </span>
-                  </div>
-                );
-              })}
+            {groupedLogs.map(group => (
+      <div key={`${group.versionID}-${group.createdAt}`} className="mb-4">
+        <div className="text-sm font-medium">
+          by <a href={`https://imperfectgamers.org/profile/${group.userID}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+            {group.username}
+            <svg xmlns="http://www.w3.org/2000/svg" className="inline ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a> (User {group.userID})
+        </div>
+        <div className="py-1 flex flex-wrap items-center">
+          {getActionStyles(group.actions).map((style, index) => (
+            <span key={index} className={`${style.color} tooltip mr-2`} title={style.tooltip}>
+              {style.icon} {style.tooltip}
+            </span>
+          ))}
+        </div>
+      </div>
+    ))}
             </div>
           </div>
         );

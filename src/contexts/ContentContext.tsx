@@ -164,7 +164,7 @@ export interface ActionLog {
   UserID: number;
   Username: string;
   VersionID: number;
-  ActionType: string;
+  ActionType: string[]; // Updated to be an array of strings
   CreatedAt: string;
 }
 
