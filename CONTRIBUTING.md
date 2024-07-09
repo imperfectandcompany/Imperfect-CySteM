@@ -1,5 +1,60 @@
 ## Contributing Guidelines
 
+***Requirements***
+
+Ensure you have the following dependencies installed on your system:
+
+* **TypeScript**
+
+###  Installation
+
+1. Clone the Imperfect-Gamers-Site-Support repository:
+
+```sh
+git clone https://github.com/imperfectandcompany/Imperfect-Gamers-Site-Support
+```
+
+2. Change to the project directory:
+
+```sh
+cd Imperfect-Gamers-Site-Support
+```
+
+3. Install the dependencies:
+
+```sh
+npm install
+```
+
+###  Running Imperfect-Gamers-Site-Support
+
+Use the following command to run Imperfect-Gamers-Site-Support:
+
+```sh
+npm run dev
+```
+
+###  Building Imperfect-Gamers-Site-Support
+
+Use the following command to build Imperfect-Gamers-Site-Support:
+
+```sh
+npm run build:prod
+```
+
+###  Tests
+
+To execute tests, run:
+
+```sh
+npm test
+```
+
+---
+
+## Submit your own PRs.
+
+
 1. **Fork the Repository**: Start by forking the project repository to your GitHub account.
 2. **Clone Locally**: Clone the forked repository to your local machine using a Git client.
    ```sh
