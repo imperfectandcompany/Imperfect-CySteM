@@ -38,6 +38,7 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     loading,
     fetchArticleActionLogs,
     categories,
+    setCategories,
     error,
   } = useContext(ContentContext); // Destructure the needed functions from the context
 
@@ -197,9 +198,27 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
       // Update the history with the new version
       const versionsHistory: ArticleVersionsResponse =
       await fetchArticleVersions(history[0].ArticleID);
+      // Fetch article action logs again
+      fetchArticleActionLogs(articleId);
+
+      // Update the article count for the categories
+      setCategories((prevCategories: Category[]) =>
+        prevCategories.map((cat) => {
+          if (cat.CategoryID === history[0].CategoryID) {
+            // Decrement count for the original category
+            return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0 };
+          } else if (cat.CategoryID === selectedCategory) {
+            // Increment count for the new category
+            return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1 };
+          }
+          return cat;
+        })
+      );
+
       setHistory(versionsHistory.versions);
       // Reset the isContentChanged state
       setArticleText(versionsHistory.versions[0].DetailedDescription);
+
     } catch (error) {
       // Handle error
       console.error("Failed to update article:", error);
