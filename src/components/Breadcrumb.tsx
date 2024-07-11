@@ -81,6 +81,23 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
     }
   }
 
+  if (isFeatureEnabled("SupportSystem")) {
+  if (path.startsWith("/support")) {
+    breadcrumbItems.push(
+      <li key="support" className="inline">
+        <span className="mx-2 text-gray-500">/</span>
+        <Link
+          href="/support"
+          className="text-indigo-600 hover:text-indigo-800"
+        >
+          Support
+        </Link>
+      </li>
+    );
+  }
+}
+
+
   if (isFeatureEnabled('AdminDashboard')) {
     if (path.includes("/admin")) {
       breadcrumbItems.push(

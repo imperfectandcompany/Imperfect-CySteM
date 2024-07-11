@@ -23,6 +23,7 @@ import { isFeatureEnabled } from "./featureFlags";
 import { getToken, removeUserToken } from "./utils";
 import { ContentProvider, IArticle } from "./contexts/ContentContext";
 import { AdminRecycleBin } from "./components/AdminRecycleBin";
+import SupportForm from "./components/SupportForm";
 
 export interface AppState {
   searchQuery: string | null;
@@ -181,17 +182,16 @@ export function App(): VNode {
     }
   };
 
+  {
+    isFeatureEnabled("HomeSearch") &&
+      useEffect(() => {
+        // Call handleRouteChange on mount to handle direct URL visits
+        handleRouteChange();
 
-  {isFeatureEnabled("HomeSearch") && (
-  useEffect(() => {
-    // Call handleRouteChange on mount to handle direct URL visits
-    handleRouteChange();
-
-    window.addEventListener("popstate", handleRouteChange);
-    return () => window.removeEventListener("popstate", handleRouteChange);
-  }, [state.searchQuery])
-)};
-
+        window.addEventListener("popstate", handleRouteChange);
+        return () => window.removeEventListener("popstate", handleRouteChange);
+      }, [state.searchQuery]);
+  }
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -239,34 +239,34 @@ export function App(): VNode {
     return () => window.removeEventListener("popstate", handleRouteChange);
   }, []); // Ensure this effect runs only once on mount and unmount
 
-
-  {isFeatureEnabled("HomeSearch") && (
-  useEffect(() => {
-    if (searchTimeout) {
-      window.clearTimeout(searchTimeout);
-    }
-
-    if (state.searchQuery && !state.isSearching) {
-      const timeoutId = window.setTimeout(() => {
-        dispatch({ type: "STOP_SEARCH" });
-        if (!state.selectedItem) {
-          const currentURL = `/search?query=${state.searchQuery}`;
-          if (
-            window.location.pathname + window.location.search !==
-            currentURL
-          ) {
-            route(currentURL);
-          }
+  {
+    isFeatureEnabled("HomeSearch") &&
+      useEffect(() => {
+        if (searchTimeout) {
+          window.clearTimeout(searchTimeout);
         }
-      }, 500);
 
-      setSearchTimeout(timeoutId);
-      return () => window.clearTimeout(timeoutId);
-    } else {
-      dispatch({ type: "STOP_SEARCH" });
-    }
-  }, [state.searchQuery, state.selectedItem, state.isSearching])
-)};
+        if (state.searchQuery && !state.isSearching) {
+          const timeoutId = window.setTimeout(() => {
+            dispatch({ type: "STOP_SEARCH" });
+            if (!state.selectedItem) {
+              const currentURL = `/search?query=${state.searchQuery}`;
+              if (
+                window.location.pathname + window.location.search !==
+                currentURL
+              ) {
+                route(currentURL);
+              }
+            }
+          }, 500);
+
+          setSearchTimeout(timeoutId);
+          return () => window.clearTimeout(timeoutId);
+        } else {
+          dispatch({ type: "STOP_SEARCH" });
+        }
+      }, [state.searchQuery, state.selectedItem, state.isSearching]);
+  }
 
   function handleCardClick(item?: IArticle) {
     if (item) {
@@ -354,7 +354,9 @@ export function App(): VNode {
           <Header
             onSearchChange={handleSearchChange}
             onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-            searchQuery={isFeatureEnabled("HomeSearch") ? state.searchQuery : null}
+            searchQuery={
+              isFeatureEnabled("HomeSearch") ? state.searchQuery : null
+            }
             onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
           />
           <main className="flex-1 relative">
@@ -382,6 +384,9 @@ export function App(): VNode {
                       dispatch({ type: "CLEAR_SEARCH" })
                     }
                   />
+                )}
+                {isFeatureEnabled("SupportSystem") && (
+                  <SupportForm path="/support" />
                 )}
                 <Article
                   path="/article/:title"
@@ -426,8 +431,7 @@ export function App(): VNode {
                   />
                 )}
 
-
-{isFeatureEnabled("ViewRecycleBin") && (
+                {isFeatureEnabled("ViewRecycleBin") && (
                   <AdminRoute
                     component={AdminRecycleBin}
                     path="/admin/recycle-bin"
@@ -435,7 +439,10 @@ export function App(): VNode {
                 )}
 
                 {isFeatureEnabled("EditArticle") && (
-                  <AdminRoute component={AdminEditArticle} path="/admin/edit/article/:articleId" />
+                  <AdminRoute
+                    component={AdminEditArticle}
+                    path="/admin/edit/article/:articleId"
+                  />
                 )}
                 {isFeatureEnabled("EditCategory") && (
                   <AdminRoute
