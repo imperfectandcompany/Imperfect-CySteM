@@ -14,6 +14,21 @@
 	<img src="https://img.shields.io/github/last-commit/imperfectandcompany/Imperfect-Gamers-Site-Support?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 <p>
 
+july12:
+
+![image](https://github.com/user-attachments/assets/bc659f6a-2797-4e02-957f-a02eb3dcbbfe)
+![image](https://github.com/user-attachments/assets/39f817ff-5eef-4794-8a10-780007224980)
+![image](https://github.com/user-attachments/assets/47722024-7dca-48f3-bd26-b2ea9a961b3b)
+![image](https://github.com/user-attachments/assets/fe6f9cc6-c8dd-4d55-bff3-cc8145fff77c)
+![image](https://github.com/user-attachments/assets/6854b1b8-197e-4b7f-b17c-fe076369716b)
+![image](https://github.com/user-attachments/assets/5aa22383-e122-482d-855c-842fc48658db)
+![image](https://github.com/user-attachments/assets/ccb18080-cac0-4195-9d43-b284162537a9)
+![image](https://github.com/user-attachments/assets/68992858-7e57-4e2a-9e53-163d06dd78f9)
+plan is to decouple crud functions from our 2due software: https://github.com/imperfectandcompany/Imperfect-and-Company-Internal-2DUE and turn the kanban style into a support lead pipeline putting user that submitted in backlog and allowing us to move them down the pipeline kanban style for tracking and followup.
+move category support within edit article update
+![image](https://github.com/user-attachments/assets/1df93dfe-ae71-4b31-b7c7-dd7665e9c1e6)
+
+
 
 
 Screenshots (july 9):
