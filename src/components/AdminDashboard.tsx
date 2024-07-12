@@ -162,9 +162,14 @@ const handleDeleteCategory = async (categoryId: number) => {
     <div>
       <Breadcrumb path={`/admin`} />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
-        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-          Admin Dashboard
+        <span className="text-xs font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500">
+        Admin Dashboard
+        </span>
+        <h1 className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
+        Imperfect Gamers
         </h1>
+
+        
         <section className="mt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">

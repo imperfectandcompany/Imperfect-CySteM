@@ -9,6 +9,16 @@ const ProgressRing: FunctionalComponent<ProgressRingProps> = ({ progress }) => {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (progress / 100) * circumference;
 
+  // Determine the stroke color based on progress
+  let strokeColor;
+  if (progress >= 100) {
+    strokeColor = "green"; // Complete
+  } else if (progress >= 50) {
+    strokeColor = "orange"; // Warning
+  } else {
+    strokeColor = "red"; // In-progress
+  }
+
   return (
     <div className="mb-4 flex justify-center items-center relative">
       <svg className="progress-ring" width="60" height="60" aria-label={`Form completion progress: ${Math.round(progress)}%`}>
@@ -22,8 +32,8 @@ const ProgressRing: FunctionalComponent<ProgressRingProps> = ({ progress }) => {
           cy="30"
         />
         <circle
-          className="progress-ring__circle text-indigo-600"
-          stroke="rgb(79, 70, 229)"
+          className="progress-ring__circle"
+          stroke={strokeColor}
           strokeWidth="4"
           fill="transparent"
           r={radius}
