@@ -1,9 +1,8 @@
-import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 
 interface Input {
-    id: string;
-    category_id: string;
+    id: number;
+    category_id: number;
     type: string;
     label: string;
     created_at: string;
@@ -11,9 +10,9 @@ interface Input {
 }
 
 interface InputVersion {
-    id: string;
-    input_id: string;
-    version: string;
+    id: number;
+    input_id: number;
+    version: number;
     label: string;
     created_at: string;
     updated_at: string;

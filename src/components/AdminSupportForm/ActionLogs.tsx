@@ -1,11 +1,10 @@
-import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 
 interface Log {
-    id: string;
-    user_id: string;
+    id: number;
+    user_id: number;
     action: string;
-    target_id: string;
+    target_id: number;
     target_type: string;
     created_at: string;
     target_version: string;

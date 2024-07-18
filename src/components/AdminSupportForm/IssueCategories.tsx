@@ -1,16 +1,33 @@
-import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import AccordionItem from './AccordionItem';
 
 interface Category {
-    category_id: string;
+    category_id: number;
     category_name: string;
-    parent_id?: string;
+    parent_id?: number;
     hasChildren?: boolean;
 }
 
 interface Props {
     token: string;
+}
+
+interface Input {
+    input_id: number;
+    input_type: string;
+    input_version_id: number;
+    input_label: string;
+    options: string[];
+}
+
+interface Issue {
+    issue_version_id: number;
+    issue_description: string;
+}
+
+export interface CategoryDetails {
+    inputs: Input[];
+    issue: Issue;
 }
 
 const IssueCategories = ({ token }: Props) => {
@@ -40,7 +57,7 @@ const IssueCategories = ({ token }: Props) => {
             });
     }, [token]);
 
-    const fetchCategoryDetails = (categoryId: string) => {
+    const fetchCategoryDetails = (categoryId: number): Promise<CategoryDetails> => {
         return fetch(`https://api.imperfectgamers.org/support/requests/populate/category/${categoryId}`, {
             method: 'GET',
             headers: {
@@ -50,7 +67,7 @@ const IssueCategories = ({ token }: Props) => {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    return data.data;
+                    return data.data as CategoryDetails; // Type assertion for the returned data
                 } else {
                     throw new Error('Failed to fetch details');
                 }
@@ -65,7 +82,7 @@ const IssueCategories = ({ token }: Props) => {
         return <div className="text-center mt-10 text-red-500">{error}</div>;
     }
 
-    const renderCategories = (parentId: string | null) => {
+    const renderCategories = (parentId: number | null) => {
         return categories
             .filter(category => category.parent_id === parentId)
             .map(category => {

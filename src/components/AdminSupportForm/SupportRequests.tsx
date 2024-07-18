@@ -12,10 +12,10 @@ interface Input {
 }
 
 interface RequestDetails {
-    id: string;
-    category_id: string;
-    issue_version_id: string;
-    current_version_id: string;
+    id: number;
+    category_id: number;
+    issue_version_id: number;
+    current_version_id: number;
     created_at: string;
     updated_at: string;
     inputs: Input[];
@@ -31,8 +31,8 @@ interface Request {
 }
 
 interface RequestVersion {
-    id: string;
-    version: string;
+    id: number;
+    version: number;
     status: string;
     priority: string;
     email: string;
