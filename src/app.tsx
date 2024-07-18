@@ -24,6 +24,8 @@ import { getToken, removeUserToken } from "./utils";
 import { ContentProvider, IArticle } from "./contexts/ContentContext";
 import { AdminRecycleBin } from "./components/AdminRecycleBin";
 import SupportForm from "./components/SupportForm";
+import { SupportRequestProvider } from "./contexts/supportRequestContext";
+import AdminSupportForm from "./components/AdminSupportForm";
 
 export interface AppState {
   searchQuery: string | null;
@@ -312,6 +314,7 @@ export function App(): VNode {
   return (
     <ContentProvider>
       <AuthProvider>
+      <SupportRequestProvider>
         <div className="flex flex-col min-h-screen mx-auto md:py-8 max-w-screen-xl">
           {isFeatureEnabled("NotificationBanner") && (
             <div class="relative my-8 md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 mx-4 sm:mx-6 md:mx-8 lg:mx-10 xl:mx-4">
@@ -388,6 +391,7 @@ export function App(): VNode {
                 {isFeatureEnabled("SupportSystem") && (
                   <SupportForm path="/support" />
                 )}
+
                 <Article
                   path="/article/:title"
                   lastRoute={state.lastRoute || "/"}
@@ -408,9 +412,15 @@ export function App(): VNode {
                 )}
                 {isFeatureEnabled("AdminDashboard") && (
                   <AdminRoute
-                    component={AdminDashboard}
-                    path="/admin/dashboard"
-                  />
+                  component={AdminDashboard}
+                  path="/admin/dashboard"
+                />
+                )}
+                {isFeatureEnabled("AdminViewRequests") && (
+<AdminRoute
+                component={AdminSupportForm}
+                path="/admin/requests"
+              />
                 )}
                 {isFeatureEnabled("AdminDashboard") && (
                   <AdminRoute component={Admin} path="/admin" />
@@ -456,6 +466,7 @@ export function App(): VNode {
           </main>
           <Footer />
         </div>
+        </SupportRequestProvider>
       </AuthProvider>
     </ContentProvider>
   );

@@ -8,6 +8,7 @@ import {
   DeletedArticlesResponse,
   DeletedCategoriesResponse,
 } from "./contexts/ContentContext";
+import { IssueCategoriesResponse } from "./contexts/supportRequestContext";
 import { getToken } from "./utils";
 
 export const API_BASE_URL = "https://api.imperfectgamers.org/support";
@@ -233,4 +234,23 @@ export const restoreCategory = async (categoryId: number): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to restore category with ID ${categoryId}`);
   }
+};
+
+
+//  new function to fetch issue categories and sub-issues
+export const fetchIssueCategories = async (): Promise<IssueCategoriesResponse> => {
+  const token = getToken();
+
+  const response = await fetch(`${API_BASE_URL}/issue-categories`, {
+    headers: {
+      Authorization: `${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch issue categories");
+  }
+
+  const data: IssueCategoriesResponse = await response.json();
+  return data;
 };

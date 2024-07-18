@@ -168,8 +168,16 @@ const handleDeleteCategory = async (categoryId: number) => {
         <h1 className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
         Imperfect Gamers
         </h1>
-
-        
+        <div className="flex justify-end">
+          {isFeatureEnabled("AdminViewRequests") && (
+            <button
+              onClick={() => route("/admin/requests")}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition ease-in-out duration-300"
+            >
+              Requests (Beta)
+            </button>
+          )}
+        </div>
         <section className="mt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">

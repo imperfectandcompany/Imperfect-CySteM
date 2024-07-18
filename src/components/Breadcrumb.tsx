@@ -128,6 +128,20 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
           );
         }
       }
+      if (path === "/admin/requests") {
+        breadcrumbItems.push(
+          <li key="support" className="inline">
+            <span className="mx-2 text-gray-500">/</span>
+            <Link
+              href={`/admin/requests`}
+              className="text-indigo-600 hover:text-indigo-800"
+              onClick={onBreadcrumbClick}
+            >
+              Requests
+            </Link>
+          </li>
+        );
+      }
       if (isFeatureEnabled("CreateCategory")) {
         if (path === "/admin/create-category") {
           breadcrumbItems.push(
