@@ -14,7 +14,7 @@ const AdminSupportForm = () => {
 
     return (
 <>
-<Breadcrumb path={`/admin/support`} />
+<Breadcrumb path={`/admin/requests`} />
         <div className="container mx-auto ">
             <Tabs tabs={tabs} activeTab={activeTab} onTabClick={setActiveTab} />
             <div className="p-5 border rounded-b">

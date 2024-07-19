@@ -1,5 +1,5 @@
 // SupportRequests.tsx
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { useFetch } from './useFetch';
 
 interface Input {
@@ -46,11 +46,22 @@ interface Props {
 }
 
 const SupportRequests = ({ token }: Props) => {
-    const { data: requests, loading, error } = useFetch<Request[]>('https://api.imperfectgamers.org/support/requests', token);
+// Rename the destructured data from useFetch to fetchedRequests
+const { data: fetchedRequests, loading, error, setError } = useFetch<Request[]>('https://api.imperfectgamers.org/support/requests', token);
+// Use the fetchedRequests to set the initial state
+const [requests, setRequests] = useState<Request[]>([]);
     const [requestDetails, setRequestDetails] = useState<RequestDetails | null>(null);
     const [requestVersions, setRequestVersions] = useState<RequestVersion[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
+
+    // Then, inside an effect hook, update the requests state when fetchedRequests changes
+useEffect(() => {
+    if (fetchedRequests) {
+      setRequests(fetchedRequests);
+    }
+  }, [fetchedRequests]);
+  
 
     const fetchRequestDetails = (requestId: number) => {
         setLoadingDetails(true);
@@ -97,6 +108,71 @@ const SupportRequests = ({ token }: Props) => {
                 setLoadingDetails(false);
             });
     };
+
+
+
+
+    const createSupportRequest = async (newRequest: Omit<Request, 'id'>) => {
+        try {
+            const response = await fetch('https://api.imperfectgamers.org/support/requests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token,
+                },
+                body: JSON.stringify(newRequest),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setRequests([...requests, data.data]);
+            } else {
+                setError('Failed to create support request');
+            }
+        } catch {
+            setError('Failed to create support request');
+        }
+    };
+
+    const updateSupportRequest = async (id: number, updatedRequest: Omit<Request, 'id'>) => {
+        try {
+            const response = await fetch(`https://api.imperfectgamers.org/support/requests/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token,
+                },
+                body: JSON.stringify(updatedRequest),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setRequests(requests.map(request => (request.id === id ? data.data : request)));
+            } else {
+                setError('Failed to update support request');
+            }
+        } catch {
+            setError('Failed to update support request');
+        }
+    };
+
+    const deleteSupportRequest = async (id: number) => {
+        try {
+            const response = await fetch(`https://api.imperfectgamers.org/support/requests/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': token,
+                },
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setRequests(requests.filter(request => request.id !== id));
+            } else {
+                setError('Failed to delete support request');
+            }
+        } catch {
+            setError('Failed to delete support request');
+        }
+    };
+
 
     if (loading || loadingDetails) {
         return <div className="text-center mt-10">Loading...</div>;

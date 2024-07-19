@@ -1,10 +1,11 @@
-// useFetch.ts
 import { useState, useEffect } from 'preact/hooks';
 
 interface FetchResult<T> {
     data: T | null;
     loading: boolean;
     error: string | null;
+    setData: (data: T | null) => void;
+    setError: (error: string | null) => void;
 }
 
 export const useFetch = <T,>(url: string, token: string): FetchResult<T> => {
@@ -21,7 +22,11 @@ export const useFetch = <T,>(url: string, token: string): FetchResult<T> => {
         })
             .then(response => response.json())
             .then(data => {
-                setData(data.data);
+                if (data.status === 'success') {
+                    setData(data.data);
+                } else {
+                    setError('Failed to fetch data');
+                }
                 setLoading(false);
             })
             .catch(() => {
@@ -30,5 +35,5 @@ export const useFetch = <T,>(url: string, token: string): FetchResult<T> => {
             });
     }, [url, token]);
 
-    return { data, loading, error };
+    return { data, loading, error, setData, setError };
 };
