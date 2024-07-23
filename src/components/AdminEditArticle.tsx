@@ -42,10 +42,11 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     error,
   } = useContext(ContentContext); // Destructure the needed functions from the context
 
-  // const { isAuthenticated, isStaff } = useMockAuth();
   const [history, setHistory] = useState<ArticleVersion[]>();
 
   const [articleText, setArticleText] = useState("");
+  const [articleDescription, setArticleDescription] = useState("");
+  const [articleImgSrc, setArticleImgSrc] = useState("");
 
 // Initialize selectedCategory with a numeric value or undefined
 const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
@@ -57,6 +58,8 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
           await fetchArticleVersions(articleId);
         setHistory(fetchedArticle.versions);
         setArticleText(fetchedArticle.versions[0].DetailedDescription);
+        setArticleDescription(fetchedArticle.versions[0].Description);
+        setArticleImgSrc(fetchedArticle.versions[0].ImgSrc);
         if (fetchedArticle && fetchedArticle.versions.length > 0) {
           setSelectedCategory(Number(fetchedArticle.versions[0].CategoryID));
         }
@@ -68,10 +71,6 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
 
     fetchArticleData();
   }, []);
-  // }, [articleId, isAuthenticated, isStaff]);
-
-  // if (!isAuthenticated())
-  //   return <AdminError message="Please log in to edit articles." />;
 
   if (loading) {
     return <AdminError message={error} />;
@@ -91,8 +90,17 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
 
   const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const target = event.target as HTMLTextAreaElement;
-    console.log("Input value:", target.value); // Debug log to see the input value
     setArticleText(target.value);
+  };
+
+  const handleDescriptionChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    setArticleDescription(target.value);
+  };
+
+  const handleImgSrcChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    setArticleImgSrc(target.value);
   };
 
   useEffect(() => {
@@ -131,84 +139,35 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
     }
   }, [articleText, currentView]);
 
-  // Check if articleText is defined before parsing
   const contentElements = articleText ? parseContent(articleText) : null;
   const renderedContent = contentElements
     ? renderContent(contentElements)
     : null;
 
-  // useEffect(() => {
-  //   // Fetch the article by ID
-  //   const fetchArticleData = async () => {
-  //     try {
-  //       const id = Number(articleId);
-  //       if (!isNaN(id)) {
-  //         // Now you can use id to fetch data
-  //         const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
-  //         if (versionsData.status === 'success' && versionsData.versions.length > 0) {
-  //           const fetchedArticle = versionsData.versions[0]; // Access the first article in the array
-  //           setArticle(fetchedArticle);
-  //           setArticleText(fetchedArticle.DetailedDescription);
-  //           // If you need to fetch the history of article versions
-  //           // fetchArticleVersions is expecting an article ID and returns an array
-  //           // if(isFeatureEnabled("ViewArticleChangelog")){
-  //           //   const versionsData:ArticleVersionsResponse = await fetchArticleVersions(articleId);
-  //             setHistory(versionsData.versions);
-  //           // }
-  //         } else {
-  //           // Handle the case where the response does not contain the article data
-  //           console.error("Article data is not in the expected format:", versionsData);
-  //         }
-  //       } else {
-  //         // Handle the case where articleId is not a valid number
-  //         throw new Error("Article ID is not a valid number");
-  //       }
-  //     } catch (error) {
-  //       // Handle the error by setting an error message or logging it
-  //       console.error("Failed to fetch article data:", error);
-  //     }
-  //   };
-
-  //   fetchArticleData();
-  // }, []);
-
   const saveEdit = async () => {
     if (!history || !selectedCategory) return;
 
-    // // Prepare the updated article data
-    // const updatedArticleData = {
-    //   ...article,
-    //   detailedDescription: articleText,
-    //   // Include other fields that might have changed
-    // };
-
-    // Prepare the updated article data
     const updatedArticleData = {
       categoryId: selectedCategory, // Ensure this is correctly sourced from the selected category dropdown
       title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
-      description: history[0].Description, // Ensure this is correctly sourced from the current article state or form
+      description: articleDescription, // This comes from the state handling the description input
       detailedDescription: articleText, // This comes from the state handling the text area
-      imgSrc: history[0].ImgSrc, // Ensure this is correctly sourced from the current article state or form
+      imgSrc: articleImgSrc, // This comes from the state handling the image URL input
     };
 
     try {
-      // Use the API to update the article
       await updateArticleById(history[0].ArticleID, updatedArticleData);
-      // setArticle(updatedArticle);
-      // Update the history with the new version
+
       const versionsHistory: ArticleVersionsResponse =
       await fetchArticleVersions(history[0].ArticleID);
-      // Fetch article action logs again
+
       fetchArticleActionLogs(articleId);
 
-      // Update the article count for the categories
       setCategories((prevCategories: Category[]) =>
         prevCategories.map((cat) => {
           if (cat.CategoryID === history[0].CategoryID) {
-            // Decrement count for the original category
             return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0 };
           } else if (cat.CategoryID === selectedCategory) {
-            // Increment count for the new category
             return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1 };
           }
           return cat;
@@ -216,47 +175,22 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
       );
 
       setHistory(versionsHistory.versions);
-      // Reset the isContentChanged state
       setArticleText(versionsHistory.versions[0].DetailedDescription);
+      setArticleDescription(versionsHistory.versions[0].Description);
+      setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
 
     } catch (error) {
-      // Handle error
       console.error("Failed to update article:", error);
     }
   };
 
-  // const saveEdit = (newContent: string) => {
+  const isContentChanged = history && (
+    articleText !== history[0]?.DetailedDescription ||
+    selectedCategory !== history[0]?.CategoryID ||
+    articleDescription !== history[0]?.Description ||
+    articleImgSrc !== history[0]?.ImgSrc
+  );
 
-  //   const updatedHistory = [...history, newVersion];
-  //   setHistory(updatedHistory);
-
-  //   // Save the article edit
-  //   if (article) {
-  //     const newArticle = {
-  //       ...article,
-  //       versions: updatedHistory,
-  //     };
-  //     setArticle(newArticle);
-  //     // Update the content object here as well
-  //     const sectionKey = Object.keys(content.sections).find((key) =>
-  //       content.sections[parseInt(key)].cards.some((c) => c.id === article.id)
-  //     );
-  //     if (sectionKey) {
-  //       const section = content.sections[parseInt(sectionKey)];
-  //       const cardIndex = section.cards.findIndex((c) => c.id === article.id);
-  //       if (cardIndex > -1) {
-  //         section.cards[cardIndex] = newArticle;
-  //       }
-  //     }
-  //   }
-  // };
-
-// This will determine if the articleText or the category is different from the original
-const isContentChanged = history && (
-  articleText !== history[0]?.DetailedDescription ||
-  selectedCategory !== history[0]?.CategoryID
-);
-  // Content display based on the current view
   const displayContent = () => {
     switch (currentView) {
       case "raw":
@@ -265,6 +199,38 @@ const isContentChanged = history && (
             <section className="mt-8"></section>
             <form>
               <div className="flex w-full flex-col">
+                <div className="my-4">
+                  <label
+                    htmlFor="articleDescription"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    id="articleDescription"
+                    value={articleDescription}
+                    onChange={handleDescriptionChange}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    placeholder="Enter article description"
+                  />
+                </div>
+                <div className="my-4">
+                  <label
+                    htmlFor="articleImgSrc"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Image URL
+                  </label>
+                  <input
+                    type="text"
+                    id="articleImgSrc"
+                    value={articleImgSrc}
+                    onChange={handleImgSrcChange}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    placeholder="Enter image URL"
+                  />
+                </div>
                 <div className="flex">
                   <div className="m-5">
                     <div
@@ -316,6 +282,8 @@ const isContentChanged = history && (
                     onClick={() => {
                       if (history && history.length > 0) {
                         setArticleText(history[0].DetailedDescription);
+                        setArticleDescription(history[0].Description);
+                        setArticleImgSrc(history[0].ImgSrc);
                       }
                     }}
                     disabled={!isContentChanged}
@@ -414,7 +382,7 @@ const isContentChanged = history && (
           </button>
         )}
 
-<div className="my-4">
+        <div className="my-4">
           <label
             htmlFor="categorySelect"
             className="block text-sm font-medium text-gray-700"
