@@ -14,8 +14,65 @@
 	<img src="https://img.shields.io/github/last-commit/imperfectandcompany/Imperfect-Gamers-Site-Support?style=flat&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 <p>
 
-july12:
 
+
+
+### New Support Request Management Feature
+
+We have introduced a comprehensive support request management feature that includes the following components:
+
+- **AdminSupportForm**: Admin interface for managing support requests, issues, inputs, and action logs.
+- **SupportForm**: User interface for submitting support requests by selecting issue categories, sub-issues, and filling in details.
+- **IssueCategories**: Manage issue categories and subcategories.
+- **Inputs**: Manage various types of inputs related to issues.
+- **Issues**: Display and manage issues.
+- **ActionLogs**: Display logs of actions taken.
+- **SupportRequestList**: List support requests.
+- **SupportRequestDetails**: Detailed view of support requests.
+
+### Backend Communication
+
+Ensure the following backend API endpoints are working as expected:
+- `/support/requests`
+- `/support/requests/populate`
+- `/support/requests/inputs`
+- `/support/requests/issues`
+- `/support/requests/logs`
+- `/support/requests/submit`
+
+### Fetching and Managing Data
+
+The components are designed to interact with these endpoints. Ensure headers, tokens, and request bodies align with our backend expectations.
+
+### Components Interaction
+
+- **Tabs**: Renders and handles tab click events.
+- **AccordionItem**: Single accordion item used in lists.
+- **Breadcrumb**: Breadcrumb component for navigation.
+
+### Future Enhancements
+
+- Adding authentication checks and redirects for admin pages.
+- Expanding input types and validation logic.
+- Improving mobile responsiveness with Tailwind CSS.
+- Implementing caching mechanisms for repeated data fetches.
+- Adding tests using frameworks like Jest for component testing.
+
+
+screenshots july 23:
+![image](https://github.com/user-attachments/assets/000384b3-efe1-4783-bcc6-19b9571386ad)
+![image](https://github.com/user-attachments/assets/3d331560-7057-4c1e-a2f1-50b587b24d62)
+![image](https://github.com/user-attachments/assets/de69cde9-0693-4d3b-a798-a22cbcf15f35)
+![image](https://github.com/user-attachments/assets/5e436b97-fa1a-46e9-bb98-966c2c93bae6)
+![image](https://github.com/user-attachments/assets/27b13968-0bb6-43c2-9fe4-f8632ed90fe2)
+![image](https://github.com/user-attachments/assets/80d1424d-1447-4648-a810-e7b2138469ea)
+![image](https://github.com/user-attachments/assets/df0c053b-e51d-4134-b21f-2bf1517f508e)
+
+future design ideas for after july 23:
+![image](https://github.com/user-attachments/assets/957419ef-412d-46f9-a349-5ef5d80790bb)
+![image](https://github.com/user-attachments/assets/16c2c40c-691e-4f67-830d-0ff66ce70388)
+
+july12:
 ![image](https://github.com/user-attachments/assets/bc659f6a-2797-4e02-957f-a02eb3dcbbfe)
 ![image](https://github.com/user-attachments/assets/39f817ff-5eef-4794-8a10-780007224980)
 ![image](https://github.com/user-attachments/assets/47722024-7dca-48f3-bd26-b2ea9a961b3b)
