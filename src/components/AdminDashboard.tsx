@@ -162,9 +162,22 @@ const handleDeleteCategory = async (categoryId: number) => {
     <div>
       <Breadcrumb path={`/admin`} />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
-        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-          Admin Dashboard
+        <span className="text-xs font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500">
+        Admin Dashboard
+        </span>
+        <h1 className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
+        Imperfect Gamers
         </h1>
+        <div className="flex justify-end">
+          {isFeatureEnabled("AdminViewRequests") && (
+            <button
+              onClick={() => route("/admin/requests")}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition ease-in-out duration-300"
+            >
+              Requests (Beta)
+            </button>
+          )}
+        </div>
         <section className="mt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">

@@ -68,7 +68,7 @@ const Home = () => {
       </svg>
       <div className="container mx-auto relative px-8 py-16 max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <span className="text-xs font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500">
-          Help Center
+          Support Center
         </span>
         <p className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
           Hi, how can we help you?

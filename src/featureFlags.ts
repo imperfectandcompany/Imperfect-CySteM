@@ -28,11 +28,13 @@
     BackButtonArticleView: boolean; // Feature flag for a back button when viewing an article
     Breadcrumbs: boolean; // Feature flag for breadcrumbs overall
     AdminDashboard: boolean; // Feature flag for admin login
+    AdminViewRequests: boolean;
     PreviewArticle: boolean; // Feature flag for viewing previewing rendered view when editing an article 
     NotificationBanner: boolean; // Feature flag for the little notification / banner at the top of the page
     ViewArticleChangelog: boolean // Feature flag for the article history lineage preview when editing an article
     ViewPotentialArticleChanges: boolean // Feature flag for...
     articleDetailedCharacterLimit: boolean // Feature flag for...
+    SupportSystem: boolean    
   };
 
   const featureFlags: FeatureFlags = {
@@ -67,8 +69,9 @@
     NotificationBanner: true, // Feature flag for the little notification / banner at the top of the page
     ViewArticleChangelog: true, // Set this to true or false to enable/disable...
     ViewPotentialArticleChanges: true, // Set this to true or false to enable/disable...
-    articleDetailedCharacterLimit: false // Set this to true or false to enable/disable...
-    
+    articleDetailedCharacterLimit: false, // Set this to true or false to enable/disable...
+    SupportSystem: true,
+    AdminViewRequests: true
   };
     
   export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {

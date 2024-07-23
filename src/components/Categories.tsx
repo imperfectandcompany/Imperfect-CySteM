@@ -2,7 +2,6 @@
 
 import { Link } from "preact-router";
 import { content } from "../content";
-import { generateSlug } from "../utils";
 import Breadcrumb from "./Breadcrumb";
 import { useContext } from "preact/hooks";
 import { ContentContext } from "../contexts/ContentContext";

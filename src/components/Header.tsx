@@ -79,6 +79,18 @@ export const Header: FunctionalComponent<HeaderProps> = ({
             className="block w-full items-center max-w-xs h-10 px-4 py-2 text-indigo-300 border rounded-lg appearance-none focus:border-stone-300 focus:outline-none focus:ring-stone-300 sm:text-sm"
           />
         )}
+                {isFeatureEnabled("SupportSystem") && (
+<>
+<Link
+          href="/support"
+          className={`flex items-center hidden md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition ${
+            currentPath === "/support" ? "hidden" : ""
+          }`}
+        >
+          Support
+        </Link>
+</>
+        )}
       </div>
     </header>
   );
