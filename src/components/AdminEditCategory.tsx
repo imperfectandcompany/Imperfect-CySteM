@@ -11,7 +11,8 @@ interface CategoryProps {
 
 const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
   const [category, setCategory] = useState<{ id: number; title: string; } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [categoryExists, setCategoryExists] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -65,7 +66,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
       const token = getToken();
       const response = await fetch(`${API_BASE_URL}/category/update/${category.id}`, {
@@ -80,8 +81,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
         throw new Error('Failed to update category');
       }
       const result = await response.json();
-      if (result && result.status == 'success') {
-        // alert('Category updated successfully!');
+      if (result && result.status === 'success') {
         route('/admin/dashboard');
       } else {
         setError('Failed to update category');
@@ -94,7 +94,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
       }
       console.error(err);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -115,8 +115,14 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
     setCategoryExists(data.exists);
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const handleReset = () => {
+    setNewTitle(originalTitle);
+    setCategoryExists(false);
+  };
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <>
@@ -137,6 +143,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
               value={newTitle}
               onInput={(e) => handleCategoryChange((e.target as HTMLInputElement).value)}
               required
+              disabled={loading || saving}
             />
             {categoryExists && newTitle !== originalTitle && (
               <p className="mt-2 text-sm text-red-600" id="category-error">
@@ -144,13 +151,35 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
               </p>
             )}
           </div>
-          <button
-            type="submit"
-            disabled={loading || (categoryExists && newTitle !== originalTitle)}
-            className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition ease-in-out duration-300"
-          >
-            {loading ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="flex space-x-4 flex-end items-end justify-end">
+            <button
+              type="submit"
+              disabled={loading || saving || categoryExists || newTitle.trim() === ''}
+              className={`bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition ease-in-out duration-300 relative`}
+            >
+              {saving ? (
+                <>
+                  <span className="opacity-0">Save Changes</span>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  </span>
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="bg-gray-500 hidden hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              disabled={loading || saving}
+            >
+              Reset
+            </button>
+          </div>
         </form>
       </div>
     </>

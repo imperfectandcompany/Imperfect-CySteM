@@ -48,8 +48,13 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const [articleDescription, setArticleDescription] = useState("");
   const [articleImgSrc, setArticleImgSrc] = useState("");
 
-// Initialize selectedCategory with a numeric value or undefined
-const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+  // Initialize selectedCategory with a numeric value or undefined
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(
+    undefined
+  );
+
+  // Secondary loading state for save operation
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchArticleData = async () => {
@@ -71,10 +76,6 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
 
     fetchArticleData();
   }, []);
-
-  if (loading) {
-    return <AdminError message={error} />;
-  }
 
   const [count, setCount] = useState(0);
 
@@ -147,6 +148,8 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
   const saveEdit = async () => {
     if (!history || !selectedCategory) return;
 
+    setSaving(true); // Set saving state to true
+
     const updatedArticleData = {
       categoryId: selectedCategory, // Ensure this is correctly sourced from the selected category dropdown
       title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
@@ -159,16 +162,22 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
       await updateArticleById(history[0].ArticleID, updatedArticleData);
 
       const versionsHistory: ArticleVersionsResponse =
-      await fetchArticleVersions(history[0].ArticleID);
+        await fetchArticleVersions(history[0].ArticleID);
 
       fetchArticleActionLogs(articleId);
 
       setCategories((prevCategories: Category[]) =>
         prevCategories.map((cat) => {
           if (cat.CategoryID === history[0].CategoryID) {
-            return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0 };
+            return {
+              ...cat,
+              ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0,
+            };
           } else if (cat.CategoryID === selectedCategory) {
-            return { ...cat, ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1 };
+            return {
+              ...cat,
+              ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1,
+            };
           }
           return cat;
         })
@@ -178,18 +187,20 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
       setArticleText(versionsHistory.versions[0].DetailedDescription);
       setArticleDescription(versionsHistory.versions[0].Description);
       setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
-
+      setSelectedCategory(Number(versionsHistory.versions[0].CategoryID));
     } catch (error) {
       console.error("Failed to update article:", error);
+    } finally {
+      setSaving(false); // Reset saving state to false
     }
   };
 
-  const isContentChanged = history && (
-    articleText !== history[0]?.DetailedDescription ||
-    selectedCategory !== history[0]?.CategoryID ||
-    articleDescription !== history[0]?.Description ||
-    articleImgSrc !== history[0]?.ImgSrc
-  );
+  const isContentChanged =
+    history &&
+    (articleText !== history[0]?.DetailedDescription ||
+      selectedCategory !== history[0]?.CategoryID ||
+      articleDescription !== history[0]?.Description ||
+      articleImgSrc !== history[0]?.ImgSrc);
 
   const displayContent = () => {
     switch (currentView) {
@@ -213,6 +224,8 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                     onChange={handleDescriptionChange}
                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                     placeholder="Enter article description"
+                    disabled={loading || saving}
+                    readOnly={loading || saving}
                   />
                 </div>
                 <div className="my-4">
@@ -229,6 +242,8 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                     onChange={handleImgSrcChange}
                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                     placeholder="Enter image URL"
+                    disabled={loading || saving}
+                    readOnly={loading || saving}
                   />
                 </div>
                 <div className="flex">
@@ -259,14 +274,16 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                     maxLength={280000}
                     value={articleText}
                     style={{ overflow: "hidden", resize: "vertical" }}
+                    disabled={loading || saving}
+                    readOnly={loading || saving}
                   ></textarea>
                 </div>
-                <div className="flex flex-row-reverse mt-4">
+                <div className="flex flex-row-reverse mt-4 relative">
                   <button
                     id="updateArticle"
                     type="button"
                     onClick={() => saveEdit()}
-                    disabled={!isContentChanged}
+                    disabled={!isContentChanged || saving} // Disable button while saving
                     className="ml-2 p-1 px-4 font-semibold text-white bg-indigo-500 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 transition rounded-md disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none"
                     title={
                       !isContentChanged
@@ -274,6 +291,9 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                         : "Click to update article"
                     }
                   >
+                    {saving && (
+                      <span className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 loader" />
+                    )}
                     Update
                   </button>
                   <button
@@ -284,9 +304,10 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                         setArticleText(history[0].DetailedDescription);
                         setArticleDescription(history[0].Description);
                         setArticleImgSrc(history[0].ImgSrc);
+                        setSelectedCategory(Number(history[0].CategoryID));
                       }
                     }}
-                    disabled={!isContentChanged}
+                    disabled={!isContentChanged || saving} // Disable button while saving
                     className="p-1 px-4 font-semibold text-white bg-stone-500 hover:bg-stone-600 focus:ring-2 focus:ring-stone-400 transition rounded-md select-none disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none"
                     title={
                       !isContentChanged
@@ -356,11 +377,11 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
     <>
       <Breadcrumb
         path={`/admin/edit/article/${articleId}`}
-        articleId={history && history[0]?.ArticleID}
+        articleId={Number(articleId)}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
-        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-          Editing: {history && history[0]?.Title}
+        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl"> 
+          Editing: {loading ? <span className="animate transition animate-pulse bg-gray-100 px-24 ml-2"></span> : history && history[0]?.Title}
         </h1>
         {isFeatureEnabled("ViewPotentialArticleChanges") && (
           <button
@@ -370,10 +391,9 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
                 ? togglePotentialChanges()
                 : toggleRaw()
             }
-            disabled={
-              history &&
+            disabled={(loading || saving || !history) || ( history &&
               history[0]?.DetailedDescription === articleText &&
-              (currentView === "raw" || currentView === "rendered")
+              (currentView === "raw" || currentView === "rendered"))
             }
           >
             {currentView === "raw" || currentView === "rendered"
@@ -397,6 +417,8 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
               setSelectedCategory(Number(target.value));
             }}
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            disabled={loading || saving}
+            readOnly={loading || saving}
           >
             {categories.map((category: Category) => (
               <option key={category.CategoryID} value={category.CategoryID}>
@@ -407,6 +429,7 @@ const [selectedCategory, setSelectedCategory] = useState<number | undefined>(und
         </div>
 
         {displayContent()}
+
         {isFeatureEnabled("ViewArticleChangelog") && history && (
           <AdminArticleHistoryView versions={history} />
         )}
