@@ -2,7 +2,6 @@
 
 import { useContext, useEffect } from 'preact/hooks';
 import { ContentContext } from '../contexts/ContentContext';
-import { generateSlug } from '../utils';
 import { AccessRestricted } from './AccessRestricted';
 import { ArticleView } from './ArticleView';
 import Breadcrumb from './Breadcrumb';

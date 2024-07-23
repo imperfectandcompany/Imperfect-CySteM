@@ -24,8 +24,8 @@ import { getToken, removeUserToken } from "./utils";
 import { ContentProvider, IArticle } from "./contexts/ContentContext";
 import { AdminRecycleBin } from "./components/AdminRecycleBin";
 import SupportForm from "./components/SupportForm";
-import { SupportRequestProvider } from "./contexts/supportRequestContext";
 import AdminSupportForm from "./components/AdminSupportForm";
+import SupportRequestDetails from "./components/SupportForm/SupportRequestDetails";
 
 export interface AppState {
   searchQuery: string | null;
@@ -310,11 +310,11 @@ export function App(): VNode {
       history.replaceState({}, "", "/");
     }
   }
+  const token = getToken();
 
   return (
     <ContentProvider>
       <AuthProvider>
-      <SupportRequestProvider>
         <div className="flex flex-col min-h-screen mx-auto md:py-8 max-w-screen-xl">
           {isFeatureEnabled("NotificationBanner") && (
             <div class="relative my-8 md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 mx-4 sm:mx-6 md:mx-8 lg:mx-10 xl:mx-4">
@@ -389,7 +389,7 @@ export function App(): VNode {
                   />
                 )}
                 {isFeatureEnabled("SupportSystem") && (
-                  <SupportForm path="/support" />
+                  <SupportForm token={token} path="/support" />
                 )}
 
                 <Article
@@ -422,6 +422,7 @@ export function App(): VNode {
                 path="/admin/requests"
               />
                 )}
+                  <AdminRoute component={SupportRequestDetails} path="/admin/requests/:supportRequestSlug" />
                 {isFeatureEnabled("AdminDashboard") && (
                   <AdminRoute component={Admin} path="/admin" />
                 )}
@@ -466,7 +467,6 @@ export function App(): VNode {
           </main>
           <Footer />
         </div>
-        </SupportRequestProvider>
       </AuthProvider>
     </ContentProvider>
   );

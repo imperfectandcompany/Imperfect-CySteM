@@ -237,20 +237,21 @@ export const restoreCategory = async (categoryId: number): Promise<void> => {
 };
 
 
-//  new function to fetch issue categories and sub-issues
+// Adjust the API call in fetchIssueCategories
 export const fetchIssueCategories = async (): Promise<IssueCategoriesResponse> => {
   const token = getToken();
 
-  const response = await fetch(`${API_BASE_URL}/issue-categories`, {
-    headers: {
-      Authorization: `${token}`,
-    },
+  const response = await fetch(`${API_BASE_URL}/requests/populate/categories`, {
+      headers: {
+          Authorization: `${token}`,
+      },
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch issue categories");
+      throw new Error("Failed to fetch issue categories");
   }
 
   const data: IssueCategoriesResponse = await response.json();
   return data;
 };
+

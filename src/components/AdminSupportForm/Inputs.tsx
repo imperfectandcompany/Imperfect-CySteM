@@ -1,191 +1,289 @@
 import { useState, useEffect } from 'preact/hooks';
+import { JSX } from 'preact/jsx-runtime';
 
 interface Input {
-    id: number;
-    category_id: number;
-    type: string;
-    label: string;
-    created_at: string;
-    updated_at: string;
+  input_id: number;
+  input_version_id: number;
+  category_id: number;
+  label: string;
+  type: string;
+  created_at: string;
 }
 
-interface InputVersion {
-    id: number;
-    input_id: number;
-    version: number;
-    label: string;
-    created_at: string;
-    updated_at: string;
+interface Category {
+  category_id: number;
+  category_name: string;
+  parent_id?: number;
 }
 
 interface Props {
-    token: string;
+  token: string;
+  categoryId?: string;
 }
 
-const Inputs = ({ token }: Props) => {
-    const [inputs, setInputs] = useState<Input[]>([]);
-    const [inputVersions, setInputVersions] = useState<InputVersion[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+const Inputs = ({ token, categoryId }: Props) => {
+  const [inputs, setInputs] = useState<Input[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [currentInput, setCurrentInput] = useState<Partial<Input & { options: string[] }>>({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchInputs = fetch('https://api.imperfectgamers.org/support/requests/inputs', {
-            method: 'GET',
-            headers: {
-                'Authorization': token,
-            },
-        }).then(response => response.json());
+  useEffect(() => {
+    fetchInputs();
+    fetchCategories();
+  }, []);
 
-        const fetchInputVersions = fetch('https://api.imperfectgamers.org/support/requests/inputs/versions', {
-            method: 'GET',
-            headers: {
-                'Authorization': token,
-            },
-        }).then(response => response.json());
-
-        Promise.all([fetchInputs, fetchInputVersions])
-            .then(([inputsData, inputVersionsData]) => {
-                if (inputsData.status === 'success' && inputVersionsData.status === 'success') {
-                    setInputs(inputsData.data);
-                    setInputVersions(inputVersionsData.data);
-                } else {
-                    setError('Failed to fetch inputs or input versions');
-                }
-                setLoading(false);
-            })
-            .catch(() => {
-                setError('Failed to fetch inputs or input versions');
-                setLoading(false);
-            });
-    }, [token]);
-
-    const createInput = async (newInput: Omit<Input, 'id'>) => {
-        try {
-            const response = await fetch('https://api.imperfectgamers.org/support/requests/inputs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token,
-                },
-                body: JSON.stringify(newInput),
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                setInputs([...inputs, data.data]);
-            } else {
-                setError('Failed to create input');
-            }
-        } catch {
-            setError('Failed to create input');
-        }
-    };
-
-    const updateInput = async (id: number, updatedInput: Omit<Input, 'id'>) => {
-        try {
-            const response = await fetch(`https://api.imperfectgamers.org/support/requests/inputs/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token,
-                },
-                body: JSON.stringify(updatedInput),
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                setInputs(inputs.map(input => (input.id === id ? data.data : input)));
-            } else {
-                setError('Failed to update input');
-            }
-        } catch {
-            setError('Failed to update input');
-        }
-    };
-
-    const deleteInput = async (id: number) => {
-        try {
-            const response = await fetch(`https://api.imperfectgamers.org/support/requests/inputs/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': token,
-                },
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                setInputs(inputs.filter(input => input.id !== id));
-            } else {
-                setError('Failed to delete input');
-            }
-        } catch {
-            setError('Failed to delete input');
-        }
-    };
-
-    if (loading) {
-        return <div className="text-center mt-10">Loading...</div>;
+  useEffect(() => {
+    if (categoryId) {
+      setCurrentInput((prev) => ({ ...prev, category_id: parseInt(categoryId) }));
+      setIsModalOpen(true);
     }
+  }, [categoryId]);
 
-    if (error) {
-        return <div className="text-center mt-10 text-red-500">{error}</div>;
+  const fetchInputs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("https://api.imperfectgamers.org/support/requests/inputs", {
+        headers: {
+          Authorization: token,
+        },
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        setInputs(data.data);
+      } else {
+        setError("Failed to fetch inputs: " + data.message);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching inputs:", error);
+      setError("Error fetching inputs");
+      setLoading(false);
     }
+  };
 
-    return (
-        <div className="overflow-x-auto">
-            <h1 className="text-3xl font-bold mb-5 text-center">Inputs</h1>
-            <table className="min-w-full bg-white">
-                <thead>
-                    <tr>
-                        <th className="py-2 px-4 border-b">ID</th>
-                        <th className="py-2 px-4 border-b">Category ID</th>
-                        <th className="py-2 px-4 border-b">Type</th>
-                        <th className="py-2 px-4 border-b">Label</th>
-                        <th className="py-2 px-4 border-b">Created At</th>
-                        <th className="py-2 px-4 border-b">Updated At</th>
-                        <th className="py-2 px-4 border-b">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {inputs.map(input => (
-                        <tr key={input.id}>
-                            <td className="py-2 px-4 border-b">{input.category_id}</td>
-                            <td className="py-2 px-4 border-b">{input.type}</td>
-                            <td className="py-2 px-4 border-b">{input.label}</td>
-                            <td className="py-2 px-4 border-b">{input.created_at}</td>
-                            <td className="py-2 px-4 border-b">{input.updated_at}</td>
-                            <td className="py-2 px-4 border-b">
-                                <button className="bg-yellow-500 text-white px-2 py-1 rounded" onClick={() => updateInput(input.id, input)}>Edit</button>
-                                <button className="bg-red-500 text-white px-2 py-1 rounded ml-2" onClick={() => deleteInput(input.id)}>Delete</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <h1 className="text-3xl font-bold mb-5 text-center mt-10">Input Versions</h1>
-            <table className="min-w-full bg-white">
-                <thead>
-                    <tr>
-                        <th className="py-2 px-4 border-b">ID</th>
-                        <th className="py-2 px-4 border-b">Input ID</th>
-                        <th className="py-2 px-4 border-b">Version</th>
-                        <th className="py-2 px-4 border-b">Label</th>
-                        <th className="py-2 px-4 border-b">Created At</th>
-                        <th className="py-2 px-4 border-b">Updated At</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {inputVersions.map(version => (
-                        <tr key={version.id}>
-                            <td className="py-2 px-4 border-b">{version.id}</td>
-                            <td className="py-2 px-4 border-b">{version.input_id}</td>
-                            <td className="py-2 px-4 border-b">{version.version}</td>
-                            <td className="py-2 px-4 border-b">{version.label}</td>
-                            <td className="py-2 px-4 border-b">{version.created_at}</td>
-                            <td className="py-2 px-4 border-b">{version.updated_at}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("https://api.imperfectgamers.org/support/requests/populate", {
+        headers: {
+          Authorization: token,
+        },
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        setCategories(data.data);
+      } else {
+        setError("Failed to fetch categories: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setError("Error fetching categories");
+    }
+  };
+
+  const handleDeleteInput = async (inputId: number) => {
+    if (!confirm("Are you sure you want to delete this input?")) return;
+
+    try {
+      const response = await fetch(`https://api.imperfectgamers.org/support/requests/inputs/${inputId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: token,
+        },
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        alert("Input deleted successfully");
+        fetchInputs();
+      } else {
+        alert("Failed to delete input: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error deleting input:", error);
+    }
+  };
+
+  const handleSaveInput = async () => {
+    try {
+      const method = currentInput.input_id ? 'PUT' : 'POST';
+      const url = currentInput.input_id ? `https://api.imperfectgamers.org/support/requests/inputs/${currentInput.input_id}` : 'https://api.imperfectgamers.org/support/requests/inputs';
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify(currentInput),
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert('Input saved successfully');
+        setIsModalOpen(false);
+        fetchInputs();
+      } else {
+        alert('Failed to save input: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error saving input:', error);
+    }
+  };
+
+  const handleEditInput = (input: Input) => {
+    setCurrentInput(input);
+    setIsModalOpen(true);
+  };
+
+  const renderCategoryOptions = (parentId: number | null, indent: string = ''): JSX.Element[] => {
+    return categories
+      .filter(category => category.parent_id === parentId)
+      .flatMap(category => [
+        <option key={category.category_id} value={category.category_id}>
+          {indent + category.category_name}
+        </option>,
+        ...renderCategoryOptions(category.category_id, indent + '--'),
+      ]);
+  };
+
+  const renderCategoryName = (categoryId: number): string => {
+    const category = categories.find(cat => cat.category_id === categoryId);
+    return category ? category.category_name : "Unknown Category";
+  };
+
+  return (
+    <div className="inputs-container p-4">
+      <h2 className="text-2xl font-bold mb-4">Inputs</h2>
+      <button onClick={() => { setCurrentInput({ category_id: 0, label: '', type: 'text', options: [] }); setIsModalOpen(true); }} className="btn-add-input mb-4 bg-blue-500 text-white py-2 px-4 rounded">
+        Add New Input
+      </button>
+      {loading ? (
+        <div className="text-center mt-10">Loading...</div>
+      ) : error ? (
+        <div className="text-center mt-10 text-red-500">{error}</div>
+      ) : (
+        <table className="inputs-table w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="py-2 px-4 border-b">ID</th>
+              <th className="py-2 px-4 border-b">Category</th>
+              <th className="py-2 px-4 border-b">Label</th>
+              <th className="py-2 px-4 border-b">Type</th>
+              <th className="py-2 px-4 border-b">Created At</th>
+              <th className="py-2 px-4 border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {inputs.map((input) => (
+              <tr key={input.input_id} className="hover:bg-gray-100">
+                <td className="py-2 px-4 border-b">{input.input_id}</td>
+                <td className="py-2 px-4 border-b">{renderCategoryName(input.category_id)}</td>
+                <td className="py-2 px-4 border-b">{input.label}</td>
+                <td className="py-2 px-4 border-b">{input.type}</td>
+                <td className="py-2 px-4 border-b">{input.created_at}</td>
+                <td className="py-2 px-4 border-b">
+                  <button
+                    onClick={() => handleEditInput(input)}
+                    className="btn-edit-input bg-yellow-500 text-white py-1 px-3 rounded mr-2"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteInput(input.input_id)}
+                    className="btn-delete-input bg-red-500 text-white py-1 px-3 rounded"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {isModalOpen && (
+        <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="modal-content bg-white p-8 rounded shadow-lg w-1/2">
+            <h2 className="text-2xl mb-4">{currentInput.input_id ? 'Edit Input' : 'Add New Input'}</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveInput();
+              }}
+            >
+              <div className="mb-4">
+                <label className="block mb-2">Category</label>
+                <select
+                  value={currentInput.category_id}
+                  onChange={(e) => {
+                    const target = e.target as HTMLSelectElement;
+                    setCurrentInput({ ...currentInput, category_id: parseInt(target.value) });
+                  }}
+                  className="border rounded w-full py-2 px-3"
+                >
+                  <option value="">Select Category</option>
+                  {renderCategoryOptions(null)}
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block mb-2">Label</label>
+                <input
+                  type="text"
+                  value={currentInput.label}
+                  onChange={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    setCurrentInput({ ...currentInput, label: target.value });
+                  }}
+                  className="border rounded w-full py-2 px-3"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-2">Type</label>
+                <select
+                  value={currentInput.type}
+                  onChange={(e) => {
+                    const target = e.target as HTMLSelectElement;
+                    setCurrentInput({ ...currentInput, type: target.value });
+                  }}
+                  className="border rounded w-full py-2 px-3"
+                >
+                  <option value="text">Text</option>
+                  <option value="textarea">Textarea</option>
+                  <option value="dropdown">Dropdown</option>
+                  <option value="radio">Radio</option>
+                </select>
+              </div>
+              {(currentInput.type === 'radio' || currentInput.type === 'dropdown') && (
+                <div className="mb-4">
+                  <label className="block mb-2">Options</label>
+                  <textarea
+                    value={currentInput.options ? currentInput.options.join('\n') : ''}
+                    onChange={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      setCurrentInput({ ...currentInput, options: target.value.split('\n') });
+                    }}
+                    className="border rounded w-full py-2 px-3"
+                    placeholder="Enter one option per line"
+                  ></textarea>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <button type="submit" className="btn-save bg-blue-500 text-white py-2 px-4 rounded mr-2">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="btn-cancel bg-gray-300 text-black py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default Inputs;

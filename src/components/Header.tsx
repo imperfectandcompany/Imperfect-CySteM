@@ -89,16 +89,6 @@ export const Header: FunctionalComponent<HeaderProps> = ({
         >
           Support
         </Link>
-        {isFeatureEnabled("AdminViewRequests") && (
-<Link
-href="/admin/requests"
-className={`flex items-center hidden md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition ${
-  currentPath === "/support" ? "hidden" : ""
-}`}
->
-Support Admin
-</Link>
-        )}
 </>
         )}
       </div>
