@@ -38,7 +38,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
 
   return (
     <header className="flex flex-wrap  md:items-center justify-between px-4 py-3 ite shadow-sm sm:px-6 md:px-8 lg:px-10 xl:px-12">
-      <div className="flex items-center cursor-pointer z-30">
+      <div className="flex items-center cursor-pointer z-10">
         <Link href="/" onClick={onLogoClick}>
           <img
             alt="Imperfect Gamers Logo, a gaming community"

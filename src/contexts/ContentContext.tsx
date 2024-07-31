@@ -31,6 +31,7 @@ export interface Category {
     Slug: string;
     CreatedAt: string;
     UpdatedAt: string | null;
+    VersionID: number | null;
     DeletedAt: string | null;
     ArticleCount: number;
   }
@@ -55,6 +56,7 @@ interface ContentContextType {
   setCategories: (categories: Category[]) => void;
   updateArticleById: (articleId: number, updatedData: Partial<Article>) => void; // Fix the implicit 'any' type
   fetchArticleVersions: (articleId: number) => Promise<ArticleVersionsResponse>; // Fix the implicit 'any' type
+  fetchCategoryVersions: (categoryId: number) => Promise<CategoryVersionsResponse>; // Fix the implicit 'any' type
   fetchArticleActionLogs: (articleId: number) => Promise<void>;
   actionLogs:any;
   deletedCategories: Category[];
@@ -63,6 +65,7 @@ interface ContentContextType {
   handleRestoreCategory: (categoryId: number) => Promise<void>;
   fetchAndSetDeletedCategories: () => Promise<void>;
   fetchAndSetDeletedArticles: () => Promise<void>;
+  updateCategory: (updatedCategory: Category) => void;
 }
 
 export interface Article {
@@ -97,6 +100,16 @@ export interface Article {
     DeletedAt: string | null;
   }
   
+  export interface CategoryVersion {
+    VersionID: number;
+    CategoryID: number;
+    Title: string;
+    Slug: string;
+    CreatedAt: string;
+    DeletedAt: string | null;
+  }
+  
+
   export interface ArticleVersion {
     VersionID: number;
     ArticleID: number;
@@ -114,6 +127,22 @@ export interface Article {
   export interface ArticleVersionsResponse {
     status: string;
     versions: ArticleVersion[];
+  }
+
+  export interface CategoryVersion {
+    VersionID: number;
+    CategoryID: number;
+    Title: string;
+    Slug: string;
+    CreatedAt: string;
+    DeletedAt: string | null;
+    ArticleCount: number | 0;
+  }
+
+  export interface CategoryVersionsResponse {
+    status: string;
+    currentVersion: CategoryVersion[];
+    versions: CategoryVersion[];
   }
 
   // export interface CreateArticleResponse {
@@ -232,53 +261,247 @@ const [deletedArticles, setDeletedArticles] = useState<Article[]>([]);
 
   const toggleArticleArchive = async (articleId: number) => {
     setLoading(true);
-    try {
-      const updatedArticle = await toggleArticleArchiveStatus(articleId);
-      // Update the article in the cache
+  
+    // Find the affected article and its category ID
+    const affectedArticle = articles.find(article => article.ArticleID === articleId);
+    const affectedCategoryId = affectedArticle?.CategoryID;
+  
+    // Optimistically update the article's Archived status
+    if (affectedArticle) {
+      const updatedArticle = { ...affectedArticle, Archived: affectedArticle.Archived ? 0 : 1 };
+  
+      // Update the articles state immediately
+      setArticles(prevArticles =>
+        prevArticles.map(article =>
+          article.ArticleID === articleId ? updatedArticle : article
+        )
+      );
+  
+      // Update the article cache immediately
       setArticleCache(prev => {
         const newCache = { ...prev };
         newCache[articleId] = updatedArticle;
         return newCache;
       });
-      // Update the articles array
-      setArticles(prev => prev.map(article => {
-        return article.ArticleID === updatedArticle.ArticleID ? updatedArticle : article;
-      }));
-      setLoading(false);
+  
+      // Update the categoryArticlesCache if applicable
+      if (affectedCategoryId) {
+        setCategoryArticlesCache(prevCache => {
+          const newCache = { ...prevCache };
+          if (newCache[affectedCategoryId]) {
+            newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+              article.ArticleID === articleId ? updatedArticle : article
+            );
+          }
+          return newCache;
+        });
+      }
+    }
+  
+    try {
+      // Call the API to toggle the archive status
+      const response = await toggleArticleArchiveStatus(articleId);
+      const { versionID } = response;
+  
+      // Successfully updated article with correct versionID
+      if (affectedArticle) {
+        const updatedArticleWithVersion: Article = {
+          ...affectedArticle,
+          Archived: affectedArticle.Archived ? 0 : 1, // Ensuring the state is consistent
+          Version: versionID
+        };
+  
+        // Update the articles state
+        setArticles(prevArticles =>
+          prevArticles.map(article =>
+            article.ArticleID === articleId ? updatedArticleWithVersion : article
+          )
+        );
+  
+        // Update the article cache
+        setArticleCache(prev => {
+          const newCache = { ...prev };
+          newCache[articleId] = updatedArticleWithVersion;
+          return newCache;
+        });
+  
+        // Update the categoryArticlesCache if applicable
+        if (affectedCategoryId) {
+          setCategoryArticlesCache(prevCache => {
+            const newCache = { ...prevCache };
+            if (newCache[affectedCategoryId]) {
+              newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+                article.ArticleID === articleId ? updatedArticleWithVersion : article
+              );
+            }
+            return newCache;
+          });
+        }
+      }
     } catch (e) {
+      // Revert changes in case of an error
+      if (affectedArticle) {
+        const revertedArticle = { ...affectedArticle };
+  
+        setArticles(prevArticles =>
+          prevArticles.map(article =>
+            article.ArticleID === articleId ? revertedArticle : article
+          )
+        );
+  
+        setArticleCache(prev => {
+          const newCache = { ...prev };
+          newCache[articleId] = revertedArticle;
+          return newCache;
+        });
+  
+        if (affectedCategoryId) {
+          setCategoryArticlesCache(prevCache => {
+            const newCache = { ...prevCache };
+            if (newCache[affectedCategoryId]) {
+              newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+                article.ArticleID === articleId ? revertedArticle : article
+              );
+            }
+            return newCache;
+          });
+        }
+      }
+  
       if (e instanceof Error) {
         setError(e.message);
       } else {
         setError("An unknown error occurred");
       }
+    } finally {
       setLoading(false);
     }
   };
+  
+
 
   const toggleArticleStaffOnly = async (articleId: number) => {
     setLoading(true);
-    try {
-      const updatedArticle = await toggleArticleStaffOnlyStatus(articleId);
-      // Update the article in the cache
+  
+    // Find the affected article and its category ID
+    const affectedArticle = articles.find(article => article.ArticleID === articleId);
+    const affectedCategoryId = affectedArticle?.CategoryID;
+  
+    // Optimistically update the article's StaffOnly status
+    if (affectedArticle) {
+      const updatedArticle = { ...affectedArticle, StaffOnly: affectedArticle.StaffOnly ? 0 : 1 };
+  
+      // Update the articles state immediately
+      setArticles(prevArticles =>
+        prevArticles.map(article =>
+          article.ArticleID === articleId ? updatedArticle : article
+        )
+      );
+  
+      // Update the article cache immediately
       setArticleCache(prev => {
         const newCache = { ...prev };
         newCache[articleId] = updatedArticle;
         return newCache;
       });
-      // Update the articles array
-      setArticles(prev => prev.map(article => {
-        return article.ArticleID === updatedArticle.ArticleID ? updatedArticle : article;
-      }));
-      setLoading(false);
+  
+      // Update the categoryArticlesCache if applicable
+      if (affectedCategoryId) {
+        setCategoryArticlesCache(prevCache => {
+          const newCache = { ...prevCache };
+          if (newCache[affectedCategoryId]) {
+            newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+              article.ArticleID === articleId ? updatedArticle : article
+            );
+          }
+          return newCache;
+        });
+      }
+    }
+  
+    try {
+      // Call the API to toggle the staff-only status
+      const response = await toggleArticleStaffOnlyStatus(articleId);
+      const { versionID } = response;
+  
+      // Update the article with the new version ID
+      if (affectedArticle) {
+        const updatedArticleWithVersion: Article = {
+          ...affectedArticle,
+          StaffOnly: affectedArticle.StaffOnly ? 0 : 1, // Ensuring the state is consistent
+          Version: versionID
+        };
+  
+        // Update the articles state
+        setArticles(prevArticles =>
+          prevArticles.map(article =>
+            article.ArticleID === articleId ? updatedArticleWithVersion : article
+          )
+        );
+  
+        // Update the article cache
+        setArticleCache(prev => {
+          const newCache = { ...prev };
+          newCache[articleId] = updatedArticleWithVersion;
+          return newCache;
+        });
+  
+        // Update the categoryArticlesCache if applicable
+        if (affectedCategoryId) {
+          setCategoryArticlesCache(prevCache => {
+            const newCache = { ...prevCache };
+            if (newCache[affectedCategoryId]) {
+              newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+                article.ArticleID === articleId ? updatedArticleWithVersion : article
+              );
+            }
+            return newCache;
+          });
+        }
+      }
     } catch (e) {
+      // Revert changes in case of an error
+      if (affectedArticle) {
+        const revertedArticle = { ...affectedArticle };
+  
+        setArticles(prevArticles =>
+          prevArticles.map(article =>
+            article.ArticleID === articleId ? revertedArticle : article
+          )
+        );
+  
+        setArticleCache(prev => {
+          const newCache = { ...prev };
+          newCache[articleId] = revertedArticle;
+          return newCache;
+        });
+  
+        if (affectedCategoryId) {
+          setCategoryArticlesCache(prevCache => {
+            const newCache = { ...prevCache };
+            if (newCache[affectedCategoryId]) {
+              newCache[affectedCategoryId] = newCache[affectedCategoryId].map(article =>
+                article.ArticleID === articleId ? revertedArticle : article
+              );
+            }
+            return newCache;
+          });
+        }
+      }
+  
       if (e instanceof Error) {
+        alert(e.message);
         setError(e.message);
       } else {
         setError("An unknown error occurred");
       }
+    } finally {
       setLoading(false);
     }
   };
+  
+
+
 
 
   // Function to fetch an article by slug with caching
@@ -312,6 +535,17 @@ const [deletedArticles, setDeletedArticles] = useState<Article[]>([]);
       setLoading(false);
     }
   };
+
+
+
+  const updateCategory = (updatedCategory: Category) => {
+    setCategories(prevCategories =>
+      prevCategories.map(cat =>
+        cat.CategoryID === updatedCategory.CategoryID ? updatedCategory : cat
+      )
+    );
+  };
+
 
 // Update the fetchArticleActionLogs function with proper typing
 const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> => {
@@ -355,38 +589,98 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
 
 
   // Function to handle category selection
-  const selectCategory = async (categoryId: number) => {
-    // Check if we already have the articles for this category in the cache
-    if (categoryArticlesCache[categoryId]) {
-      // If we do, just set the articles from the cache
-      setArticles(categoryArticlesCache[categoryId]);
-    } else {
-      // If not, fetch the articles and update the cache
-      setLoading(true);
-      try {
-        const data: ArticlesResponse = await fetchArticlesByCategoryId(categoryId.toString());
-        setArticles(data.articles);
-        // Update the cache with the new articles
-        setCategoryArticlesCache(prev => ({ ...prev, [categoryId]: data.articles }));
-        setLoading(false);
-        return data;
-      } catch (e) {
-        if (e instanceof Error) {
-          setError(e.message);
-        } else {
-          setError("An unknown error occurred");
-        }
-        setLoading(false);
+const selectCategory = async (categoryId: number) => {
+  // Check if we already have the articles for this category in the cache
+  if (categoryArticlesCache[categoryId]) {
+    // If we do, just set the articles from the cache
+    setArticles(categoryArticlesCache[categoryId]);
+  } else {
+    // If not, fetch the articles and update the cache
+    setLoading(true);
+    try {
+      const data: ArticlesResponse = await fetchArticlesByCategoryId(categoryId.toString());
+      setArticles(data.articles);
+      // Update the cache with the new articles
+      setCategoryArticlesCache(prev => ({ ...prev, [categoryId]: data.articles }));
+      setLoading(false);
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("An unknown error occurred");
       }
+      setLoading(false);
     }
+  }
+};
+
+
+const updateArticleById = async (articleId: number, updatedArticleData: any) => {
+  const token = getToken();
+
+  // Optimistically update the article state and cache with the provided data
+  const optimisticUpdate: Partial<Article> = {
+    CategoryID: updatedArticleData.categoryId,
+    Title: updatedArticleData.title,
+    Description: updatedArticleData.description,
+    DetailedDescription: updatedArticleData.detailedDescription,
+    ImgSrc: updatedArticleData.imgSrc,
+    Version: undefined,  // This will be updated after receiving the version ID from the backend
   };
 
+  // Determine the old category ID by searching in the categoryArticlesCache
+  let oldCategoryId: number | undefined;
+  for (const [categoryId, articles] of Object.entries(categoryArticlesCache)) {
+    if (articles.some(article => article.ArticleID === articleId)) {
+      oldCategoryId = Number(categoryId);
+      break;
+    }
+  }
 
-  const updateArticleById = async (articleId: number, updatedArticleData: Partial<Article>) => {
+  const newCategoryId = updatedArticleData.categoryId;
 
-    const token = getToken();
+  // Update the articles state immediately
+  setArticles(prevArticles =>
+    prevArticles.map(article =>
+      article.ArticleID === articleId ? { ...article, ...optimisticUpdate } : article
+    ) as Article[]
+  );
 
-    // Call the API endpoint to update the article
+  // Update the article cache immediately
+  setArticleCache(prevCache => ({
+    ...prevCache,
+    [articleId]: { ...prevCache[articleId], ...optimisticUpdate }
+  }));
+
+  // Update the categoryArticlesCache
+  setCategoryArticlesCache(prev => {
+    const updatedCache = { ...prev };
+
+    // Remove the article from the old category's articles if it's changing categories
+    if (oldCategoryId && oldCategoryId !== newCategoryId) {
+      updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
+        article => article.ArticleID !== articleId
+      );
+    }
+
+    // Add or update the article in the new category's articles
+    if (updatedCache[newCategoryId]) {
+      updatedCache[newCategoryId] = updatedCache[newCategoryId].some(article => article.ArticleID === articleId)
+        ? updatedCache[newCategoryId].map(article =>
+            article.ArticleID === articleId ? { ...article, ...optimisticUpdate } : article
+          )
+        : [...updatedCache[newCategoryId], { ...optimisticUpdate, ArticleID: articleId } as Article];
+    } else {
+      // If the new category does not exist in the cache, create it
+      updatedCache[newCategoryId] = [{ ...optimisticUpdate, ArticleID: articleId } as Article];
+    }
+
+    return updatedCache;
+  });
+
+  // Call the API endpoint to update the article
+  try {
     const response = await fetch(`${API_BASE_URL}/article/update/${articleId}`, {
       method: 'PUT',
       headers: {
@@ -395,13 +689,59 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
       },
       body: JSON.stringify(updatedArticleData),
     });
+
     if (!response.ok) {
       throw new Error('Failed to update article');
     }
 
     const result = await response.json();
-    return result;
-  };
+    const { versionID } = result;
+
+    // Finalize the update with the correct version ID
+    setArticles(prevArticles =>
+      prevArticles.map(article =>
+        article.ArticleID === articleId ? { ...article, Version: versionID } : article
+      ) as Article[]
+    );
+
+    setArticleCache(prevCache => ({
+      ...prevCache,
+      [articleId]: { ...prevCache[articleId], Version: versionID }
+    }));
+
+    setCategoryArticlesCache(prev => {
+      const updatedCache = { ...prev };
+
+      // Update the article in the new category with the correct version ID
+      if (updatedCache[newCategoryId]) {
+        updatedCache[newCategoryId] = updatedCache[newCategoryId].map(article =>
+          article.ArticleID === articleId ? { ...article, Version: versionID } : article
+        );
+      }
+
+      return updatedCache;
+    });
+
+    return versionID;
+  } catch (error) {
+    // Handle the error and potentially revert the optimistic update
+    if (error instanceof Error) {
+      console.error('Error updating article:', error);
+      setError(error.message);
+    } else {
+      console.error('Error updating article:', error);
+      setError('An unknown error occurred');
+    }
+    throw error;
+  }
+};
+
+
+
+
+  
+  
+
 
   async function fetchArticleVersions(articleId: number): Promise<ArticleVersionsResponse> {
     
@@ -420,6 +760,23 @@ const fetchAndSetArticleActionLogs = async (articleId: number): Promise<void> =>
     return data;
   };
   
+  async function fetchCategoryVersions(categoryId: number): Promise<CategoryVersionsResponse> {
+    
+    const token = getToken();
+
+    // Call the API endpoint to fetch article versions
+    const response = await fetch(`${API_BASE_URL}/category/fetchVersions/${categoryId}`, {
+      headers: {
+        'Authorization': `${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch article versions');
+    }
+    const data: CategoryVersionsResponse = await response.json();
+    return data;
+  };
+
 // Function to fetch deleted categories
 const fetchAndSetDeletedCategories = async () => {
   setLoading(true);
@@ -491,12 +848,14 @@ const handleRestoreCategory = async (categoryId: number) => {
         updateArticleById,
         setCategories,
         fetchArticleVersions,
+        fetchCategoryVersions,
         deletedCategories,
         deletedArticles,
         handleRestoreArticle,
         handleRestoreCategory,
         fetchAndSetDeletedCategories,
         fetchAndSetDeletedArticles,
+        updateCategory
       }}
     >
       {children}

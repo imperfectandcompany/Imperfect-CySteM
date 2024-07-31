@@ -1,23 +1,30 @@
 import { FunctionalComponent } from "preact";
-import { useState, useRef, useEffect } from "preact/hooks";
-import { route } from "preact-router";
+import { useState, useEffect, useContext } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { API_BASE_URL } from "../api";
 import { generateSlug, getToken } from "../utils";
+import { route } from "preact-router";
+import { Category, CategoryVersionsResponse, ContentContext } from "../contexts/ContentContext";
 
 interface CategoryProps {
   id: number;
 }
 
 const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
-  const [category, setCategory] = useState<{ id: number; title: string; } | null>(null);
+  const [category, setCategory] = useState<Category| null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [categoryExists, setCategoryExists] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [originalTitle, setOriginalTitle] = useState('');
-  const [newTitle, setNewTitle] = useState('');
+  const [originalTitle, setOriginalTitle] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+
+  const {
+    fetchCategoryVersions,
+    updateCategory
+  } = useContext(ContentContext); // Destructure the needed functions from the context
+
+
 
   useEffect(() => {
     fetchCategory();
@@ -25,27 +32,38 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
 
   const fetchCategory = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/category/fetchVersions/${id}`, {
-        headers: {
-          'Authorization': `${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch category');
-      }
-      const data = await response.json();
-      if (data && data.versions && data.versions.length > 0) {
-        const latestVersion = data.versions[data.versions.length - 1];
-        setCategory({ id, title: latestVersion.title });
-        setOriginalTitle(latestVersion.title);
+      const fetchedCategory: CategoryVersionsResponse =
+        await fetchCategoryVersions(id);
+        
+      if (fetchedCategory && ((fetchedCategory.versions && fetchedCategory.versions.length > 0) || (fetchedCategory.currentVersion && fetchedCategory.currentVersion.length > 0))) {
+        const currentVersion = fetchedCategory.currentVersion[0];
+    // Check if the versions array is not empty, otherwise, use CreatedAt from currentVersion
+    const categoryCreatedAt = fetchedCategory.versions.length > 0 
+        ? fetchedCategory.versions[fetchedCategory.versions.length - 1].CreatedAt 
+        : currentVersion.CreatedAt;
+
+        setCategory({
+          CategoryID: currentVersion.CategoryID,
+          Title: currentVersion.Title,
+          Slug: generateSlug(currentVersion.Title),
+          CreatedAt: categoryCreatedAt,
+          UpdatedAt: currentVersion.CreatedAt,
+          DeletedAt: currentVersion.DeletedAt,
+          ArticleCount: currentVersion.ArticleCount,
+          VersionID: currentVersion.VersionID, // Ensure VersionID is included
+        });
+        setOriginalTitle(currentVersion.Title);
       } else {
-        setError('Category not found');
+        setError("Category not found");
       }
     } catch (err) {
-      setError(err.message || 'Failed to load category');
+      if (err instanceof Error) {
+        setError(err.message || "Failed to load category");
+      } else {
+        setError("An unexpected error occurred.");
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -57,40 +75,51 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
     if (!category) return;
 
     if (newTitle === originalTitle) {
-      alert('The category name is the same as the current name.');
+      alert("The category name is the same as the current name.");
       return;
     }
 
     if (categoryExists) {
-      alert('A category with this name already exists.');
+      alert("A category with this name already exists.");
       return;
     }
 
     setSaving(true);
     try {
       const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/category/update/${category.id}`, {
-        method: 'PUT',
+      const response = await fetch(`${API_BASE_URL}/category/update/${id}`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `${token}`,
+          "Content-Type": "application/json",
+          Authorization: `${token}`,
         },
         body: JSON.stringify({ categoryTitle: newTitle }),
       });
       if (!response.ok) {
-        throw new Error('Failed to update category');
+        throw new Error("Failed to update category");
       }
       const result = await response.json();
-      if (result && result.status === 'success') {
-        route('/admin/dashboard');
+      if (result && result.status === "success") {
+
+        const updatedCategory: Category = {
+          ...category,
+          Title: newTitle,
+          Slug: generateSlug(newTitle),
+          UpdatedAt: new Date().toISOString(), // Update the UpdatedAt field with the current timestamp
+          VersionID: result.versionID, // Assuming the API returns the new version ID
+        };
+
+        updateCategory(updatedCategory);
+
+        route("/admin/dashboard");
       } else {
-        setError('Failed to update category');
+        setError("Failed to update category");
       }
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message || 'An error occurred while updating the category.');
+        setError(err.message || "An error occurred while updating the category.");
       } else {
-        setError('An unexpected error occurred.');
+        setError("An unexpected error occurred.");
       }
       console.error(err);
     } finally {
@@ -108,7 +137,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
     const token = getToken();
     const response = await fetch(`${API_BASE_URL}/category/checkTitleExists?categoryTitle=${encodeURIComponent(title)}`, {
       headers: {
-        'Authorization': `${token}`,
+        Authorization: `${token}`,
       },
     });
     const data = await response.json();
@@ -120,18 +149,21 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
     setCategoryExists(false);
   };
 
+  const isSaveDisabled =
+    loading || saving || categoryExists || newTitle.trim() === "";
+
   if (error) {
     return <div>Error: {error}</div>;
   }
 
   return (
     <>
-      <Breadcrumb path={`/admin/edit/category/${id}`} categoryId={id} categorySlug={generateSlug(category?.title || '')} />
+      <Breadcrumb path={`/admin/edit/category/${id}`} categoryId={id} categorySlug={generateSlug(category?.title || "")} />
       <div className="px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl mb-8">
           Edit Category
         </h1>
-        <form ref={formRef} onSubmit={handleSave} noValidate className="space-y-4">
+        <form onSubmit={handleSave} noValidate className="space-y-4">
           <div className="block">
             <label className="block text-sm font-medium text-gray-700">
               Category Name:
@@ -151,10 +183,10 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
               </p>
             )}
           </div>
-          <div className="flex space-x-4 flex-end items-end justify-end">
+          <div className="flex justify-end space-x-4 items-center">
             <button
               type="submit"
-              disabled={loading || saving || categoryExists || newTitle.trim() === ''}
+              disabled={isSaveDisabled}
               className={`bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition ease-in-out duration-300 relative`}
             >
               {saving ? (

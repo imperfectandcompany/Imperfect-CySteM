@@ -11,63 +11,77 @@ export const AdminCreateCategory: FunctionalComponent = () => {
   const [loading, setLoading] = useState(false);
   const [categoryExists, setCategoryExists] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const { setCategories } = useContext(ContentContext);
 
   const handleCategoryChange = (newCategory: string) => {
-
     setCategoryName(newCategory);
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
     debounceRef.current = setTimeout(async () => {
+      if (newCategory.trim() === "") {
+        setCategoryExists(false);
+        return;
+      }
+
       // Use the API to check if the category title exists
       const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/category/checkTitleExists?categoryTitle=${encodeURIComponent(newCategory)}`, {        headers: {
-          'Authorization': `${token}`,
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/category/checkTitleExists?categoryTitle=${encodeURIComponent(newCategory)}`,
+        {
+          headers: {
+            'Authorization': `${token}`,
+          },
+        }
+      );
       const data = await response.json();
-      setCategoryExists(data.exists); // Assuming the API returns a boolean in the `exists` field
+      setCategoryExists(data.exists);
     }, 500);
   };
 
-  const { setCategories } = useContext(ContentContext);
-
   const handleCreate = async (event: Event) => {
     event.preventDefault();
-    if (formRef.current?.checkValidity() === false || categoryExists) {
+    if (!categoryName.trim() || categoryExists) {
       formRef.current?.classList.add("shake");
       setTimeout(() => formRef.current?.classList.remove("shake"), 500);
       return;
     }
+
     setLoading(true);
-    // Use the API to create a new category
-    const token = getToken();
-    const response = await fetch(`${API_BASE_URL}/category/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${token}`,
-      },
-      body: JSON.stringify({ categoryTitle: categoryName }),
-    });
+    try {
+      // Use the API to create a new category
+      const token = getToken();
+      const response = await fetch(`${API_BASE_URL}/category/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${token}`,
+        },
+        body: JSON.stringify({ categoryTitle: categoryName }),
+      });
 
-    const result:CategoryCreateResponse = await response.json();
-    console.log('result: ', result);
+      const result: CategoryCreateResponse = await response.json();
+      setLoading(false);
 
-    setLoading(false);
-    if (result && result.status == 'success') {
-      // alert("Category created successfully!");
-      console.log({result});
-          // Update the categories in the context
-    setCategories((prevCategories: Category[]) => [
-      ...prevCategories,
-      { CategoryID: result.categoryId, Title: categoryName, ArticleCount: 0, Slug:generateSlug(categoryName) }
-    ]);
-      route("/admin/dashboard");
-    } else {
-      console.log({result});
-    console.log('bruhh');
-      // alert("Failed to create category");
+      if (result && result.status === 'success') {
+        const newCategory: Category = {
+          CategoryID: result.categoryId,
+          Title: categoryName,
+          Slug: generateSlug(categoryName),
+          CreatedAt: new Date().toISOString(),
+          UpdatedAt: null,
+          DeletedAt: null,
+          ArticleCount: 0,
+        };
+        setCategories((prevCategories: Category[]) => [...prevCategories, newCategory]);
+        route("/admin/dashboard");
+      } else {
+        console.error('Failed to create category:', result);
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('An error occurred while creating the category:', error);
     }
   };
 
@@ -98,13 +112,15 @@ export const AdminCreateCategory: FunctionalComponent = () => {
               </p>
             )}
           </div>
-          <button
-            type="submit"
-            disabled={loading || categoryExists}
-            className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition ease-in-out duration-300"
-          >
-            {loading ? "Creating..." : "Create Category"}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loading || categoryExists || !categoryName.trim()}
+              className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition ease-in-out duration-300"
+            >
+              {loading ? "Creating..." : "Create Category"}
+            </button>
+          </div>
         </form>
       </div>
     </>

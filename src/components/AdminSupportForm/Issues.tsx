@@ -313,7 +313,7 @@ const Issues = ({ token, prefillCategoryId }: Props) => {
       </div>
 
       {isModalOpen && (
-        <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="modal fixed inset-0 flex z-10 items-center justify-center bg-black bg-opacity-50">
           <div className="modal-content bg-white p-8 rounded shadow-lg w-1/2">
             <h2 className="text-2xl mb-4">{currentIssue.issue_id ? 'Edit Issue' : 'Add New Issue'}</h2>
             <form
