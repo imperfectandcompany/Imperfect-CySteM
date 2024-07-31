@@ -27,14 +27,15 @@ export function AdminRecycleBin() {
     setActiveCategoryId(activeCategoryId === id ? null : id);
   };
 
-  const handleRestoreArticleButton = async (articleId: number) => {
-    try {
-      await handleRestoreArticle(articleId);
-      fetchAndSetDeletedArticles();
-    } catch (error) {
-      console.error("Failed to restore article:", error);
-    }
-  };
+const handleRestoreArticleButton = async (articleId: number) => {
+  try {
+    await handleRestoreArticle(articleId);
+    await fetchAndSetDeletedArticles(); // Refresh the list of deleted articles
+  } catch (error) {
+    console.error("Failed to restore article:", error);
+  }
+};
+
 
   const handleRestoreCategoryButton = async (categoryId: number) => {
     try {

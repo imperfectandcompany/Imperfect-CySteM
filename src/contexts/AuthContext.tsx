@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }: { children: any }) => {
   const [isLoading, setIsLoading] = useState(true); // Add a loading state
 
   const verifyToken = async () => {
+
+    // TODO IMPLEMENT RETRY MECHANISM ON FAILRUE FOR NETWORK ERRORS LIKE ERR_NETWORK_CHANGED WHICH WILL CAUSE A FAILED TO FETCH ERROR
+    // AND SUBSEQUENT FAILED TO LOAD RESOURCE ERRORS SUCH AS ERR_NAME_NOT_RESOLVED
     setIsLoading(true); // Set loading to true when starting verification
     const token = getToken();
     if (token) {
