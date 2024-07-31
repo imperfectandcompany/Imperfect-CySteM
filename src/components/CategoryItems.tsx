@@ -5,7 +5,7 @@ import { generateSlug } from "../utils";
 import { FeatureCard } from "./FeatureCard";
 import Breadcrumb from "./Breadcrumb";
 import { AccessRestricted } from "./AccessRestricted";
-import { useContext } from "preact/hooks";
+import { useContext, useEffect, useState } from "preact/hooks";
 import { Article, ContentContext } from "../contexts/ContentContext";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -17,36 +17,43 @@ export const CategoryItems: FunctionalComponent<
   CategoryItemsProps & { onCardClick: (item?: Article) => void }
 > = ({ categorySlug, onCardClick }) => {
   const contentContext = useContext(ContentContext);
+  const { isAuthenticated } = useAuth();
+  const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
 
   if (!contentContext) {
     return <AccessRestricted message="Content not available" />;
   }
 
-  const content = useContext(ContentContext);
+  const content = contentContext;
 
   // Find the category ID using the slug
-  const category = content?.categories.find(
-    (c: { Slug: string }) => generateSlug(c.Slug) === categorySlug
+  const category = content.categories.find(
+    (c) => generateSlug(c.Slug) === categorySlug
   );
   if (!category) {
     return <AccessRestricted message="Category not found" />;
   }
 
-  // const userIsStaff = isStaff(); // Call the method to check if user is staff
-content?.selectCategory(category.CategoryID)
+  useEffect(() => {
+    // Function to filter articles
+    const filterArticles = () => {
+      const articles = content.articles.filter(
+        (article) =>
+          article.CategoryID === category.CategoryID &&
+          article.Archived === 0 &&
+          (isAuthenticated || article.StaffOnly === 0)
+      );
+      setFilteredArticles(articles);
+    };
 
-const { isAuthenticated } = useAuth();
+    // Initial filter and setup
+    filterArticles();
 
-  // Now you have the category ID, you can use it as needed to fetch or reference articles
-  const filteredArticles = content?.articles.filter(
-    (article) => {
-      if (isAuthenticated) {
-        return (article.CategoryID === category.CategoryID) && (article.Archived === 0);
-      } else {
-        return (article.CategoryID === category.CategoryID) && (article.Archived === 0) && (article.StaffOnly === 0);
-      }
-    }
-  );
+    // Listen for changes in the articles list
+    // This assumes that `content.articles` will change when articles are updated
+    // causing a re-render of this component
+
+  }, [content.articles, category.CategoryID, isAuthenticated]);
 
   return (
     <div>
@@ -59,30 +66,23 @@ const { isAuthenticated } = useAuth();
           {category.Title}
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
-          
-          {filteredArticles?.map((article: Article) => (
+          {filteredArticles.map((article) => (
             <FeatureCard
-              key={article.ArticleID} // Use card ID as key
+              key={article.ArticleID}
               title={article.Title}
-              id={article.ArticleID} // Add the id property
+              id={article.ArticleID}
               imgSrc={article.ImgSrc}
               description={article.Description}
-              detailedDescription={
-                article.DetailedDescription
-              }
+              detailedDescription={article.DetailedDescription}
               slug={article.Slug}
-              // matches={article.matches}
-              // title: boolean;
-              // description: boolean;
-              // detailedDescription: boolean;
               matches={{
                 title: false,
                 description: false,
                 detailedDescription: false,
               }}
-              onClick={() => onCardClick(article)} // Use onCardClick with the card
-              archived={!!article.Archived} // Add the archived property
-              staffOnly={!!article.StaffOnly} // Add the staffOnly property
+              onClick={() => onCardClick(article)}
+              archived={!!article.Archived}
+              staffOnly={!!article.StaffOnly}
             />
           ))}
         </div>

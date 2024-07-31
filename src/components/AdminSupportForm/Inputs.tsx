@@ -201,7 +201,7 @@ const Inputs = ({ token, categoryId }: Props) => {
       )}
 
       {isModalOpen && (
-        <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="modal fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
           <div className="modal-content bg-white p-8 rounded shadow-lg w-1/2">
             <h2 className="text-2xl mb-4">{currentInput.input_id ? 'Edit Input' : 'Add New Input'}</h2>
             <form

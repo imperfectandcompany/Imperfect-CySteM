@@ -1,20 +1,14 @@
 import { FunctionalComponent } from "preact";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useContext,
-  StateUpdater,
-} from "preact/hooks";
+import { useState, useEffect, useRef, useContext } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
 import { ChangeEvent } from "preact/compat";
-import { AdminError } from "./AdminError";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
 import {
+  Article,
   ArticleVersion,
   ArticleVersionsResponse,
   Category,
@@ -31,19 +25,18 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const { articleId } = matches; // Access articleId from matches
 
   const {
-    fetchArticle,
-    updateArticle,
     fetchArticleVersions,
     updateArticleById,
-    loading,
     fetchArticleActionLogs,
     categories,
     setCategories,
-    error,
+    loading,
+    setCategoryArticlesCache,
   } = useContext(ContentContext); // Destructure the needed functions from the context
 
   const [history, setHistory] = useState<ArticleVersion[]>();
 
+  const [articleTitle, setArticleTitle] = useState("");
   const [articleText, setArticleText] = useState("");
   const [articleDescription, setArticleDescription] = useState("");
   const [articleImgSrc, setArticleImgSrc] = useState("");
@@ -62,6 +55,7 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
         const fetchedArticle: ArticleVersionsResponse =
           await fetchArticleVersions(articleId);
         setHistory(fetchedArticle.versions);
+        setArticleTitle(fetchedArticle.versions[0].Title);
         setArticleText(fetchedArticle.versions[0].DetailedDescription);
         setArticleDescription(fetchedArticle.versions[0].Description);
         setArticleImgSrc(fetchedArticle.versions[0].ImgSrc);
@@ -102,6 +96,11 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const handleImgSrcChange = (event: ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
     setArticleImgSrc(target.value);
+  };
+
+  const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement;
+    setArticleTitle(target.value);
   };
 
   useEffect(() => {
@@ -145,61 +144,111 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     ? renderContent(contentElements)
     : null;
 
-  const saveEdit = async () => {
-    if (!history || !selectedCategory) return;
-
-    setSaving(true); // Set saving state to true
-
-    const updatedArticleData = {
-      categoryId: selectedCategory, // Ensure this is correctly sourced from the selected category dropdown
-      title: history[0].Title, // Ensure this is correctly sourced from the current article state or form
-      description: articleDescription, // This comes from the state handling the description input
-      detailedDescription: articleText, // This comes from the state handling the text area
-      imgSrc: articleImgSrc, // This comes from the state handling the image URL input
-    };
-
-    try {
-      await updateArticleById(history[0].ArticleID, updatedArticleData);
-
-      const versionsHistory: ArticleVersionsResponse =
-        await fetchArticleVersions(history[0].ArticleID);
-
-      fetchArticleActionLogs(articleId);
-
-      setCategories((prevCategories: Category[]) =>
-        prevCategories.map((cat) => {
-          if (cat.CategoryID === history[0].CategoryID) {
-            return {
-              ...cat,
-              ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0,
-            };
-          } else if (cat.CategoryID === selectedCategory) {
-            return {
-              ...cat,
-              ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1,
-            };
+    const saveEdit = async () => {
+      if (!history || !selectedCategory) return;
+    
+      setSaving(true);
+    
+      const updatedArticleData = {
+        categoryId: selectedCategory,
+        title: articleTitle,
+        description: articleDescription,
+        detailedDescription: articleText,
+        imgSrc: articleImgSrc,
+      };
+    
+      try {
+        const versionId = await updateArticleById(
+          history[0].ArticleID,
+          updatedArticleData
+        );
+    
+        // Fetch the latest version history and logs
+        const versionsHistory: ArticleVersionsResponse =
+          await fetchArticleVersions(history[0].ArticleID);
+        await fetchArticleActionLogs(articleId);
+    
+        // Assuming history[0].CategoryID is the original category ID and selectedCategory is the new one.
+        const oldCategoryId = history[0].CategoryID;
+        const newCategoryId = selectedCategory;
+    
+        // Update categories' article counts
+        setCategories((prevCategories: Category[]) =>
+          prevCategories.map((cat) => {
+            if (cat.CategoryID === oldCategoryId) {
+              return {
+                ...cat,
+                ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0,
+              };
+            } else if (cat.CategoryID === newCategoryId) {
+              return {
+                ...cat,
+                ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1,
+              };
+            }
+            return cat;
+          })
+        );
+    
+        // Update categoryArticlesCache to reflect the article movement
+        setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
+          const updatedCache = { ...prevCache };
+    
+          // Remove from the old category
+          if (updatedCache[oldCategoryId]) {
+            updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
+              (article) => article.ArticleID !== history[0].ArticleID
+            );
           }
-          return cat;
-        })
-      );
-
-      setHistory(versionsHistory.versions);
-      setArticleText(versionsHistory.versions[0].DetailedDescription);
-      setArticleDescription(versionsHistory.versions[0].Description);
-      setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
-      setSelectedCategory(Number(versionsHistory.versions[0].CategoryID));
-    } catch (error) {
-      console.error("Failed to update article:", error);
-    } finally {
-      setSaving(false); // Reset saving state to false
-    }
-  };
+    
+          // Add to the new category
+          if (updatedCache[newCategoryId]) {
+            updatedCache[newCategoryId] = [
+              ...updatedCache[newCategoryId],
+              {
+                ...history[0],
+                CategoryID: newCategoryId,
+                Version: versionId,
+                UpdatedAt: new Date().toISOString(),
+                DeletedAt: null,
+              },
+            ];
+          } else {
+            // If the new category does not exist in the cache, create it
+            updatedCache[newCategoryId] = [
+              {
+                ...history[0],
+                CategoryID: newCategoryId,
+                Version: versionId,
+                UpdatedAt: new Date().toISOString(),
+                DeletedAt: null,
+              },
+            ];
+          }
+    
+          return updatedCache;
+        });
+    
+        // Update local state with the latest data
+        setHistory(versionsHistory.versions);
+        setArticleText(versionsHistory.versions[0].DetailedDescription);
+        setArticleTitle(versionsHistory.versions[0].Title);
+        setArticleDescription(versionsHistory.versions[0].Description);
+        setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
+        setSelectedCategory(Number(versionsHistory.versions[0].CategoryID));
+      } catch (error) {
+        console.error("Failed to update article:", error);
+      } finally {
+        setSaving(false);
+      }
+    };
 
   const isContentChanged =
     history &&
     (articleText !== history[0]?.DetailedDescription ||
       selectedCategory !== history[0]?.CategoryID ||
       articleDescription !== history[0]?.Description ||
+      articleTitle !== history[0]?.Title ||
       articleImgSrc !== history[0]?.ImgSrc);
 
   const displayContent = () => {
@@ -210,6 +259,24 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
             <section className="mt-8"></section>
             <form>
               <div className="flex w-full flex-col">
+                <div className="my-4">
+                  <label
+                    htmlFor="articleTitle"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    id="articleTitle"
+                    value={articleTitle}
+                    onChange={handleTitleChange}
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    placeholder="Enter article title"
+                    disabled={loading || saving}
+                    readOnly={loading || saving}
+                  />
+                </div>
                 <div className="my-4">
                   <label
                     htmlFor="articleDescription"
@@ -302,6 +369,7 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
                     onClick={() => {
                       if (history && history.length > 0) {
                         setArticleText(history[0].DetailedDescription);
+                        setArticleTitle(history[0].Title);
                         setArticleDescription(history[0].Description);
                         setArticleImgSrc(history[0].ImgSrc);
                         setSelectedCategory(Number(history[0].CategoryID));
@@ -380,8 +448,13 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
         articleId={Number(articleId)}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
-        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl"> 
-          Editing: {loading ? <span className="animate transition animate-pulse bg-gray-100 px-24 ml-2"></span> : history && history[0]?.Title}
+        <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
+          Editing:{" "}
+          {loading ? (
+            <span className="animate transition animate-pulse bg-gray-100 px-24 ml-2"></span>
+          ) : (
+            history && history[0]?.Title
+          )}
         </h1>
         {isFeatureEnabled("ViewPotentialArticleChanges") && (
           <button
@@ -391,9 +464,13 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
                 ? togglePotentialChanges()
                 : toggleRaw()
             }
-            disabled={(loading || saving || !history) || ( history &&
-              history[0]?.DetailedDescription === articleText &&
-              (currentView === "raw" || currentView === "rendered"))
+            disabled={
+              loading ||
+              saving ||
+              !history ||
+              (history &&
+                history[0]?.DetailedDescription === articleText &&
+                (currentView === "raw" || currentView === "rendered"))
             }
           >
             {currentView === "raw" || currentView === "rendered"

@@ -1,7 +1,7 @@
 // src/components/Admin.tsx
 
 import { FunctionalComponent } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Admin: FunctionalComponent = () => {
