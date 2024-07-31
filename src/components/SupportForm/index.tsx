@@ -141,52 +141,57 @@ function useSupportForm(token: string | false) {
     (event: Event) => {
       const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
       const selectedCat = categories.find((cat) => cat.category_id === categoryId);
-  
+
       if (selectedCat) {
         setIssueCategory(selectedCat);
-        setSubIssue(null);
         setDetails({});
         if (selectedCat.subcategories.length > 0) {
           setSubcategories(selectedCat.subcategories);
-          setInputs(selectedCat.inputs);
-          setCurrentStep(1);
+          setInputs([]);
+          setCurrentStep(1); // Go to subcategory selection
         } else {
+          setSubcategories([]);
           setInputs(selectedCat.inputs);
-          setCurrentStep(2);
+          setCurrentStep(2); // Go directly to input fields
         }
       }
     },
     [categories]
   );
+
   
   const handleSubIssueChange = useCallback(
     (event: Event) => {
       const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
       const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
-  
+
       if (selectedSubcat) {
         setSubIssue(selectedSubcat);
         setDetails({});
         setInputs(selectedSubcat.inputs);
-        setCurrentStep(2);
+        setCurrentStep(2); // Show inputs for subcategory
       }
     },
     [subcategories]
   );
+
 
   const handleDetailChange = useCallback((key: string, value: string) => {
     setDetails((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const handleBack = useCallback(() => {
-    if (currentStep === 1) {
-      setIssueCategory(null);
-      setCurrentStep(0);
-    } else if (currentStep === 2) {
+    if (currentStep === 2 && subcategories.length > 0) {
       setSubIssue(null);
-      setCurrentStep(1);
+      setCurrentStep(1); // Go back to subcategory selection
+    } else if (currentStep === 2 && subcategories.length === 0) {
+      setIssueCategory(null);
+      setCurrentStep(0); // Go back to main category selection
+    } else if (currentStep === 1) {
+      setIssueCategory(null);
+      setCurrentStep(0); // Go back to main category selection
     }
-  }, [currentStep]);
+  }, [currentStep, subcategories]);
 
   useEffect(() => {
     const totalFields = 3; // Email, Issue Category, Sub-Issue
