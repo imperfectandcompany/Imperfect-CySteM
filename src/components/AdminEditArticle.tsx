@@ -172,24 +172,26 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
         const oldCategoryId = history[0].CategoryID;
         const newCategoryId = selectedCategory;
     
-        // Update categories' article counts
-        setCategories((prevCategories: Category[]) =>
-          prevCategories.map((cat) => {
-            if (cat.CategoryID === oldCategoryId) {
-              return {
-                ...cat,
-                ArticleCount: cat.ArticleCount ? cat.ArticleCount - 1 : 0,
-              };
-            } else if (cat.CategoryID === newCategoryId) {
-              return {
-                ...cat,
-                ArticleCount: cat.ArticleCount ? cat.ArticleCount + 1 : 1,
-              };
-            }
-            return cat;
-          })
-        );
-    
+// Update categories' article counts
+setCategories((prevCategories: Category[]) =>
+  prevCategories.map((cat) => {
+    if (cat.CategoryID === oldCategoryId && oldCategoryId !== newCategoryId) {
+      // Decrement the article count for the old category only if the article was moved
+      return {
+        ...cat,
+        ArticleCount: Math.max(0, (cat.ArticleCount || 0) - 1),
+      };
+    } else if (cat.CategoryID === newCategoryId && oldCategoryId !== newCategoryId) {
+      // Increment the article count for the new category only if the article was moved
+      return {
+        ...cat,
+        ArticleCount: (cat.ArticleCount || 0) + 1,
+      };
+    }
+    return cat;
+  })
+);
+
         // Update categoryArticlesCache to reflect the article movement
         setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
           const updatedCache = { ...prevCache };
