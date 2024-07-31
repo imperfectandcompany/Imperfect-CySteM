@@ -192,44 +192,44 @@ setCategories((prevCategories: Category[]) =>
   })
 );
 
-        // Update categoryArticlesCache to reflect the article movement
-        setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
-          const updatedCache = { ...prevCache };
+        // // Update categoryArticlesCache to reflect the article movement
+        // setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
+        //   const updatedCache = { ...prevCache };
     
-          // Remove from the old category
-          if (updatedCache[oldCategoryId]) {
-            updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
-              (article) => article.ArticleID !== history[0].ArticleID
-            );
-          }
+        //   // Remove from the old category
+        //   if (updatedCache[oldCategoryId]) {
+        //     updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
+        //       (article) => article.ArticleID !== history[0].ArticleID
+        //     );
+        //   }
     
-          // Add to the new category
-          if (updatedCache[newCategoryId]) {
-            updatedCache[newCategoryId] = [
-              ...updatedCache[newCategoryId],
-              {
-                ...history[0],
-                CategoryID: newCategoryId,
-                Version: versionId,
-                UpdatedAt: new Date().toISOString(),
-                DeletedAt: null,
-              },
-            ];
-          } else {
-            // If the new category does not exist in the cache, create it
-            updatedCache[newCategoryId] = [
-              {
-                ...history[0],
-                CategoryID: newCategoryId,
-                Version: versionId,
-                UpdatedAt: new Date().toISOString(),
-                DeletedAt: null,
-              },
-            ];
-          }
+        //   // Add to the new category
+        //   if (updatedCache[newCategoryId]) {
+        //     updatedCache[newCategoryId] = [
+        //       ...updatedCache[newCategoryId],
+        //       {
+        //         ...history[0],
+        //         CategoryID: newCategoryId,
+        //         Version: versionId,
+        //         UpdatedAt: new Date().toISOString(),
+        //         DeletedAt: null,
+        //       },
+        //     ];
+        //   } else {
+        //     // If the new category does not exist in the cache, create it
+        //     updatedCache[newCategoryId] = [
+        //       {
+        //         ...history[0],
+        //         CategoryID: newCategoryId,
+        //         Version: versionId,
+        //         UpdatedAt: new Date().toISOString(),
+        //         DeletedAt: null,
+        //       },
+        //     ];
+        //   }
     
-          return updatedCache;
-        });
+        //   return updatedCache;
+        // });
     
         // Update local state with the latest data
         setHistory(versionsHistory.versions);

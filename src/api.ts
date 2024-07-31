@@ -61,7 +61,7 @@ export const toggleArticleArchiveStatus = async (articleId: number) => {
   return response.json();
 };
 
-export const deleteArticle = async (articleId: number): Promise<void> => {
+export const deleteArticleApi = async (articleId: number): Promise<void> => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/article/delete/${articleId}`, {
     method: "DELETE",
@@ -74,7 +74,7 @@ export const deleteArticle = async (articleId: number): Promise<void> => {
   }
 };
 
-export const deleteCategory = async (categoryId: number): Promise<void> => {
+export const deleteCategoryApi = async (categoryId: number): Promise<void> => {
   const token = getToken();
   const response = await fetch(
     `${API_BASE_URL}/category/delete/${categoryId}`,
@@ -208,8 +208,8 @@ export const fetchDeletedArticles = async (): Promise<DeletedArticlesResponse> =
   return response.json();
 };
 
-// Function to restore a deleted article
-export const restoreArticle = async (articleId: number): Promise<void> => {
+// API function to restore a deleted article
+export const restoreArticle = async (articleId: number): Promise<{ version: number }> => {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/article/restore/${articleId}`, {
     method: 'PUT',
@@ -220,7 +220,10 @@ export const restoreArticle = async (articleId: number): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to restore article with ID ${articleId}`);
   }
+
+  return response.json();
 };
+
 
 // Function to restore a deleted category
 export const restoreCategory = async (categoryId: number): Promise<void> => {

@@ -4,7 +4,6 @@ import { route } from "preact-router";
 import Breadcrumb from "./Breadcrumb";
 import { isFeatureEnabled } from "../featureFlags";
 import { Article, Category, ContentContext } from "../contexts/ContentContext";
-import { deleteArticle, deleteCategory } from "../api";
 
 export const AdminDashboard: FunctionalComponent = () => {
   const [activeSection, setActiveSection] = useState<number | null>(null);
@@ -17,6 +16,8 @@ export const AdminDashboard: FunctionalComponent = () => {
     toggleArticleStaffOnly,
     setArticles,
     toggleArticleArchive,
+    deleteArticle,
+    deleteCategory
   } = useContext(ContentContext);
 
   const handleToggleSection = (categoryId: number) => {
@@ -101,60 +102,37 @@ export const AdminDashboard: FunctionalComponent = () => {
 
   // Optimistically delete an article from the UI
   const handleDeleteArticle = async (articleId: number) => {
-    if (confirm('Are you sure you want to delete this article?')) {
-      // Remove the article from the UI immediately
-      const newArticles = articles.filter((a: { ArticleID: number; }) => a.ArticleID !== articleId);
-      setArticles(newArticles);
-
+    if (confirm("Are you sure you want to delete this article?")) {
       try {
         await deleteArticle(articleId);
-        alert('Article deleted successfully');
+        alert("Article deleted successfully");
       } catch (error) {
-        // If the API call fails, revert the change in the UI
-        setArticles(articles);
-        alert('Failed to delete the article');
+        alert("Failed to delete the article");
         console.error(error);
       }
     }
   };
 
-  // Optimistically delete a category from the UI
-const handleDeleteCategory = async (categoryId: number) => {
-  // Check if there are articles in the category
-  const categoryArticles = articles.filter((article: { CategoryID: number; }) => article.CategoryID === categoryId);
-
-  let confirmationMessage = `Are you sure you want to delete this category?`;
-  if (categoryArticles.length > 0) {
-    confirmationMessage += ` This category has ${categoryArticles.length} associated article(s) that will also be deleted.`;
-  }
-
-  const confirmation = confirm(confirmationMessage);
-  if (confirmation) {
-    // Remove the category and its articles from the UI immediately
-    const newCategories = categories.filter((c: { CategoryID: number; }) => c.CategoryID !== categoryId);
-    const newArticles = articles.filter((a: { CategoryID: number; }) => a.CategoryID !== categoryId);
-    setCategories(newCategories);
-    setArticles(newArticles);
-
-    try {
-      await deleteCategory(categoryId);
-      // Optionally, you might want to delete the articles from the server here as well
-      const successMessage = categoryArticles.length > 0
-        ? 'Category and associated articles deleted successfully'
-        : 'Category deleted successfully';
-      alert(successMessage)
-    } catch (error) {
-      // If the API call fails, revert the changes in the UI
-      setCategories(categories);
-      setArticles(articles);
-      const failureMessage = categoryArticles.length > 0
-        ? 'Failed to delete the category and associated articles'
-        : 'Failed to delete the category';
-      alert(failureMessage);
-      console.error(error);
+  // Optimistically delete a category from the UI  
+  const handleDeleteCategory = async (categoryId: number) => {
+    // Check if there are articles in the category
+    const categoryArticles = articles.filter((article: { CategoryID: number; }) => article.CategoryID === categoryId);
+  
+    let confirmationMessage = `Are you sure you want to delete this category?`;
+    if (categoryArticles.length > 0) {
+      confirmationMessage += ` This category has ${categoryArticles.length} associated article(s) that will also be deleted.`;
     }
-  }
-};
+  
+    const confirmation = confirm(confirmationMessage);
+    if (confirmation) {
+      try {
+        await deleteCategory(categoryId);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+  
 
 // ... rest of the component ...
 

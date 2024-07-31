@@ -141,31 +141,34 @@ function useSupportForm(token: string | false) {
     (event: Event) => {
       const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
       const selectedCat = categories.find((cat) => cat.category_id === categoryId);
-
+  
       if (selectedCat) {
         setIssueCategory(selectedCat);
         setSubIssue(null);
         setDetails({});
-        setCurrentStep(1);
-        setSubcategories(selectedCat.subcategories);
-        setInputs(selectedCat.inputs);
-        setSubIssueTransition(true);
-        setTimeout(() => setSubIssueTransition(false), 500);
+        if (selectedCat.subcategories.length > 0) {
+          setSubcategories(selectedCat.subcategories);
+          setInputs(selectedCat.inputs);
+          setCurrentStep(1);
+        } else {
+          setInputs(selectedCat.inputs);
+          setCurrentStep(2);
+        }
       }
     },
     [categories]
   );
-
+  
   const handleSubIssueChange = useCallback(
     (event: Event) => {
       const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
       const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
-
+  
       if (selectedSubcat) {
         setSubIssue(selectedSubcat);
         setDetails({});
-        setCurrentStep(2);
         setInputs(selectedSubcat.inputs);
+        setCurrentStep(2);
       }
     },
     [subcategories]
@@ -230,6 +233,9 @@ function useSupportForm(token: string | false) {
         if (data.status === 'success') {
           const validCategories = filterValidCategories(data.data);
           setCategories(validCategories);
+          if (validCategories.length === 0) {
+            setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
+          }
         } else {
           setError('Failed to fetch form data: ' + data.message);
         }
@@ -240,7 +246,7 @@ function useSupportForm(token: string | false) {
         setLoading(false);
       }
     };
-
+  
     fetchFormData();
   }, [token]);
 
@@ -371,7 +377,21 @@ const SupportForm: FunctionalComponent<Props> = () => {
   };
 
   const renderInputs = () => {
-    if (!subIssue || reviewMode) return null;
+    if (reviewMode) return null;
+  
+    // Check if inputs are available for either the selected subIssue or the main issueCategory
+    const hasInputs = inputs.length > 0;
+    const hasIssue = subIssue || issueCategory;
+  
+    // If no inputs and no issue description, display a message
+    if (!hasInputs && !hasIssue) {
+      return (
+        <div className="text-center text-gray-500">
+          No specific inputs required for the selected category.
+        </div>
+      );
+    }
+  
     return inputs.map((input) => (
       <InputField
         key={input.input_id}
@@ -389,6 +409,22 @@ const SupportForm: FunctionalComponent<Props> = () => {
       />
     ));
   };
+  
+  // In the submit button rendering logic
+  const isSubmittable = () => {
+    // Ensure there's an issue or inputs to submit, and all required fields are filled
+    return (subIssue || issueCategory) && inputs.every(input => details[input.input_label]?.trim() !== '');
+  };
+  
+  // Usage in the component's JSX
+  <button
+    className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${isSubmittable() ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-300`}
+    type="button"
+    onClick={() => setReviewMode(true)}
+    disabled={!isSubmittable()}
+  >
+    Review and Submit
+  </button>
 
   const renderReview = () => {
     return (
@@ -463,6 +499,24 @@ const SupportForm: FunctionalComponent<Props> = () => {
       </div>
     );
   }
+
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-gray-500">{error}</div>;
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="text-center text-gray-500">
+        Currently, there is no valid path for form submission. Please contact an administrator for more information.
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen">
@@ -646,45 +700,38 @@ const SupportForm: FunctionalComponent<Props> = () => {
                   </p>
                 </div>
               )}
-              {!reviewMode && currentStep === 1 && (
-                <div
-                  className={`mb-4 ${
-                    subIssueTransition ? "animate-fade-in" : ""
-                  }`}
-                >
-                  <label
-                    htmlFor="sub-issue-select"
-                    className="block text-gray-700 text-sm font-bold mb-2"
-                  >
-                    Sub-Issue
-                  </label>
-                  <select
-                    id="sub-issue-select"
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
-                    value={subIssue ? subIssue.category_id.toString() : ""}
-                    onChange={handleSubIssueChange}
-                    required
-                    aria-label="Select Sub-Issue"
-                    aria-describedby="sub-issue-help"
-                    disabled={loading}
-                  >
-                    <option value="" disabled>
-                      Select a Sub-Issue
-                    </option>
-                    {subcategories.map((sub) => (
-                      <option
-                        key={sub.category_id}
-                        value={sub.category_id}
-                      >
-                        {sub.category_name}
-                      </option>
-                    ))}
-                  </select>
-                  <p id="sub-issue-help" className="text-xs text-gray-500 mt-1">
-                    Select the specific issue you are experiencing.
-                  </p>
-                </div>
-              )}
+{!reviewMode && currentStep === 1 && subcategories.length > 0 && (
+  <div className={`mb-4 ${subIssueTransition ? "animate-fade-in" : ""}`}>
+    <label
+      htmlFor="sub-issue-select"
+      className="block text-gray-700 text-sm font-bold mb-2"
+    >
+      Sub-Issue
+    </label>
+    <select
+      id="sub-issue-select"
+      className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+      value={subIssue ? subIssue.category_id.toString() : ""}
+      onChange={handleSubIssueChange}
+      required
+      aria-label="Select Sub-Issue"
+      aria-describedby="sub-issue-help"
+      disabled={loading}
+    >
+      <option value="" disabled>
+        Select a Sub-Issue
+      </option>
+      {subcategories.map((sub) => (
+        <option key={sub.category_id} value={sub.category_id}>
+          {sub.category_name}
+        </option>
+      ))}
+    </select>
+    <p id="sub-issue-help" className="text-xs text-gray-500 mt-1">
+      Select the specific issue you are experiencing.
+    </p>
+  </div>
+)}
               {!reviewMode && currentStep === 2 && renderInputs()}
               {!reviewMode && currentStep === 2 && (
                 <div>
