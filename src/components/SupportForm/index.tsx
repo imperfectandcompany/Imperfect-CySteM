@@ -5,6 +5,8 @@ import { Link } from "preact-router";
 import "tailwindcss/tailwind.css";
 import Breadcrumb from "../Breadcrumb";
 import { getToken } from "../../utils";
+import { AdminError } from "../AdminError";
+import { UserError } from "../UserError";
 
 interface Input {
   input_id: number;
@@ -136,94 +138,114 @@ function useSupportForm(token: string | false) {
   const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [inputs, setInputs] = useState<Input[]>([]);
   const [error, setError] = useState<string | null>(null);
+const handleIssueChange = useCallback(
+  (event: Event) => {
+    const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+    const selectedCat = categories.find((cat) => cat.category_id === categoryId);
 
-  const handleIssueChange = useCallback(
-    (event: Event) => {
-      const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
-      const selectedCat = categories.find((cat) => cat.category_id === categoryId);
-
-      if (selectedCat) {
-        setIssueCategory(selectedCat);
-        setDetails({});
-        if (selectedCat.subcategories.length > 0) {
-          setSubcategories(selectedCat.subcategories);
-          setInputs([]);
-          setCurrentStep(1); // Go to subcategory selection
-        } else {
-          setSubcategories([]);
-          setInputs(selectedCat.inputs);
-          setCurrentStep(2); // Go directly to input fields
-        }
+    if (selectedCat) {
+      setIssueCategory(selectedCat);
+      setDetails({});
+      setSubIssue(null); // Reset subIssue when changing main issue
+      if (selectedCat.subcategories.length > 0) {
+        setSubcategories(selectedCat.subcategories);
+        setInputs([]);
+        setCurrentStep(1); // Go to subcategory selection
+      } else {
+        setSubcategories([]);
+        setInputs(selectedCat.inputs);
+        setCurrentStep(2); // Go directly to input fields
       }
-    },
-    [categories]
-  );
+    }
+  },
+  [categories]
+);
 
-  
-  const handleSubIssueChange = useCallback(
-    (event: Event) => {
-      const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
-      const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
+const handleSubIssueChange = useCallback(
+  (event: Event) => {
+    const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+    const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
 
-      if (selectedSubcat) {
-        setSubIssue(selectedSubcat);
-        setDetails({});
-        setInputs(selectedSubcat.inputs);
-        setCurrentStep(2); // Show inputs for subcategory
-      }
-    },
-    [subcategories]
-  );
+    if (selectedSubcat) {
+      setSubIssue(selectedSubcat);
+      setDetails({});
+      setInputs(selectedSubcat.inputs);
+      setCurrentStep(2); // Show inputs for subcategory
+    }
+  },
+  [subcategories]
+);
 
+const handleDetailChange = useCallback((key: string, value: string) => {
+  setDetails((prev) => ({ ...prev, [key]: value }));
+}, []);
 
-  const handleDetailChange = useCallback((key: string, value: string) => {
-    setDetails((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const handleBack = useCallback(() => {
-    if (currentStep === 2 && subcategories.length > 0) {
+const handleBack = useCallback(() => {
+  if (currentStep === 2) {
+    if (subIssue) {
       setSubIssue(null);
       setCurrentStep(1); // Go back to subcategory selection
-    } else if (currentStep === 2 && subcategories.length === 0) {
-      setIssueCategory(null);
-      setCurrentStep(0); // Go back to main category selection
-    } else if (currentStep === 1) {
+    } else {
       setIssueCategory(null);
       setCurrentStep(0); // Go back to main category selection
     }
-  }, [currentStep, subcategories]);
+  } else if (currentStep === 1) {
+    setIssueCategory(null);
+    setCurrentStep(0); // Go back to main category selection
+  }
+}, [currentStep, subIssue, setIssueCategory, setSubIssue, setCurrentStep]);
 
-  useEffect(() => {
-    const totalFields = 3; // Email, Issue Category, Sub-Issue
-    let filledFields = 0;
-    if (email) filledFields++;
-    if (issueCategory) filledFields++;
-    if (subIssue) filledFields++;
+useEffect(() => {
+  // Initialize totalFields and filledFields
+  let totalFields = 1; // Start with the email field
+  let filledFields = email ? 1 : 0; // Check if the email is filled
 
-    const totalInputs = inputs.length;
-    const filledInputs = inputs.filter((input) => details[input.input_label]).length;
+  // Always include the main category selection as a mandatory field
+  totalFields++;
+  if (issueCategory) filledFields++; // Check if the issue category is selected
 
-    const totalProgressFields = totalFields + totalInputs;
-    const totalFilledFields = filledFields + filledInputs;
+  // Include sub-issue field only if subcategories are available
+  if (subcategories.length > 0) {
+    totalFields++;
+    if (subIssue) filledFields++; // Check if the sub-issue is selected
+  }
 
-    const progressPercentage = (totalFilledFields / totalProgressFields) * 100;
-    setProgress(progressPercentage);
+  // Include individual inputs as separate fields
+  // This section now properly iterates over inputs to calculate filled fields
+  totalFields += inputs.length; // Add the count of input fields to total fields
+  filledFields += inputs.reduce((count, input) => {
+    // Increment count for each non-empty and trimmed input
+    return count + (details[input.input_label]?.trim() ? 1 : 0);
+  }, 0);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    setEmailValid(emailRegex.test(email));
-  }, [email, issueCategory, subIssue, details, inputs]);
+  // Calculate the progress
+  const progressPercentage = (filledFields / totalFields) * 100;
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const progressDifference = Math.abs(displayProgress - progress);
-      if (progressDifference > 0.5) {
-        setDisplayProgress((prev) => {
-          return progress > prev ? prev + 1 : prev - 1;
-        });
-      }
-    }, 10);
-    return () => clearInterval(interval);
-  }, [displayProgress, progress]);
+  // Update the progress state with the calculated percentage, ensuring it does not exceed 100%
+  setProgress(Math.min(progressPercentage, 100));
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  setEmailValid(emailRegex.test(email));
+}, [email, issueCategory, subcategories.length, subIssue, details, inputs]);
+
+
+
+
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const progressDifference = Math.abs(displayProgress - progress);
+    if (progressDifference > 0.5) {
+      setDisplayProgress((prev) => {
+        return progress > prev ? prev + 1 : prev - 1;
+      });
+    }
+  }, 10);
+  return () => clearInterval(interval);
+}, [displayProgress, progress]);
+
+
 
   useEffect(() => {
     const fetchFormData = async () => {
@@ -511,7 +533,7 @@ const SupportForm: FunctionalComponent<Props> = () => {
   }
 
   if (error) {
-    return <div className="text-center text-gray-500">{error}</div>;
+    return <UserError message="Support Request Not Available" subMessage={error}></UserError>;
   }
 
   if (categories.length === 0) {
