@@ -14,6 +14,13 @@ interface Category {
   category_id: number;
   category_name: string;
   parent_id?: number;
+  subcategories: Category[];
+  inputs: Input[];
+  issue?: {
+    issue_version_id: number;
+    issue_description: string;
+    user_id: number;
+  } | null;
 }
 
 interface Props {
@@ -65,21 +72,35 @@ const Inputs = ({ token, categoryId }: Props) => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("https://api.imperfectgamers.org/support/requests/populate", {
+      setLoading(true);
+      const response = await fetch("https://api.imperfectgamers.org/support/requests/populate/all", {
         headers: {
           Authorization: token,
         },
       });
       const data = await response.json();
       if (data.status === "success") {
-        setCategories(data.data);
+        setCategories(flattenCategories(data.data));
       } else {
         setError("Failed to fetch categories: " + data.message);
       }
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching categories:", error);
       setError("Error fetching categories");
+      setLoading(false);
     }
+  };
+
+  const flattenCategories = (categories: Category[]): Category[] => {
+    let result: Category[] = [];
+    categories.forEach(category => {
+      result.push(category);
+      if (category.subcategories.length > 0) {
+        result = result.concat(flattenCategories(category.subcategories));
+      }
+    });
+    return result;
   };
 
   const handleDeleteInput = async (inputId: number) => {
@@ -134,15 +155,12 @@ const Inputs = ({ token, categoryId }: Props) => {
     setIsModalOpen(true);
   };
 
-  const renderCategoryOptions = (parentId: number | null, indent: string = ''): JSX.Element[] => {
-    return categories
-      .filter(category => category.parent_id === parentId)
-      .flatMap(category => [
-        <option key={category.category_id} value={category.category_id}>
-          {indent + category.category_name}
-        </option>,
-        ...renderCategoryOptions(category.category_id, indent + '--'),
-      ]);
+  const renderCategoryOptions = (categories: Category[], indent: string = ''): JSX.Element[] => {
+    return categories.map(category => (
+      <option key={category.category_id} value={category.category_id} disabled={!category.issue}>
+        {indent + category.category_name}
+      </option>
+    ));
   };
 
   const renderCategoryName = (categoryId: number): string => {
@@ -213,7 +231,7 @@ const Inputs = ({ token, categoryId }: Props) => {
               <div className="mb-4">
                 <label className="block mb-2">Category</label>
                 <select
-                  value={currentInput.category_id}
+                  value={currentInput.category_id || ''}
                   onChange={(e) => {
                     const target = e.target as HTMLSelectElement;
                     setCurrentInput({ ...currentInput, category_id: parseInt(target.value) });
@@ -221,14 +239,14 @@ const Inputs = ({ token, categoryId }: Props) => {
                   className="border rounded w-full py-2 px-3"
                 >
                   <option value="">Select Category</option>
-                  {renderCategoryOptions(null)}
+                  {renderCategoryOptions(categories)}
                 </select>
               </div>
               <div className="mb-4">
                 <label className="block mb-2">Label</label>
                 <input
                   type="text"
-                  value={currentInput.label}
+                  value={currentInput.label || ''}
                   onChange={(e) => {
                     const target = e.target as HTMLInputElement;
                     setCurrentInput({ ...currentInput, label: target.value });
@@ -239,7 +257,7 @@ const Inputs = ({ token, categoryId }: Props) => {
               <div className="mb-4">
                 <label className="block mb-2">Type</label>
                 <select
-                  value={currentInput.type}
+                  value={currentInput.type || 'text'}
                   onChange={(e) => {
                     const target = e.target as HTMLSelectElement;
                     setCurrentInput({ ...currentInput, type: target.value });
