@@ -33,6 +33,38 @@ export interface CategoryDetails {
     inputs: Input[];
     issue: Issue | null;
 }
+/**
+ * Fixes the implicit 'any' type errors by explicitly defining the types for the props.
+ */
+// Start of Selection
+
+// Add StatusIndicator component
+// Define the StatusIndicator to accept a third prop 'isValidPath'
+const StatusIndicator = ({ isLoading, hasError, isValidPath }: { isLoading: boolean; hasError: boolean, isValidPath: boolean }) => {
+    let statusColor, statusText;
+
+    if (isLoading) {
+        statusColor = 'bg-yellow-500';
+        statusText = 'Checking...';
+    } else if (hasError) {
+        statusColor = 'bg-red-500';
+        statusText = 'Unavailable';
+    } else if (!isValidPath) {
+        statusColor = 'bg-red-500';
+        statusText = 'No Valid Path';
+    } else {
+        statusColor = 'bg-green-500';
+        statusText = 'Live';
+    }
+
+    return (
+        <div className={`flex items-center space-x-2`}>
+            <div className={`h-3 w-3 rounded-full ${statusColor} animate-pulse`}></div>
+            <span className="text-sm">{statusText}</span>
+        </div>
+    );
+};
+
 
 const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -42,6 +74,8 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
     const [parentId, setParentId] = useState<number | null>(null);
     const [defaultPriority, setDefaultPriority] = useState<string | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
+
+    const [isValidPath, setIsValidPath] = useState(true);
 
     useEffect(() => {
         fetch('https://api.imperfectgamers.org/support/requests/populate', {
@@ -60,7 +94,8 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
                             hasIssue: details.issue !== null,
                         };
                     }));
-                    setCategories(categoriesWithIssues);
+                    setCategories(categoriesWithIssues);   
+                    
                 } else {
                     setError('Failed to fetch categories');
                 }
@@ -70,8 +105,59 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
                 setError('Failed to fetch categories');
                 setLoading(false);
             });
-    }, [token]);
 
+
+                setLoading(true);
+                fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
+                    headers: { 'Authorization': token },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const validCategories = filterValidCategories(data.data);
+                        // Check if there are usable categories for form submission
+                        if (validCategories.length === 0) {
+                            setError("No valid path for form submission. Please contact an administrator.");
+                            setIsValidPath(false);
+                        } else {
+                            setIsValidPath(true);
+                        }
+                    } else {
+                        setError(`Failed to fetch categories: ${data.message}`);
+                        setIsValidPath(false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching form data:', error);
+                    setError('Error fetching form data');
+                    setIsValidPath(false);
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+
+    }, [token]);
+    
+    const filterValidCategories = (categories:any) => {
+        return categories.filter((category:any) => isValidCategory(category));
+    };
+    
+    const isValidCategory = (category:any) => {
+        // Check current category for direct validity
+        if ((category.issue !== null) && (category.inputs && category.inputs.length > 0)) {
+            return true;
+        }
+    
+        // Recursively check subcategories
+        if (category.subcategories) {
+            return category.subcategories.some((subCat:any) => isValidCategory(subCat));
+        }
+    
+        return false;
+    };
+    
+    
+    
     const fetchCategoryDetails = (categoryId: number): Promise<CategoryDetails> => {
         return fetch(`https://api.imperfectgamers.org/support/requests/populate/category/${categoryId}`, {
             method: 'GET',
@@ -149,16 +235,16 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
             });
     };
 
-    if (loading) {
-        return <div className="text-center mt-10">Loading...</div>;
-    }
+    // if (loading) {
+    //     return <div className="text-center mt-10">Loading...</div>;
+    // }
 
-    if (error) {
-        return <div className="text-center mt-10 text-red-500">{error}</div>;
-    }
+    // if (error) {
+    //     return <div className="text-center mt-10 text-red-500">{error}</div>;
+    // }
 
     return (
-        <div className="container mx-auto mt-10 p-5 bg-white shadow-lg rounded-lg">
+        <div className="container mx-auto mt-10 p-5 bg-white shadow-lg rounded-lg">            
             <h1 className="text-3xl font-bold mb-5 text-center">Issue Categories</h1>
             <div className="mb-5 p-5 border rounded-lg shadow-inner bg-gray-50">
                 <h2 className="text-2xl mb-3">Create New Category</h2>
@@ -206,6 +292,7 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {renderCategories(null)}
             </div>
+            <StatusIndicator isLoading={loading} hasError={!!error} isValidPath={isValidPath} />
         </div>
     );
 };
