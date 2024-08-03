@@ -116,47 +116,34 @@ interface AdminRouteProps {
   path: string;
 }
 
-const AdminRoute: React.FC<AdminRouteProps> = ({
-  component: Component,
-  ...rest // Capture the rest of the props
-}) => {
+const AdminRoute: React.FC<AdminRouteProps> = ({ component: Component, ...rest }) => {
   const { isAuthenticated, isLoading, setIsAuthenticated, setUser } = useAuth();
 
+  // Handle loading state at the top to avoid rendering additional logic
   if (isLoading) {
     return <div>Loading...</div>; // Replace with your loading component or spinner
   }
-  // Redirect to the admin dashboard if the user is authenticated
+
+  // UseEffect to manage authentication and redirection logic
   useEffect(() => {
     if (!getToken() && isAuthenticated) {
-      // set user as not authenticated
       removeUserToken();
       setUser(null);
       setIsAuthenticated(false);
     }
 
-    if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin")) {
-      <AdminDashboard path="/admin/dashboard" />;
-      // This will replace the current entry in the history stack
+    // Redirect logic based on authentication and current path
+    if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin/")) {
       route("/admin/dashboard", true);
+    } else if (!isAuthenticated && (window.location.pathname !== "/admin" && window.location.pathname !== "/admin/")) {
+      route("/admin", true);
     }
-  }, [isAuthenticated]); // Only re-run the effect if isAuthenticated changes
+  }, [isAuthenticated, setIsAuthenticated, setUser]);
 
-  // Render dashboard if authenticated
-  if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin/")) {
-    <AdminDashboard path="/admin/dashboard" />;
-    // This will replace the current entry in the history stack
-    route("/admin/dashboard", true);
-  }
-
-  // if (!isAuthenticated && (window.location.pathname !== "/admin") || !isAuthenticated && (window.location.pathname !== "/admin/")) {
-  //   <Admin path="/admin" />;
-  //   // This will replace the current entry in the history stack
-  //   route("/admin", true);
-  // }
-
-  // Render the component
+  // Directly return the component if authenticated, otherwise handle redirection
   return <Component {...rest} />;
 };
+
 
 export function App(): VNode {
   const [state, dispatch] = useReducer(reducer, initialState);
