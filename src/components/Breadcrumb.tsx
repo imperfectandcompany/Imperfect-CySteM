@@ -2,7 +2,7 @@
 
 import { FunctionalComponent } from "preact";
 import { Link } from "preact-router";
-import { findCardById, generateSlug } from "../utils";
+import { generateSlug } from "../utils";
 import { isFeatureEnabled } from "../featureFlags";
 import { useContext } from "preact/compat";
 import { Article, Category, ContentContext } from "../contexts/ContentContext";
@@ -114,7 +114,7 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
         <li key="admin" className="inline">
           <span className="mx-2 text-gray-500">/</span>
           <Link
-            href="/admin"
+            href="/admin/dashboard"
             className="text-indigo-600 hover:text-indigo-800"
             onClick={onBreadcrumbClick}
           >
@@ -168,6 +168,21 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
           );
         }
       }
+        if (path === "/admin/recycle-bin") {
+          breadcrumbItems.push(
+            <li key="recycleBin" className="inline">
+              <span className="mx-2 text-gray-500">/</span>
+              <Link
+                href={`/admin/recycle-bin`}
+                className="text-indigo-600 hover:text-indigo-800"
+                onClick={onBreadcrumbClick}
+              >
+                Recycle Bin
+              </Link>
+            </li>
+          );
+        }
+
       if (isFeatureEnabled("ViewAdminLogs")) {
         if (path === "/admin/logs") {
           breadcrumbItems.push(
@@ -217,6 +232,19 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
         if (path.includes("/edit/article") && articleId) {
           // Since you already have the article from the context, you don't need to find it again
           if (article) {
+            breadcrumbItems.push(
+              <li key="edit" className="inline">
+                <span className="mx-2 text-gray-500">/</span>
+                <Link
+                  href={`/admin/edit/article/${articleId}`}
+                  className="text-indigo-600 hover:text-indigo-800"
+                  onClick={onBreadcrumbClick}
+                >
+                  Edit Article
+                </Link>
+              </li>
+            );
+          } else {
             breadcrumbItems.push(
               <li key="edit" className="inline">
                 <span className="mx-2 text-gray-500">/</span>

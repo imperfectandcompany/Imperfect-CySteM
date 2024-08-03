@@ -158,7 +158,7 @@ const AdminEditCategory: FunctionalComponent<CategoryProps> = ({ id }) => {
 
   return (
     <>
-      <Breadcrumb path={`/admin/edit/category/${id}`} categoryId={id} categorySlug={generateSlug(category?.title || "")} />
+      <Breadcrumb path={`/admin/edit/category/${id}`} categoryId={id} categorySlug={generateSlug(category?.Title || "")} />
       <div className="px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl mb-8">
           Edit Category

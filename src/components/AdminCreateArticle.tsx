@@ -13,6 +13,7 @@ import {
 import {
   Article,
   ArticleCreateResponse,
+  Category,
   ContentContext,
 } from "../contexts/ContentContext";
 import { parseContent } from "../contentParser";
@@ -60,7 +61,7 @@ export const AdminCreateArticle: FunctionalComponent = () => {
     }, 500);
   };
 
-  const { setArticles } = useContext(ContentContext);
+  const { setArticles, setCategoryArticlesCache, setCategories } = useContext(ContentContext);
 
   const handleCreate = async (event: Event) => {
     event.preventDefault();
@@ -97,23 +98,51 @@ export const AdminCreateArticle: FunctionalComponent = () => {
         });
         if (result.articleID) {
           // Optimistically update the articles in the context
-          setArticles((prevArticles: Article[]) => [
-            ...prevArticles,
-            {
-              ArticleID: result.articleID,
-              CategoryID: Number(category),
-              Title: title,
-              Description: description,
-              DetailedDescription: detailedDescription,
-              ImgSrc: imgSrc,
-              Archived: 0, // default values for new articles
-              StaffOnly: 0, // default values for new articles
-              Slug: generateSlug(title),
-              Version: null, // Assuming starting version for new articles
-              CreatedAt: new Date().toISOString(), // Assuming creation date is now
-              UpdatedAt: null, // Assuming no update yet
-            },
-          ]);
+       const newArticle = {
+          ArticleID: result.articleID,
+          CategoryID: Number(category),
+          Title: title,
+          Description: description,
+          DetailedDescription: detailedDescription,
+          ImgSrc: imgSrc,
+          Archived: 0,
+          StaffOnly: 0,
+          Slug: generateSlug(title),
+          Version: result.versionID, // Assuming backend returns version ID
+          CreatedAt: new Date().toISOString(),
+          UpdatedAt: null,
+          DeletedAt: null,
+        };
+
+
+
+        // Optimistically update the articles in the context
+        setArticles((prevArticles:Article[]) => [...prevArticles, newArticle]);
+
+        // Update the category articles cache
+        setCategoryArticlesCache((prev: Record<string, Article[]>) => {
+          const updatedCache = { ...prev };
+          if (updatedCache[category]) {
+            updatedCache[category].push(newArticle);
+          } else {
+            updatedCache[category] = [newArticle];
+          }
+          return updatedCache;
+        });
+
+        // Update the category count in setCategories
+        setCategories((prevCategories: Category[]) => 
+          prevCategories.map((cat) => 
+            cat.CategoryID === Number(category)
+              ? { ...cat, ArticleCount: cat.ArticleCount + 1 }
+              : cat
+          )
+        );
+
+        
+
+
+
 
    
           // // Update the article count for the category

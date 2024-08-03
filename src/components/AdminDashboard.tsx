@@ -17,7 +17,7 @@ export const AdminDashboard: FunctionalComponent = () => {
     setArticles,
     toggleArticleArchive,
     deleteArticle,
-    deleteCategory
+    deleteCategory,
   } = useContext(ContentContext);
 
   const handleToggleSection = (categoryId: number) => {
@@ -113,16 +113,18 @@ export const AdminDashboard: FunctionalComponent = () => {
     }
   };
 
-  // Optimistically delete a category from the UI  
+  // Optimistically delete a category from the UI
   const handleDeleteCategory = async (categoryId: number) => {
     // Check if there are articles in the category
-    const categoryArticles = articles.filter((article: { CategoryID: number; }) => article.CategoryID === categoryId);
-  
+    const categoryArticles = articles.filter(
+      (article: { CategoryID: number }) => article.CategoryID === categoryId
+    );
+
     let confirmationMessage = `Are you sure you want to delete this category?`;
     if (categoryArticles.length > 0) {
       confirmationMessage += ` This category has ${categoryArticles.length} associated article(s) that will also be deleted.`;
     }
-  
+
     const confirmation = confirm(confirmationMessage);
     if (confirmation) {
       try {
@@ -132,21 +134,20 @@ export const AdminDashboard: FunctionalComponent = () => {
       }
     }
   };
-  
 
-// ... rest of the component ...
+  // ... rest of the component ...
 
   return (
     <div>
       <Breadcrumb path={`/admin`} />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <span className="text-xs font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500">
-        Admin Dashboard
+          Admin Dashboard
         </span>
         <h1 className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
-        Imperfect Gamers
+          Imperfect Gamers
         </h1>
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-8">
           {isFeatureEnabled("AdminViewRequests") && (
             <button
               onClick={() => route("/admin/requests")}
@@ -176,8 +177,8 @@ export const AdminDashboard: FunctionalComponent = () => {
                   className="px-4 py-2 bg-indigo-100 text-stone-800 hover:text-white font-bold rounded hover:bg-indigo-600 transition duration-300 ease-in-out"
                 >
                   Recycle Bin
-                </button>  )
-}            
+                </button>
+              )}
               <button
                 onClick={() => setIsPopoverOpen(!isPopoverOpen)}
                 className="px-4 py-2 bg-indigo-50 text-stone-800 transition hover:text-white font-medium rounded-md inline-flex items-center"
@@ -225,144 +226,157 @@ export const AdminDashboard: FunctionalComponent = () => {
             </div>
           </div>
 
-          {categories.map((category: Category) => {
-            const isActive = activeSection === category.CategoryID;
-            const categoryArticles = articles.filter(
-              (article: Article) => article.CategoryID === category.CategoryID
-            );
-            const articleCount = category.ArticleCount;
+          {categories.length === 0 ? (
+            <p className="text-gray-500">No categories found.</p>
+          ) : (
+            categories.map((category: Category) => {
+              const isActive = activeSection === category.CategoryID;
+              const categoryArticles = articles.filter(
+                (article: Article) => article.CategoryID === category.CategoryID
+              );
+              const articleCount = category.ArticleCount;
 
-            return (
-              <div key={category.CategoryID} className="mt-5">
-                <button
-                  onClick={() => handleToggleSection(category.CategoryID)}
-                  className="flex hover:opacity-80 justify-between items-center w-full text-left text-lg font-semibold text-stone-900 py-2 transition duration-300 ease-in-out transform hover:scale-100 focus:outline-none"
-                >
-                  {category.Title} ({articleCount} Articles)
-                  <span
-                    className={`transform transition-transform duration-300 text-indigo-500 ${
-                      isActive ? "rotate-180" : "rotate-0"
+              return (
+                <div key={category.CategoryID} className="mt-5">
+                  <button
+                    onClick={() => handleToggleSection(category.CategoryID)}
+                    className="flex hover:opacity-80 justify-between items-center w-full text-left text-lg font-semibold text-stone-900 py-2 transition duration-300 ease-in-out transform hover:scale-100 focus:outline-none"
+                  >
+                    {category.Title} ({articleCount} Articles)
+                    <span
+                      className={`transform transition-transform duration-300 text-indigo-500 ${
+                        isActive ? "rotate-180" : "rotate-0"
+                      }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    className={`transition-max-height duration-500 ease-in-out overflow-hidden ${
+                      isActive ? "max-h-screen" : "max-h-0"
                     }`}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  className={`transition-max-height duration-500 ease-in-out overflow-hidden ${
-                    isActive ? "max-h-screen" : "max-h-0"
-                  }`}
-                >
-{(isFeatureEnabled("EditCategory") || (isFeatureEnabled("DeleteCategory"))) &&
-<div className="space-x-4 text-sm">
-{isFeatureEnabled("EditCategory") && (
-                        <button
-                          onClick={() =>
-                            route(`/admin/edit/category/${category.CategoryID}`)
-                          }
-                          className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out mb-4"
-                        >
-                          Edit Category
-                        </button>
-                      )}
-  {isFeatureEnabled("DeleteCategory") && (
-    <button
-      onClick={() => handleDeleteCategory(category.CategoryID)}
-      className="text-red-500 hover:underline"
-    >
-      Delete Category
-    </button>
-  )}
-</div>
-}
-                  {categoryArticles.map((article: Article) => (
-                    <div key={article.ArticleID}>
+                    {(isFeatureEnabled("EditCategory") ||
+                      isFeatureEnabled("DeleteCategory")) && (
+                      <div className="space-x-4 text-sm">
+                        {isFeatureEnabled("EditCategory") && (
+                          <button
+                            onClick={() =>
+                              route(
+                                `/admin/edit/category/${category.CategoryID}`
+                              )
+                            }
+                            className="text-stone-500 hover:text-indigo-900 transition duration-300 ease-in-out mb-4"
+                          >
+                            Edit Category
+                          </button>
+                        )}
+                        {isFeatureEnabled("DeleteCategory") && (
+                          <button
+                            onClick={() =>
+                              handleDeleteCategory(category.CategoryID)
+                            }
+                            className="text-red-500 hover:underline"
+                          >
+                            Delete Category
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {categoryArticles.length === 0 ? (
+                      <p className="text-gray-500">No articles found.</p>
+                    ) : (
+                      categoryArticles.map((article: Article) => (
+                        <div key={article.ArticleID}>
+                          <div
+                            key={article.ArticleID}
+                            className="border-b border-gray-200"
+                          >
+                            <div
+                              className={`flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ${
+                                article.Archived ? "bg-stone-50" : ""
+                              } ${
+                                article.StaffOnly
+                                  ? "border-l-4 border-indigo-600"
+                                  : ""
+                              }`}
+                            >
+                              <div>
+                                <h4 className="font-medium text-lg">
+                                  {article.Title}
+                                </h4>
+                                <p className="mt-1">{article.Description}</p>
+                                <div className="flex space-x-4 text-sm mt-1">
+                                  {isFeatureEnabled("ArchiveArticle") && (
+                                    <button
+                                      onClick={() =>
+                                        handleToggleArchive(article.ArticleID)
+                                      }
+                                      className="text-indigo-500 hover:underline"
+                                    >
+                                      {article.Archived
+                                        ? "Unarchive"
+                                        : "Archive"}
+                                    </button>
+                                  )}
+                                  {isFeatureEnabled("StaffOnly") && (
+                                    <button
+                                      onClick={() =>
+                                        handleToggleStaffOnly(article.ArticleID)
+                                      }
+                                      className="text-indigo-500 hover:underline"
+                                    >
+                                      {article.StaffOnly
+                                        ? "Make Public"
+                                        : "Make Staff Only"}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
 
-                      <div
-                        key={article.ArticleID}
-                        className="border-b border-gray-200"
-                      >
-                        <div
-                          className={`flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform ${
-                            article.Archived ? "bg-stone-50" : ""
-                          } ${
-                            article.StaffOnly
-                              ? "border-l-4 border-indigo-600"
-                              : ""
-                          }`}
-                        >
-                          <div>
-                            <h4 className="font-medium text-lg">
-                              {article.Title}
-                            </h4>
-                            <p className="mt-1">{article.Description}</p>
-                            <div className="flex space-x-4 text-sm mt-1">
-                              {isFeatureEnabled("ArchiveArticle") && (
-                                <button
-                                  onClick={() =>
-                                    handleToggleArchive(article.ArticleID)
-                                  }
-                                  className="text-indigo-500 hover:underline"
-                                >
-                                  {article.Archived ? "Unarchive" : "Archive"}
-                                </button>
-                              )}
-                              {isFeatureEnabled("StaffOnly") && (
-                                <button
-                                  onClick={() =>
-                                    handleToggleStaffOnly(article.ArticleID)
-                                  }
-                                  className="text-indigo-500 hover:underline"
-                                >
-                                  {article.StaffOnly
-                                    ? "Make Public"
-                                    : "Make Staff Only"}
-                                </button>
-                              )}
+                              <div className="flex space-x-4 text-sm mt-1">
+                                {isFeatureEnabled("DeleteArticle") && (
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteArticle(article.ArticleID)
+                                    }
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                                {isFeatureEnabled("EditArticle") && (
+                                  <button
+                                    onClick={() => handleEdit(article.ArticleID)}
+                                    className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-
-
-                          <div className="flex space-x-4 text-sm mt-1">
-                          {isFeatureEnabled("DeleteArticle") && (
-    <button
-      onClick={() => handleDeleteArticle(article.ArticleID)}
-      className="text-red-500 hover:underline"
-    >
-      Delete
-    </button>
-  )}
-                          {isFeatureEnabled("EditArticle") && (
-                            <button
-                              onClick={() => handleEdit(article.ArticleID)}
-                              className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
-                            >
-                              Edit
-                            </button>
-                          )}
-  </div>
-
-
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </section>
       </div>
     </div>

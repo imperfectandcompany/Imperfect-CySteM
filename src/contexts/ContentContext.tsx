@@ -52,6 +52,7 @@ interface ContentContextType {
   fetchArticle: (articleId: number) => Promise<Article | undefined>;
   fetchArticleBySlugDirectly: (articleSlug: string) => void;
   currentArticle: Article | null;
+  setCategoryArticlesCache: (categoryId: number, articles: Article[]) => void;
   toggleArticleArchive: (articleId: number) => Promise<void>;
   toggleArticleStaffOnly: (articleId: number) => Promise<void>;
   setArticles: (articles: Article[]) => void;
@@ -169,6 +170,7 @@ export interface CategoryCreateResponse {
 export interface ArticleCreateResponse {
   status: string;
   message: string;
+  versionID: number;
   articleID: number;
 }
 
@@ -1116,6 +1118,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({
         fetchArticleVersions,
         fetchCategoryVersions,
         deletedCategories,
+        setCategoryArticlesCache,
         deletedArticles,
         handleRestoreArticle,
         handleRestoreCategory,

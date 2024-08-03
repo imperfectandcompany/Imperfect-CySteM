@@ -50,7 +50,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
       <div className="flex items-center space-x-4 mt-3 sm:mt-0">
         {(isFeatureEnabled("AdminDashboard") && isAuthenticated) && (
           <Link
-            href="/admin"
+            href={isAuthenticated ? '/admin/dashboard' : '/admin'}
             className={`items-center md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition`}
           >
             Admin

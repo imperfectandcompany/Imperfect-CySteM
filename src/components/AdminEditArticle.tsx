@@ -1,5 +1,5 @@
 import { FunctionalComponent } from "preact";
-import { useState, useEffect, useRef, useContext } from "preact/hooks";
+import { useState, useEffect, useRef, useContext, StateUpdater } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
@@ -437,17 +437,18 @@ setCategories((prevCategories: Category[]) =>
     }
   };
 
-  const handleCategoryChange = (event: {
-    target: { value: StateUpdater<string> };
-  }) => {
-    setSelectedCategory(event.target.value);
-  };
+  // const handleCategoryChange = (event: {
+  //   target: { value: string };
+  // }) => {
+  //   setSelectedCategory(Number(event.target.value));
+  // };
 
   return (
     <>
       <Breadcrumb
         path={`/admin/edit/article/${articleId}`}
         articleId={Number(articleId)}
+        articleTitle={loading ? '': history && history[0]?.Title}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
