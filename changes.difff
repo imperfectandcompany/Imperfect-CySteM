@@ -1,0 +1,1171 @@
+diff --git a/src/app.tsx b/src/app.tsx
+index f442955..7016233 100644
+--- a/src/app.tsx
++++ b/src/app.tsx
+@@ -134,7 +134,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
+       setIsAuthenticated(false);
+     }
+ 
+-    if (isAuthenticated && window.location.pathname === "/admin") {
++    if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin")) {
+       <AdminDashboard path="/admin/dashboard" />;
+       // This will replace the current entry in the history stack
+       route("/admin/dashboard", true);
+@@ -142,17 +142,17 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
+   }, [isAuthenticated]); // Only re-run the effect if isAuthenticated changes
+ 
+   // Render dashboard if authenticated
+-  if (isAuthenticated && window.location.pathname === "/admin") {
++  if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin/")) {
+     <AdminDashboard path="/admin/dashboard" />;
+     // This will replace the current entry in the history stack
+     route("/admin/dashboard", true);
+   }
+ 
+-  if (!isAuthenticated && window.location.pathname !== "/admin") {
+-    <Admin path="/admin" />;
+-    // This will replace the current entry in the history stack
+-    route("/admin", true);
+-  }
++  // if (!isAuthenticated && (window.location.pathname !== "/admin") || !isAuthenticated && (window.location.pathname !== "/admin/")) {
++  //   <Admin path="/admin" />;
++  //   // This will replace the current entry in the history stack
++  //   route("/admin", true);
++  // }
+ 
+   // Render the component
+   return <Component {...rest} />;
+@@ -389,7 +389,7 @@ export function App(): VNode {
+                   />
+                 )}
+                 {isFeatureEnabled("SupportSystem") && (
+-                  <SupportForm token={token} path="/support" />
++                  <SupportForm path="/support" />
+                 )}
+ 
+                 <Article
+diff --git a/src/components/AdminSupportForm/AccordionItem.tsx b/src/components/AdminSupportForm/AccordionItem.tsx
+index 22bf692..178ff98 100644
+--- a/src/components/AdminSupportForm/AccordionItem.tsx
++++ b/src/components/AdminSupportForm/AccordionItem.tsx
+@@ -1,7 +1,6 @@
+ import { h, ComponentChildren } from 'preact';
+ import { useState } from 'preact/hooks';
+ import { CategoryDetails } from './IssueCategories';
+-import { route } from 'preact-router';
+ 
+ interface Category {
+     category_id: number;
+diff --git a/src/components/AdminSupportForm/Inputs.tsx b/src/components/AdminSupportForm/Inputs.tsx
+index 8f9e060..fe11951 100644
+--- a/src/components/AdminSupportForm/Inputs.tsx
++++ b/src/components/AdminSupportForm/Inputs.tsx
+@@ -13,7 +13,7 @@ interface Input {
+ interface Category {
+   category_id: number;
+   category_name: string;
+-  parent_id?: number;
++  default_priority: string | null;
+   subcategories: Category[];
+   inputs: Input[];
+   issue?: {
+@@ -26,9 +26,10 @@ interface Category {
+ interface Props {
+   token: string;
+   categoryId?: string;
++  prefillCategoryId?: number;
+ }
+ 
+-const Inputs = ({ token, categoryId }: Props) => {
++const Inputs = ({ token, categoryId, prefillCategoryId }: Props) => {
+   const [inputs, setInputs] = useState<Input[]>([]);
+   const [categories, setCategories] = useState<Category[]>([]);
+   const [currentInput, setCurrentInput] = useState<Partial<Input & { options: string[] }>>({});
+@@ -36,16 +37,28 @@ const Inputs = ({ token, categoryId }: Props) => {
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+ 
++  const getQueryParam = (param) => {
++    const urlParams = new URLSearchParams(window.location.search);
++    return urlParams.get(param);
++  };
++
+   useEffect(() => {
+     fetchInputs();
+     fetchCategories();
+   }, []);
+ 
+   useEffect(() => {
+-    if (categoryId) {
+-      setCurrentInput((prev) => ({ ...prev, category_id: parseInt(categoryId) }));
++    const catId = getQueryParam('categoryId');
++    if (catId) {
++      setCurrentInput({ category_id: parseInt(catId) });
+       setIsModalOpen(true);
+     }
++  }, []);
++
++  useEffect(() => {
++    if (categoryId && !isModalOpen) {
++      setCurrentInput((prev) => ({ ...prev, category_id: parseInt(categoryId) }));
++    }
+   }, [categoryId]);
+ 
+   const fetchInputs = async () => {
+@@ -80,7 +93,7 @@ const Inputs = ({ token, categoryId }: Props) => {
+       });
+       const data = await response.json();
+       if (data.status === "success") {
+-        setCategories(flattenCategories(data.data));
++        setCategories(data.data);
+       } else {
+         setError("Failed to fetch categories: " + data.message);
+       }
+@@ -92,17 +105,6 @@ const Inputs = ({ token, categoryId }: Props) => {
+     }
+   };
+ 
+-  const flattenCategories = (categories: Category[]): Category[] => {
+-    let result: Category[] = [];
+-    categories.forEach(category => {
+-      result.push(category);
+-      if (category.subcategories.length > 0) {
+-        result = result.concat(flattenCategories(category.subcategories));
+-      }
+-    });
+-    return result;
+-  };
+-
+   const handleDeleteInput = async (inputId: number) => {
+     if (!confirm("Are you sure you want to delete this input?")) return;
+ 
+@@ -126,6 +128,8 @@ const Inputs = ({ token, categoryId }: Props) => {
+   };
+ 
+   const handleSaveInput = async () => {
++    if (!currentInput.label || !currentInput.category_id) return;
++
+     try {
+       const method = currentInput.input_id ? 'PUT' : 'POST';
+       const url = currentInput.input_id ? `https://api.imperfectgamers.org/support/requests/inputs/${currentInput.input_id}` : 'https://api.imperfectgamers.org/support/requests/inputs';
+@@ -155,23 +159,51 @@ const Inputs = ({ token, categoryId }: Props) => {
+     setIsModalOpen(true);
+   };
+ 
++const findCategoryName = (categories: Category[], categoryId: number): string => {
++  for (const category of categories) {
++    if (category.category_id === categoryId) {
++      return category.category_name;
++    }
++    if (category.subcategories.length > 0) {
++      const name = findCategoryName(category.subcategories, categoryId);
++      if (name !== "Unknown Category") {
++        return name;
++      }
++    }
++  }
++  return "Unknown Category";
++};
++
+   const renderCategoryOptions = (categories: Category[], indent: string = ''): JSX.Element[] => {
+-    return categories.map(category => (
+-      <option key={category.category_id} value={category.category_id} disabled={!category.issue}>
+-        {indent + category.category_name}
+-      </option>
+-    ));
++    return categories.flatMap(category => {
++      const categoryOptions = [
++        <option key={category.category_id} value={category.category_id} disabled={!category.issue}>
++          {indent + category.category_name}
++        </option>
++      ];
++
++      if (category.subcategories.length > 0) {
++        categoryOptions.push(...renderCategoryOptions(category.subcategories, indent + '--'));
++      }
++
++      return categoryOptions;
++    });
+   };
+ 
+-  const renderCategoryName = (categoryId: number): string => {
+-    const category = categories.find(cat => cat.category_id === categoryId);
+-    return category ? category.category_name : "Unknown Category";
++  const isSaveDisabled = () => {
++    if (!currentInput.label || !currentInput.category_id) {
++      return true;
++    }
++    if (['radio', 'dropdown'].includes(currentInput.type) && (!currentInput.options || currentInput.options.length === 0)) {
++      return true;
++    }
++    return false;
+   };
+ 
+   return (
+     <div className="inputs-container p-4">
+       <h2 className="text-2xl font-bold mb-4">Inputs</h2>
+-      <button onClick={() => { setCurrentInput({ category_id: 0, label: '', type: 'text', options: [] }); setIsModalOpen(true); }} className="btn-add-input mb-4 bg-blue-500 text-white py-2 px-4 rounded">
++      <button onClick={() => { setCurrentInput({ category_id: undefined, label: '', type: 'text', options: [] }); setIsModalOpen(true); }} className="btn-add-input mb-4 bg-blue-500 text-white py-2 px-4 rounded">
+         Add New Input
+       </button>
+       {loading ? (
+@@ -194,7 +226,7 @@ const Inputs = ({ token, categoryId }: Props) => {
+             {inputs.map((input) => (
+               <tr key={input.input_id} className="hover:bg-gray-100">
+                 <td className="py-2 px-4 border-b">{input.input_id}</td>
+-                <td className="py-2 px-4 border-b">{renderCategoryName(input.category_id)}</td>
++                <td className="py-2 px-4 border-b">{findCategoryName(categories, input.category_id)}</td>
+                 <td className="py-2 px-4 border-b">{input.label}</td>
+                 <td className="py-2 px-4 border-b">{input.type}</td>
+                 <td className="py-2 px-4 border-b">{input.created_at}</td>
+@@ -231,14 +263,14 @@ const Inputs = ({ token, categoryId }: Props) => {
+               <div className="mb-4">
+                 <label className="block mb-2">Category</label>
+                 <select
+-                  value={currentInput.category_id || ''}
++                  value={currentInput.category_id !== undefined ? currentInput.category_id : ''}
+                   onChange={(e) => {
+                     const target = e.target as HTMLSelectElement;
+                     setCurrentInput({ ...currentInput, category_id: parseInt(target.value) });
+                   }}
+                   className="border rounded w-full py-2 px-3"
+                 >
+-                  <option value="">Select Category</option>
++                  <option value="" disabled>Select Category</option>
+                   {renderCategoryOptions(categories)}
+                 </select>
+               </div>
+@@ -285,7 +317,11 @@ const Inputs = ({ token, categoryId }: Props) => {
+                 </div>
+               )}
+               <div className="flex justify-end">
+-                <button type="submit" className="btn-save bg-blue-500 text-white py-2 px-4 rounded mr-2">
++                <button
++                  type="submit"
++                  className={`btn-save py-2 px-4 rounded mr-2 ${isSaveDisabled() ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white'}`}
++                  disabled={isSaveDisabled()}
++                >
+                   Save
+                 </button>
+                 <button
+diff --git a/src/components/AdminSupportForm/Issues.tsx b/src/components/AdminSupportForm/Issues.tsx
+index 954d1f6..734abda 100644
+--- a/src/components/AdminSupportForm/Issues.tsx
++++ b/src/components/AdminSupportForm/Issues.tsx
+@@ -41,9 +41,7 @@ const Issues = ({ token, prefillCategoryId }: Props) => {
+   }, []);
+ 
+   useEffect(() => {
+-    if (issues.length) {
+       fetchCategories();
+-    }
+   }, [issues]);
+ 
+   useEffect(() => {
+@@ -369,7 +367,7 @@ const Issues = ({ token, prefillCategoryId }: Props) => {
+       )}
+ 
+       {isHistoryModalOpen && (
+-        <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
++        <div className="modal fixed z-10 inset-0 flex items-center justify-center bg-black bg-opacity-50">
+           <div className="modal-content bg-white p-8 rounded shadow-lg w-1/2">
+             <h2 className="text-2xl mb-4">Issue Version History</h2>
+             <table className="w-full border-collapse">
+diff --git a/src/components/Article.tsx b/src/components/Article.tsx
+index 28e23ba..1d306d7 100644
+--- a/src/components/Article.tsx
++++ b/src/components/Article.tsx
+@@ -5,7 +5,6 @@ import { ContentContext } from '../contexts/ContentContext';
+ import { AccessRestricted } from './AccessRestricted';
+ import { ArticleView } from './ArticleView';
+ import Breadcrumb from './Breadcrumb';
+-// import { useMockAuth } from './models/userModel';
+ 
+ interface ArticleProps {
+   title?: string;
+@@ -15,20 +14,7 @@ interface ArticleProps {
+ }
+ 
+ const Article = ({ title, path, onBreadcrumbClick }: ArticleProps) => {
+-  // const { isStaff } = useMockAuth(); // Use the custom hook
+-
+-  // const userIsStaff = isStaff(); // Call the method to check if user is staff
+-
+-  // if (!card || card.archived || (card.staffOnly && !userIsStaff)) {
+-  //   return <AccessRestricted message="Article not available" />;
+-  // }
+-
+   const content = useContext(ContentContext);
+-  
+-
+-  // // Find the article by slug within the selected category's articles
+-  // const article = title ? content?.articles.find(a => a.Slug === title) : null;
+-
+ 
+   useEffect(() => {
+     if (title) {
+@@ -37,21 +23,50 @@ const Article = ({ title, path, onBreadcrumbClick }: ArticleProps) => {
+   }, [title]);
+ 
+   const article = content?.currentArticle;
+-
+-console.log(article); 
+-  
+   const category = content?.categories.find(c => c.CategoryID === article?.CategoryID);
+ 
+-      if (article === (null || undefined)) {
+-        if(undefined) {
+-
+-        } else{
+-          return <AccessRestricted message="Article not available" />;
+-
+-        }
+-
+-      }
+-
++  if ((!article) || (article && !category)) {
++    return (
++      <>
++            <div className={'py-3 px-5 my-4 opacity-80 z-10'}>
++<button
++            className="flex px-6 py-2 bg-black/15 flex-wrap ml-2 md:ml-8 text-xs sm:text-sm md:text-md lg:text-lg text-gray-600 rounded hover:cursor-pointer focus:cursor-auto focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out !z-20"
++            onClick={handleBackAction}
++          >
++            Go back
++          </button>
++        </div>
++      <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
++
++          <h1 className="mt-8 text-4xl font-normal tracking-tighter text-black/75 sm:text-5xl">
++          {title}
++          </h1>
++      <div className="flex flex-col items-center justify-center h-64 mt-8 text-center bg-gray-100 rounded-lg">
++        <svg
++          className="w-16 h-16 mb-4 text-indigo-500"
++          fill="none"
++          stroke="currentColor"
++          viewBox="0 0 24 24"
++          xmlns="http://www.w3.org/2000/svg"
++        >
++          <path
++            strokeLinecap="round"
++            strokeLinejoin="round"
++            strokeWidth="2"
++            d="M12 8v4l3 3m-3-3H9m0 0H5.458C4.506 12 4 11.582 4 10.875V8.125C4 7.418 4.506 7 5.458 7H18.542C19.494 7 20 7.418 20 8.125v2.75C20 11.582 19.494 12 18.542 12H16m-2 0v4m0 0H8.458C7.506 16 7 16.418 7 17.125v2.75C7 20.582 7.506 21 8.458 21H15.542C16.494 21 17 20.582 17 19.875v-2.75C17 16.418 16.494 16 15.542 16H12z"
++          />
++        </svg>
++        <p className="text-xl font-semibold text-gray-600">
++          Article not available
++        </p>
++        <p className="mt-2 text-gray-500">
++          We're working hard to add more content. Please check back later!
++        </p>
++      </div>
++</div>
++      </>
++    );
++  }
+ 
+   function handleBackAction() {
+     history.back();
+@@ -60,7 +75,7 @@ console.log(article);
+   return (
+     <div>
+       <Breadcrumb path={path} categorySlug={category?.Slug} articleTitle={title} onBreadcrumbClick={onBreadcrumbClick} />
+-    {article && <ArticleView item={article} onBack={handleBackAction} />}
++      {(article && category) && <ArticleView item={article} onBack={handleBackAction} />}
+     </div>
+   );
+ };
+diff --git a/src/components/Categories.tsx b/src/components/Categories.tsx
+index 5ce5c1c..1c2731b 100644
+--- a/src/components/Categories.tsx
++++ b/src/components/Categories.tsx
+@@ -1,11 +1,9 @@
+ // src/components/Categories.tsx
+ 
+ import { Link } from "preact-router";
+-import { content } from "../content";
+-import Breadcrumb from "./Breadcrumb";
+ import { useContext } from "preact/hooks";
+-import { ContentContext } from "../contexts/ContentContext";
+-import { Category } from "../contexts/ContentContext";
++import Breadcrumb from "./Breadcrumb";
++import { ContentContext, Category } from "../contexts/ContentContext";
+ 
+ export const Categories = ({
+   path,
+@@ -14,19 +12,9 @@ export const Categories = ({
+   path: string;
+   onBreadcrumbClick: () => void;
+ }) => {
+-  // const categories = Object.values(content.sections).map(
+-  //   section => {
+-  //     const latestVersion = section.versions.slice(-1)[0];
+-  //     return {
+-  //       title: latestVersion.title,
+-  //       slug: generateSlug(latestVersion.title),
+-  //     };
+-  //   }
+-  // );
+-
+   const { categories } = useContext(ContentContext);
+ 
+-  if (!content) {
++  if (!categories) {
+     return <div>Loading...</div>;
+   }
+ 
+@@ -37,19 +25,44 @@ export const Categories = ({
+         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
+           Categories
+         </h1>
+-        <ul className="mt-8">
+-          {categories?.map((category: Category) => (
+-            <li key={category.CategoryID} className="mb-4">
+-              <Link
+-                href={`/category/${category.Slug}`}
+-                className="text-indigo-500 hover:underline"
+-                onClick={onBreadcrumbClick}
+-              >
+-                {category.Title}
+-              </Link>
+-            </li>
+-          ))}
+-        </ul>
++        {categories.length > 0 ? (
++          <ul className="mt-8">
++            {categories.map((category: Category) => (
++              <li key={category.CategoryID} className="mb-4">
++                <Link
++                  href={`/category/${category.Slug}`}
++                  className="text-indigo-500 hover:underline"
++                  onClick={onBreadcrumbClick}
++                >
++                  {category.Title}
++                </Link>
++              </li>
++            ))}
++          </ul>
++        ) : (
++          <div className="flex flex-col items-center justify-center h-64 mt-8 text-center bg-gray-100 rounded-lg">
++            <svg
++              className="w-16 h-16 mb-4 text-indigo-500"
++              fill="none"
++              stroke="currentColor"
++              viewBox="0 0 24 24"
++              xmlns="http://www.w3.org/2000/svg"
++            >
++              <path
++                strokeLinecap="round"
++                strokeLinejoin="round"
++                strokeWidth="2"
++                d="M12 8v4l3 3m-3-3H9m0 0H5.458C4.506 12 4 11.582 4 10.875V8.125C4 7.418 4.506 7 5.458 7H18.542C19.494 7 20 7.418 20 8.125v2.75C20 11.582 19.494 12 18.542 12H16m-2 0v4m0 0H8.458C7.506 16 7 16.418 7 17.125v2.75C7 20.582 7.506 21 8.458 21H15.542C16.494 21 17 20.582 17 19.875v-2.75C17 16.418 16.494 16 15.542 16H12z"
++              />
++            </svg>
++            <p className="text-xl font-semibold text-gray-600">
++              No Categories Available
++            </p>
++            <p className="mt-2 text-gray-500">
++              We're working hard to add new categories. Please check back later!
++            </p>
++          </div>
++        )}
+       </div>
+     </div>
+   );
+diff --git a/src/components/Header.tsx b/src/components/Header.tsx
+index f14ca6c..ea4f445 100644
+--- a/src/components/Header.tsx
++++ b/src/components/Header.tsx
+@@ -4,6 +4,7 @@ import { FunctionalComponent } from "preact";
+ import { Link } from "preact-router/match";
+ import { useState, useEffect } from "preact/hooks";
+ import { isFeatureEnabled } from "../featureFlags";
++import { useAuth } from "../contexts/AuthContext";
+ 
+ interface HeaderProps {
+   onSearchChange: (event: Event) => void;
+@@ -20,6 +21,9 @@ export const Header: FunctionalComponent<HeaderProps> = ({
+ }) => {
+   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+ 
++  const { isAuthenticated } = useAuth();
++
++
+   useEffect(() => {
+     const handleLocationChange = () => {
+       setCurrentPath(window.location.pathname);
+@@ -32,10 +36,6 @@ export const Header: FunctionalComponent<HeaderProps> = ({
+     };
+   }, []);
+ 
+-  function onAdminClick() {
+-
+-  }
+-
+   return (
+     <header className="flex flex-wrap  md:items-center justify-between px-4 py-3 ite shadow-sm sm:px-6 md:px-8 lg:px-10 xl:px-12">
+       <div className="flex items-center cursor-pointer z-10">
+@@ -48,13 +48,10 @@ export const Header: FunctionalComponent<HeaderProps> = ({
+         </Link>
+       </div>
+       <div className="flex items-center space-x-4 mt-3 sm:mt-0">
+-        {isFeatureEnabled("AdminDashboard") && (
++        {(isFeatureEnabled("AdminDashboard") && isAuthenticated) && (
+           <Link
+             href="/admin"
+-            className={`flex items-center hidden md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition ${
+-              currentPath === "/categories" ? "hidden" : ""
+-            }`}
+-            onClick={onAdminClick}
++            className={`items-center md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition`}
+           >
+             Admin
+           </Link>
+@@ -62,9 +59,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
+         {isFeatureEnabled("CategoriesPage") && (
+           <Link
+             href="/categories"
+-            className={`flex items-center hidden md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition ${
+-              currentPath === "/categories" ? "hidden" : ""
+-            }`}
++            className={`flex items-center md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition`}
+             onClick={onCategoryClick}
+           >
+             Categories
+@@ -79,7 +74,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
+             className="block w-full items-center max-w-xs h-10 px-4 py-2 text-indigo-300 border rounded-lg appearance-none focus:border-stone-300 focus:outline-none focus:ring-stone-300 sm:text-sm"
+           />
+         )}
+-                {isFeatureEnabled("SupportSystem") && (
++                {(isFeatureEnabled("SupportSystem")) && (
+ <>
+ <Link
+           href="/support"
+diff --git a/src/components/SupportForm/index.tsx b/src/components/SupportForm/index.tsx
+index 51bff06..1b7582d 100644
+--- a/src/components/SupportForm/index.tsx
++++ b/src/components/SupportForm/index.tsx
+@@ -123,8 +123,7 @@ const InputField = memo(
+ 
+ function useSupportForm(token: string | false) {
+   const [email, setEmail] = useState("");
+-  const [issueCategory, setIssueCategory] = useState<Category | null>(null);
+-  const [subIssue, setSubIssue] = useState<Category | null>(null);
++  const [selectedCategoryPath, setSelectedCategoryPath] = useState<Category[]>([]);
+   const [details, setDetails] = useState<{ [key: string]: string }>({});
+   const [progress, setProgress] = useState(0);
+   const [submitted, setSubmitted] = useState(false);
+@@ -135,167 +134,186 @@ function useSupportForm(token: string | false) {
+   const [subIssueTransition, setSubIssueTransition] = useState(false);
+   const [displayProgress, setDisplayProgress] = useState(0);
+   const [categories, setCategories] = useState<Category[]>([]);
+-  const [subcategories, setSubcategories] = useState<Category[]>([]);
+-  const [inputs, setInputs] = useState<Input[]>([]);
+   const [error, setError] = useState<string | null>(null);
+-const handleIssueChange = useCallback(
+-  (event: Event) => {
+-    const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+-    const selectedCat = categories.find((cat) => cat.category_id === categoryId);
+-
+-    if (selectedCat) {
+-      setIssueCategory(selectedCat);
+-      setDetails({});
+-      setSubIssue(null); // Reset subIssue when changing main issue
+-      if (selectedCat.subcategories.length > 0) {
+-        setSubcategories(selectedCat.subcategories);
+-        setInputs([]);
+-        setCurrentStep(1); // Go to subcategory selection
++
++  const fetchCategories = async () => {
++    try {
++      setLoading(true);
++      const response = await fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
++        headers: {
++          Authorization: token || '',
++        },
++      });
++      const data = await response.json();
++      if (data.status === 'success') {
++        const validCategories = filterValidCategories(data.data);
++        setCategories(validCategories);
++        if (validCategories.length === 0) {
++          setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
++        }
+       } else {
+-        setSubcategories([]);
+-        setInputs(selectedCat.inputs);
+-        setCurrentStep(2); // Go directly to input fields
++        setError('Failed to fetch form data: ' + data.message);
+       }
++      setLoading(false);
++    } catch (error) {
++      console.error('Error fetching form data:', error);
++      setError('Error fetching form data');
++      setLoading(false);
+     }
+-  },
+-  [categories]
+-);
++  };
+ 
+-const handleSubIssueChange = useCallback(
+-  (event: Event) => {
+-    const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+-    const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
++  useEffect(() => {
++    fetchCategories();
++  }, [token]);
+ 
+-    if (selectedSubcat) {
+-      setSubIssue(selectedSubcat);
+-      setDetails({});
+-      setInputs(selectedSubcat.inputs);
+-      setCurrentStep(2); // Show inputs for subcategory
+-    }
+-  },
+-  [subcategories]
+-);
++  const filterValidCategories = (categories: Category[]): Category[] => {
++    return categories.filter((category) => isValidCategory(category));
++  };
+ 
+-const handleDetailChange = useCallback((key: string, value: string) => {
+-  setDetails((prev) => ({ ...prev, [key]: value }));
+-}, []);
+-
+-const handleBack = useCallback(() => {
+-  if (currentStep === 2) {
+-    if (subIssue) {
+-      setSubIssue(null);
+-      setCurrentStep(1); // Go back to subcategory selection
+-    } else {
+-      setIssueCategory(null);
+-      setCurrentStep(0); // Go back to main category selection
++  const isValidCategory = (category: Category): boolean => {
++    if (category.subcategories.length > 0) {
++      category.subcategories = category.subcategories.filter((subcategory) =>
++        isValidCategory(subcategory)
++      );
++      return category.subcategories.length > 0 || (category.inputs.length > 0 && category.issue !== null);
+     }
+-  } else if (currentStep === 1) {
+-    setIssueCategory(null);
+-    setCurrentStep(0); // Go back to main category selection
+-  }
+-}, [currentStep, subIssue, setIssueCategory, setSubIssue, setCurrentStep]);
+-
+-useEffect(() => {
+-  // Initialize totalFields and filledFields
+-  let totalFields = 1; // Start with the email field
+-  let filledFields = email ? 1 : 0; // Check if the email is filled
+-
+-  // Always include the main category selection as a mandatory field
+-  totalFields++;
+-  if (issueCategory) filledFields++; // Check if the issue category is selected
+-
+-  // Include sub-issue field only if subcategories are available
+-  if (subcategories.length > 0) {
+-    totalFields++;
+-    if (subIssue) filledFields++; // Check if the sub-issue is selected
+-  }
+-
+-  // Include individual inputs as separate fields
+-  // This section now properly iterates over inputs to calculate filled fields
+-  totalFields += inputs.length; // Add the count of input fields to total fields
+-  filledFields += inputs.reduce((count, input) => {
+-    // Increment count for each non-empty and trimmed input
+-    return count + (details[input.input_label]?.trim() ? 1 : 0);
+-  }, 0);
++    return category.inputs.length > 0 && category.issue !== null;
++  };
+ 
+-  // Calculate the progress
+-  const progressPercentage = (filledFields / totalFields) * 100;
++const handleCategoryChange = useCallback(
++  (event: Event, level: number) => {
++    const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
++    const selectedCategory = level === 0
++      ? categories.find((cat) => cat.category_id === categoryId)
++      : selectedCategoryPath[level - 1].subcategories?.find((cat) => cat.category_id === categoryId);
++
++    if (selectedCategory) {
++      setSelectedCategoryPath((prev) => {
++        const newPath = prev.slice(0, level);
++        newPath.push(selectedCategory);
++        return newPath;
++      });
+ 
+-  // Update the progress state with the calculated percentage, ensuring it does not exceed 100%
+-  setProgress(Math.min(progressPercentage, 100));
++      if (selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
++        setCurrentStep(level + 1); // Go to subcategory selection
++      } else if (selectedCategory.issue !== null && selectedCategory.inputs.length > 0) {
++        setCurrentStep(level + 2); // Go directly to input fields if issue and inputs exist
++      } else {
++        setCurrentStep(level + 1); // Proceed to the next step
++      }
++    }
++  },
++  [categories, selectedCategoryPath]
++);
+ 
+-  // Email validation
+-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+-  setEmailValid(emailRegex.test(email));
+-}, [email, issueCategory, subcategories.length, subIssue, details, inputs]);
+ 
++  const handleDetailChange = useCallback((key: string, value: string) => {
++    setDetails((prev) => ({ ...prev, [key]: value }));
++  }, []);
+ 
++  const handleBack = useCallback(() => {
++    if (currentStep > 0) {
++      setSelectedCategoryPath((prev) => prev.slice(0, -1));
++      setCurrentStep(currentStep - 1);
++    }
++  }, [currentStep]);
+ 
++  useEffect(() => {
++    let totalFields = 1; // Start with the email field
++    let filledFields = email ? 1 : 0; // Check if the email is filled
+ 
++    // Always include the main category selection as a mandatory field
++    totalFields++;
++    if (selectedCategoryPath.length > 0) filledFields++; // Check if the issue category is selected
+ 
+-useEffect(() => {
+-  const interval = setInterval(() => {
+-    const progressDifference = Math.abs(displayProgress - progress);
+-    if (progressDifference > 0.5) {
+-      setDisplayProgress((prev) => {
+-        return progress > prev ? prev + 1 : prev - 1;
+-      });
++    // Include subcategory field only if subcategories are available
++    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
++    if (lastSelectedCategory?.subcategories.length > 0) {
++      totalFields++;
++      if (selectedCategoryPath.length > 1) filledFields++; // Check if the sub-issue is selected
+     }
+-  }, 10);
+-  return () => clearInterval(interval);
+-}, [displayProgress, progress]);
+ 
++    // Include individual inputs as separate fields
++    const inputs = lastSelectedCategory?.inputs || [];
++    totalFields += inputs.length; // Add the count of input fields to total fields
++    filledFields += inputs.reduce((count, input) => {
++      return count + (details[input.input_label]?.trim() ? 1 : 0);
++    }, 0);
++
++    const progressPercentage = (filledFields / totalFields) * 100;
++    setProgress(Math.min(progressPercentage, 100));
+ 
++    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
++    setEmailValid(emailRegex.test(email));
++  }, [email, selectedCategoryPath, details]);
+ 
+   useEffect(() => {
+-    const fetchFormData = async () => {
+-      try {
+-        setLoading(true);
+-        const response = await fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
+-          headers: {
+-            Authorization: token || '',
+-          },
++    const interval = setInterval(() => {
++      const progressDifference = Math.abs(displayProgress - progress);
++      if (progressDifference > 0.5) {
++        setDisplayProgress((prev) => {
++          return progress > prev ? prev + 1 : prev - 1;
+         });
+-        const data = await response.json();
+-        if (data.status === 'success') {
+-          const validCategories = filterValidCategories(data.data);
+-          setCategories(validCategories);
+-          if (validCategories.length === 0) {
+-            setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
+-          }
+-        } else {
+-          setError('Failed to fetch form data: ' + data.message);
+-        }
+-        setLoading(false);
+-      } catch (error) {
+-        console.error('Error fetching form data:', error);
+-        setError('Error fetching form data');
+-        setLoading(false);
+       }
++    }, 10);
++    return () => clearInterval(interval);
++  }, [displayProgress, progress]);
++
++  const handleSubmit = async (e: Event) => {
++    e.preventDefault();
++
++    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
++
++    const requestData = {
++      email,
++      category_id: lastSelectedCategory.category_id,
++      inputs: lastSelectedCategory.inputs.map((input) => ({
++        input_id: input.input_id,
++        value: details[input.input_label] || ""
++      })),
+     };
+-  
+-    fetchFormData();
+-  }, [token]);
+ 
+-  const filterValidCategories = (categories: Category[]): Category[] => {
+-    return categories.filter((category) => isValidCategory(category));
+-  };
++    let validationFailed = false;
++    requestData.inputs.forEach((input) => {
++      if (input.value.trim() === "") {
++        validationFailed = true;
++        setError(`Validation failed: Input is required.`);
++      }
++    });
+ 
+-  const isValidCategory = (category: Category): boolean => {
+-    if (category.subcategories.length > 0) {
+-      category.subcategories = category.subcategories.filter((subcategory) =>
+-        isValidCategory(subcategory)
+-      );
+-      return category.subcategories.length > 0 || (category.inputs.length > 0 && category.issue !== null);
++    if (validationFailed) {
++      setLoading(false);
++      return;
++    }
++
++    try {
++      setLoading(true);
++      const response = await fetch('https://api.imperfectgamers.org/support/requests/submit', {
++        method: 'POST',
++        headers: {
++          'Content-Type': 'application/json',
++          Authorization: getToken() || '',
++        },
++        body: JSON.stringify(requestData),
++      });
++      const data = await response.json();
++      if (data.status === 'success') {
++        setSubmitted(true);
++      } else {
++        setError('Failed to submit support request: ' + data.message);
++      }
++      setLoading(false);
++    } catch (error) {
++      console.error('Error submitting support request:', error);
++      setError('Error submitting support request');
++      setLoading(false);
+     }
+-    return category.inputs.length > 0 && category.issue !== null;
+   };
+ 
+   return {
+     email,
+     setEmail,
+-    issueCategory,
+-    subIssue,
++    selectedCategoryPath,
+     details,
+     progress,
+     submitted,
+@@ -310,15 +328,13 @@ useEffect(() => {
+     setReviewMode,
+     subIssueTransition,
+     displayProgress,
+-    handleIssueChange,
+-    handleSubIssueChange,
++    handleCategoryChange,
+     handleDetailChange,
+     handleBack,
+     categories,
+-    subcategories,
+-    inputs,
+     error,
+     setError,
++    handleSubmit, // Return handleSubmit function
+   };
+ }
+ 
+@@ -326,8 +342,7 @@ const SupportForm: FunctionalComponent<Props> = () => {
+   const {
+     email,
+     setEmail,
+-    issueCategory,
+-    subIssue,
++    selectedCategoryPath,
+     details,
+     progress,
+     submitted,
+@@ -342,83 +357,29 @@ const SupportForm: FunctionalComponent<Props> = () => {
+     setReviewMode,
+     subIssueTransition,
+     displayProgress,
+-    handleIssueChange,
+-    handleSubIssueChange,
++    handleCategoryChange,
+     handleDetailChange,
+     handleBack,
+     categories,
+-    subcategories,
+-    inputs,
+     error,
+     setError,
++    handleSubmit, // Destructure handleSubmit
+   } = useSupportForm(getToken());
+ 
+-  const handleSubmit = async (e: Event) => {
+-    e.preventDefault();
+-
+-    const requestData = {
+-      email,
+-      category_id: subIssue ? subIssue.category_id : issueCategory?.category_id,
+-      inputs: inputs.map((input) => ({
+-        input_id: input.input_id,
+-        value: details[input.input_label] || ""
+-      })),
+-    };
+-
+-    // Validate required inputs
+-    let validationFailed = false;
+-    requestData.inputs.forEach((input) => {
+-      if (input.value.trim() === "") {
+-        validationFailed = true;
+-        setError(`Validation failed: Input is required.`);
+-      }
+-    });
+-
+-    if (validationFailed) {
+-      setLoading(false);
+-      return;
+-    }
+-
+-    try {
+-      setLoading(true);
+-      const response = await fetch('https://api.imperfectgamers.org/support/requests/submit', {
+-        method: 'POST',
+-        headers: {
+-          'Content-Type': 'application/json',
+-          Authorization: getToken() || '',
+-        },
+-        body: JSON.stringify(requestData),
+-      });
+-      const data = await response.json();
+-      if (data.status === 'success') {
+-        setSubmitted(true);
+-      } else {
+-        setError('Failed to submit support request: ' + data.message);
+-      }
+-      setLoading(false);
+-    } catch (error) {
+-      console.error('Error submitting support request:', error);
+-      setError('Error submitting support request');
+-      setLoading(false);
+-    }
+-  };
+-
+   const renderInputs = () => {
+     if (reviewMode) return null;
+-  
+-    // Check if inputs are available for either the selected subIssue or the main issueCategory
+-    const hasInputs = inputs.length > 0;
+-    const hasIssue = subIssue || issueCategory;
+-  
+-    // If no inputs and no issue description, display a message
+-    if (!hasInputs && !hasIssue) {
++
++    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
++    const inputs = lastSelectedCategory?.inputs || [];
++
++    if (inputs.length === 0) {
+       return (
+         <div className="text-center text-gray-500">
+           No specific inputs required for the selected category.
+         </div>
+       );
+     }
+-  
++
+     return inputs.map((input) => (
+       <InputField
+         key={input.input_id}
+@@ -436,24 +397,10 @@ const SupportForm: FunctionalComponent<Props> = () => {
+       />
+     ));
+   };
+-  
+-  // In the submit button rendering logic
+-  const isSubmittable = () => {
+-    // Ensure there's an issue or inputs to submit, and all required fields are filled
+-    return (subIssue || issueCategory) && inputs.every(input => details[input.input_label]?.trim() !== '');
+-  };
+-  
+-  // Usage in the component's JSX
+-  <button
+-    className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${isSubmittable() ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-300`}
+-    type="button"
+-    onClick={() => setReviewMode(true)}
+-    disabled={!isSubmittable()}
+-  >
+-    Review and Submit
+-  </button>
+ 
+   const renderReview = () => {
++    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
++
+     return (
+       <div>
+         <div className="flex items-baseline justify-between mb-4">
+@@ -474,12 +421,11 @@ const SupportForm: FunctionalComponent<Props> = () => {
+         <div className="mb-4">
+           <strong>Email:</strong> {email}
+         </div>
+-        <div className="mb-4">
+-          <strong>Issue Category:</strong> {issueCategory?.category_name}
+-        </div>
+-        <div className="mb-4">
+-          <strong>Sub-Issue:</strong> {subIssue?.category_name}
+-        </div>
++        {selectedCategoryPath.map((category, index) => (
++          <div key={index} className="mb-4">
++            <strong>{index === 0 ? 'Issue Category' : 'Sub-Issue'}:</strong> {category.category_name}
++          </div>
++        ))}
+         {Object.entries(details).map(([key, value], index) => (
+           <div key={index} className="mb-4">
+             <strong>{key}:</strong> {value}
+@@ -527,7 +473,6 @@ const SupportForm: FunctionalComponent<Props> = () => {
+     );
+   }
+ 
+-
+   if (loading) {
+     return <div>Loading...</div>;
+   }
+@@ -544,7 +489,6 @@ const SupportForm: FunctionalComponent<Props> = () => {
+     );
+   }
+ 
+-
+   return (
+     <div className="min-h-screen">
+       <Breadcrumb path={"/support"} />
+@@ -702,9 +646,9 @@ const SupportForm: FunctionalComponent<Props> = () => {
+                     id="issue-category-select"
+                     className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+                     value={
+-                      issueCategory ? issueCategory.category_id.toString() : ""
++                      selectedCategoryPath[0] ? selectedCategoryPath[0].category_id.toString() : ""
+                     }
+-                    onChange={handleIssueChange}
++                    onChange={(e) => handleCategoryChange(e, 0)}
+                     required
+                     aria-label="Select Issue Category"
+                     aria-describedby="category-help"
+@@ -727,28 +671,28 @@ const SupportForm: FunctionalComponent<Props> = () => {
+                   </p>
+                 </div>
+               )}
+-{!reviewMode && currentStep === 1 && subcategories.length > 0 && (
++{!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].subcategories?.length > 0 && (
+   <div className={`mb-4 ${subIssueTransition ? "animate-fade-in" : ""}`}>
+     <label
+       htmlFor="sub-issue-select"
+       className="block text-gray-700 text-sm font-bold mb-2"
+     >
+-      Sub-Issue
++      {`Sub-Issue Level ${currentStep}`}
+     </label>
+     <select
+       id="sub-issue-select"
+       className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+-      value={subIssue ? subIssue.category_id.toString() : ""}
+-      onChange={handleSubIssueChange}
++      value={selectedCategoryPath[currentStep] ? selectedCategoryPath[currentStep].category_id.toString() : ""}
++      onChange={(e) => handleCategoryChange(e, currentStep)}
+       required
+-      aria-label="Select Sub-Issue"
++      aria-label={`Select Sub-Issue Level ${currentStep}`}
+       aria-describedby="sub-issue-help"
+       disabled={loading}
+     >
+       <option value="" disabled>
+         Select a Sub-Issue
+       </option>
+-      {subcategories.map((sub) => (
++      {selectedCategoryPath[currentStep - 1].subcategories.map((sub) => (
+         <option key={sub.category_id} value={sub.category_id}>
+           {sub.category_name}
+         </option>
+@@ -759,8 +703,9 @@ const SupportForm: FunctionalComponent<Props> = () => {
+     </p>
+   </div>
+ )}
+-              {!reviewMode && currentStep === 2 && renderInputs()}
+-              {!reviewMode && currentStep === 2 && (
++
++              {!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].inputs.length > 0 && renderInputs()}
++              {!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].inputs.length > 0 && (
+                 <div>
+                   <button
+                     className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+diff --git a/src/content.ts b/src/content.ts
+index 21effee..29d9dfd 100644
+--- a/src/content.ts
++++ b/src/content.ts
+@@ -559,10 +559,9 @@ export const content: Content = {
+   footer: {
+     copyright: "© 2024 Imperfect Gamers. All rights reserved.",
+     links: [
+-      { href: "#", label: "Forums" },
+-      { href: "#", label: "Contact Us" },
+-      { href: "#", label: "Privacy Policy" },
+-      { href: "#", label: "Terms of Service" },
++      { href: 'https://imperfectgamers.org/', label: 'Home' },
++      { href: 'https://store.imperfectgamers.org/', label: 'Store' },
++      { href: 'https://stats.imperfectgamers.org/', label: 'Stats' },
+     ],
+   },
+ };
+diff --git a/src/featureFlags.ts b/src/featureFlags.ts
+index 17ac65a..c2c1872 100644
+--- a/src/featureFlags.ts
++++ b/src/featureFlags.ts
+@@ -66,12 +66,12 @@
+     Breadcrumbs: true, // Set this to true or false to enable/disable breadcrumbs
+     AdminDashboard: true, // Set this to true or false to enable/disable admin login
+     PreviewArticle: true, // Set this to true or false to enable/disable previewing articles
+-    NotificationBanner: true, // Feature flag for the little notification / banner at the top of the page
++    NotificationBanner: false, // Feature flag for the little notification / banner at the top of the page
+     ViewArticleChangelog: true, // Set this to true or false to enable/disable...
+     ViewPotentialArticleChanges: true, // Set this to true or false to enable/disable...
+     articleDetailedCharacterLimit: false, // Set this to true or false to enable/disable...
+-    SupportSystem: true,
+-    AdminViewRequests: true
++    SupportSystem: false,
++    AdminViewRequests: false
+   };
+     
+   export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {
+diff --git a/src/tests/components/Footer.test.tsx b/src/tests/components/Footer.test.tsx
+index ec557eb..8a8f858 100644
+--- a/src/tests/components/Footer.test.tsx
++++ b/src/tests/components/Footer.test.tsx
+@@ -13,10 +13,9 @@ describe('Footer Component', () => {
+   it('should render all footer links', () => {
+     render(<Footer />);
+     const links = [
+-      { href: '#', label: 'Forums' },
+-      { href: '#', label: 'Contact Us' },
+-      { href: '#', label: 'Privacy Policy' },
+-      { href: '#', label: 'Terms of Service' }
++      { href: '#', label: 'Home' },
++      { href: '#', label: 'Store' },
++      { href: '#', label: 'Stats' },
+     ];
+     links.forEach(link => {
+       expect(screen.getByText(link.label)).toBeInTheDocument();

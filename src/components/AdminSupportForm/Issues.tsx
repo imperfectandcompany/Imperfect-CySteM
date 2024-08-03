@@ -41,9 +41,7 @@ const Issues = ({ token, prefillCategoryId }: Props) => {
   }, []);
 
   useEffect(() => {
-    if (issues.length) {
       fetchCategories();
-    }
   }, [issues]);
 
   useEffect(() => {
@@ -369,7 +367,7 @@ const Issues = ({ token, prefillCategoryId }: Props) => {
       )}
 
       {isHistoryModalOpen && (
-        <div className="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="modal fixed z-10 inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="modal-content bg-white p-8 rounded shadow-lg w-1/2">
             <h2 className="text-2xl mb-4">Issue Version History</h2>
             <table className="w-full border-collapse">
