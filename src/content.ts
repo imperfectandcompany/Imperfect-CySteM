@@ -559,10 +559,9 @@ export const content: Content = {
   footer: {
     copyright: "© 2024 Imperfect Gamers. All rights reserved.",
     links: [
-      { href: "#", label: "Forums" },
-      { href: "#", label: "Contact Us" },
-      { href: "#", label: "Privacy Policy" },
-      { href: "#", label: "Terms of Service" },
+      { href: 'https://imperfectgamers.org/', label: 'Home' },
+      { href: 'https://store.imperfectgamers.org/', label: 'Store' },
+      { href: 'https://stats.imperfectgamers.org/', label: 'Stats' },
     ],
   },
 };

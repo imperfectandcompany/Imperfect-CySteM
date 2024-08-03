@@ -66,12 +66,12 @@
     Breadcrumbs: true, // Set this to true or false to enable/disable breadcrumbs
     AdminDashboard: true, // Set this to true or false to enable/disable admin login
     PreviewArticle: true, // Set this to true or false to enable/disable previewing articles
-    NotificationBanner: true, // Feature flag for the little notification / banner at the top of the page
+    NotificationBanner: false, // Feature flag for the little notification / banner at the top of the page
     ViewArticleChangelog: true, // Set this to true or false to enable/disable...
     ViewPotentialArticleChanges: true, // Set this to true or false to enable/disable...
     articleDetailedCharacterLimit: false, // Set this to true or false to enable/disable...
-    SupportSystem: true,
-    AdminViewRequests: true
+    SupportSystem: false,
+    AdminViewRequests: false
   };
     
   export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {

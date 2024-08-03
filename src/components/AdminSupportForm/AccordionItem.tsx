@@ -1,7 +1,6 @@
 import { h, ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { CategoryDetails } from './IssueCategories';
-import { route } from 'preact-router';
 
 interface Category {
     category_id: number;

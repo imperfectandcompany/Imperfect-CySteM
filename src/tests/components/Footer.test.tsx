@@ -13,10 +13,9 @@ describe('Footer Component', () => {
   it('should render all footer links', () => {
     render(<Footer />);
     const links = [
-      { href: '#', label: 'Forums' },
-      { href: '#', label: 'Contact Us' },
-      { href: '#', label: 'Privacy Policy' },
-      { href: '#', label: 'Terms of Service' }
+      { href: '#', label: 'Home' },
+      { href: '#', label: 'Store' },
+      { href: '#', label: 'Stats' },
     ];
     links.forEach(link => {
       expect(screen.getByText(link.label)).toBeInTheDocument();

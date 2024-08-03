@@ -13,7 +13,7 @@ interface Input {
 interface Category {
   category_id: number;
   category_name: string;
-  parent_id?: number;
+  default_priority: string | null;
   subcategories: Category[];
   inputs: Input[];
   issue?: {
@@ -26,9 +26,10 @@ interface Category {
 interface Props {
   token: string;
   categoryId?: string;
+  prefillCategoryId?: number;
 }
 
-const Inputs = ({ token, categoryId }: Props) => {
+const Inputs = ({ token, categoryId, prefillCategoryId }: Props) => {
   const [inputs, setInputs] = useState<Input[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentInput, setCurrentInput] = useState<Partial<Input & { options: string[] }>>({});
@@ -36,15 +37,27 @@ const Inputs = ({ token, categoryId }: Props) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getQueryParam = (param) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  };
+
   useEffect(() => {
     fetchInputs();
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    if (categoryId) {
-      setCurrentInput((prev) => ({ ...prev, category_id: parseInt(categoryId) }));
+    const catId = getQueryParam('categoryId');
+    if (catId) {
+      setCurrentInput({ category_id: parseInt(catId) });
       setIsModalOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (categoryId && !isModalOpen) {
+      setCurrentInput((prev) => ({ ...prev, category_id: parseInt(categoryId) }));
     }
   }, [categoryId]);
 
@@ -80,7 +93,7 @@ const Inputs = ({ token, categoryId }: Props) => {
       });
       const data = await response.json();
       if (data.status === "success") {
-        setCategories(flattenCategories(data.data));
+        setCategories(data.data);
       } else {
         setError("Failed to fetch categories: " + data.message);
       }
@@ -90,17 +103,6 @@ const Inputs = ({ token, categoryId }: Props) => {
       setError("Error fetching categories");
       setLoading(false);
     }
-  };
-
-  const flattenCategories = (categories: Category[]): Category[] => {
-    let result: Category[] = [];
-    categories.forEach(category => {
-      result.push(category);
-      if (category.subcategories.length > 0) {
-        result = result.concat(flattenCategories(category.subcategories));
-      }
-    });
-    return result;
   };
 
   const handleDeleteInput = async (inputId: number) => {
@@ -126,6 +128,8 @@ const Inputs = ({ token, categoryId }: Props) => {
   };
 
   const handleSaveInput = async () => {
+    if (!currentInput.label || !currentInput.category_id) return;
+
     try {
       const method = currentInput.input_id ? 'PUT' : 'POST';
       const url = currentInput.input_id ? `https://api.imperfectgamers.org/support/requests/inputs/${currentInput.input_id}` : 'https://api.imperfectgamers.org/support/requests/inputs';
@@ -155,23 +159,51 @@ const Inputs = ({ token, categoryId }: Props) => {
     setIsModalOpen(true);
   };
 
+const findCategoryName = (categories: Category[], categoryId: number): string => {
+  for (const category of categories) {
+    if (category.category_id === categoryId) {
+      return category.category_name;
+    }
+    if (category.subcategories.length > 0) {
+      const name = findCategoryName(category.subcategories, categoryId);
+      if (name !== "Unknown Category") {
+        return name;
+      }
+    }
+  }
+  return "Unknown Category";
+};
+
   const renderCategoryOptions = (categories: Category[], indent: string = ''): JSX.Element[] => {
-    return categories.map(category => (
-      <option key={category.category_id} value={category.category_id} disabled={!category.issue}>
-        {indent + category.category_name}
-      </option>
-    ));
+    return categories.flatMap(category => {
+      const categoryOptions = [
+        <option key={category.category_id} value={category.category_id} disabled={!category.issue}>
+          {indent + category.category_name}
+        </option>
+      ];
+
+      if (category.subcategories.length > 0) {
+        categoryOptions.push(...renderCategoryOptions(category.subcategories, indent + '--'));
+      }
+
+      return categoryOptions;
+    });
   };
 
-  const renderCategoryName = (categoryId: number): string => {
-    const category = categories.find(cat => cat.category_id === categoryId);
-    return category ? category.category_name : "Unknown Category";
+  const isSaveDisabled = () => {
+    if (!currentInput.label || !currentInput.category_id) {
+      return true;
+    }
+    if (['radio', 'dropdown'].includes(currentInput.type) && (!currentInput.options || currentInput.options.length === 0)) {
+      return true;
+    }
+    return false;
   };
 
   return (
     <div className="inputs-container p-4">
       <h2 className="text-2xl font-bold mb-4">Inputs</h2>
-      <button onClick={() => { setCurrentInput({ category_id: 0, label: '', type: 'text', options: [] }); setIsModalOpen(true); }} className="btn-add-input mb-4 bg-blue-500 text-white py-2 px-4 rounded">
+      <button onClick={() => { setCurrentInput({ category_id: undefined, label: '', type: 'text', options: [] }); setIsModalOpen(true); }} className="btn-add-input mb-4 bg-blue-500 text-white py-2 px-4 rounded">
         Add New Input
       </button>
       {loading ? (
@@ -194,7 +226,7 @@ const Inputs = ({ token, categoryId }: Props) => {
             {inputs.map((input) => (
               <tr key={input.input_id} className="hover:bg-gray-100">
                 <td className="py-2 px-4 border-b">{input.input_id}</td>
-                <td className="py-2 px-4 border-b">{renderCategoryName(input.category_id)}</td>
+                <td className="py-2 px-4 border-b">{findCategoryName(categories, input.category_id)}</td>
                 <td className="py-2 px-4 border-b">{input.label}</td>
                 <td className="py-2 px-4 border-b">{input.type}</td>
                 <td className="py-2 px-4 border-b">{input.created_at}</td>
@@ -231,14 +263,14 @@ const Inputs = ({ token, categoryId }: Props) => {
               <div className="mb-4">
                 <label className="block mb-2">Category</label>
                 <select
-                  value={currentInput.category_id || ''}
+                  value={currentInput.category_id !== undefined ? currentInput.category_id : ''}
                   onChange={(e) => {
                     const target = e.target as HTMLSelectElement;
                     setCurrentInput({ ...currentInput, category_id: parseInt(target.value) });
                   }}
                   className="border rounded w-full py-2 px-3"
                 >
-                  <option value="">Select Category</option>
+                  <option value="" disabled>Select Category</option>
                   {renderCategoryOptions(categories)}
                 </select>
               </div>
@@ -285,7 +317,11 @@ const Inputs = ({ token, categoryId }: Props) => {
                 </div>
               )}
               <div className="flex justify-end">
-                <button type="submit" className="btn-save bg-blue-500 text-white py-2 px-4 rounded mr-2">
+                <button
+                  type="submit"
+                  className={`btn-save py-2 px-4 rounded mr-2 ${isSaveDisabled() ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white'}`}
+                  disabled={isSaveDisabled()}
+                >
                   Save
                 </button>
                 <button

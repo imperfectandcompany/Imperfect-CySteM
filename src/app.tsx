@@ -134,7 +134,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
       setIsAuthenticated(false);
     }
 
-    if (isAuthenticated && window.location.pathname === "/admin") {
+    if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin")) {
       <AdminDashboard path="/admin/dashboard" />;
       // This will replace the current entry in the history stack
       route("/admin/dashboard", true);
@@ -142,17 +142,17 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   }, [isAuthenticated]); // Only re-run the effect if isAuthenticated changes
 
   // Render dashboard if authenticated
-  if (isAuthenticated && window.location.pathname === "/admin") {
+  if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin/")) {
     <AdminDashboard path="/admin/dashboard" />;
     // This will replace the current entry in the history stack
     route("/admin/dashboard", true);
   }
 
-  if (!isAuthenticated && window.location.pathname !== "/admin") {
-    <Admin path="/admin" />;
-    // This will replace the current entry in the history stack
-    route("/admin", true);
-  }
+  // if (!isAuthenticated && (window.location.pathname !== "/admin") || !isAuthenticated && (window.location.pathname !== "/admin/")) {
+  //   <Admin path="/admin" />;
+  //   // This will replace the current entry in the history stack
+  //   route("/admin", true);
+  // }
 
   // Render the component
   return <Component {...rest} />;
@@ -389,7 +389,7 @@ export function App(): VNode {
                   />
                 )}
                 {isFeatureEnabled("SupportSystem") && (
-                  <SupportForm token={token} path="/support" />
+                  <SupportForm path="/support" />
                 )}
 
                 <Article

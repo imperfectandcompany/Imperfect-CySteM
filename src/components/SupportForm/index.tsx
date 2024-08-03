@@ -123,8 +123,7 @@ const InputField = memo(
 
 function useSupportForm(token: string | false) {
   const [email, setEmail] = useState("");
-  const [issueCategory, setIssueCategory] = useState<Category | null>(null);
-  const [subIssue, setSubIssue] = useState<Category | null>(null);
+  const [selectedCategoryPath, setSelectedCategoryPath] = useState<Category[]>([]);
   const [details, setDetails] = useState<{ [key: string]: string }>({});
   const [progress, setProgress] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -135,146 +134,36 @@ function useSupportForm(token: string | false) {
   const [subIssueTransition, setSubIssueTransition] = useState(false);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [inputs, setInputs] = useState<Input[]>([]);
   const [error, setError] = useState<string | null>(null);
-const handleIssueChange = useCallback(
-  (event: Event) => {
-    const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
-    const selectedCat = categories.find((cat) => cat.category_id === categoryId);
 
-    if (selectedCat) {
-      setIssueCategory(selectedCat);
-      setDetails({});
-      setSubIssue(null); // Reset subIssue when changing main issue
-      if (selectedCat.subcategories.length > 0) {
-        setSubcategories(selectedCat.subcategories);
-        setInputs([]);
-        setCurrentStep(1); // Go to subcategory selection
-      } else {
-        setSubcategories([]);
-        setInputs(selectedCat.inputs);
-        setCurrentStep(2); // Go directly to input fields
-      }
-    }
-  },
-  [categories]
-);
-
-const handleSubIssueChange = useCallback(
-  (event: Event) => {
-    const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
-    const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
-
-    if (selectedSubcat) {
-      setSubIssue(selectedSubcat);
-      setDetails({});
-      setInputs(selectedSubcat.inputs);
-      setCurrentStep(2); // Show inputs for subcategory
-    }
-  },
-  [subcategories]
-);
-
-const handleDetailChange = useCallback((key: string, value: string) => {
-  setDetails((prev) => ({ ...prev, [key]: value }));
-}, []);
-
-const handleBack = useCallback(() => {
-  if (currentStep === 2) {
-    if (subIssue) {
-      setSubIssue(null);
-      setCurrentStep(1); // Go back to subcategory selection
-    } else {
-      setIssueCategory(null);
-      setCurrentStep(0); // Go back to main category selection
-    }
-  } else if (currentStep === 1) {
-    setIssueCategory(null);
-    setCurrentStep(0); // Go back to main category selection
-  }
-}, [currentStep, subIssue, setIssueCategory, setSubIssue, setCurrentStep]);
-
-useEffect(() => {
-  // Initialize totalFields and filledFields
-  let totalFields = 1; // Start with the email field
-  let filledFields = email ? 1 : 0; // Check if the email is filled
-
-  // Always include the main category selection as a mandatory field
-  totalFields++;
-  if (issueCategory) filledFields++; // Check if the issue category is selected
-
-  // Include sub-issue field only if subcategories are available
-  if (subcategories.length > 0) {
-    totalFields++;
-    if (subIssue) filledFields++; // Check if the sub-issue is selected
-  }
-
-  // Include individual inputs as separate fields
-  // This section now properly iterates over inputs to calculate filled fields
-  totalFields += inputs.length; // Add the count of input fields to total fields
-  filledFields += inputs.reduce((count, input) => {
-    // Increment count for each non-empty and trimmed input
-    return count + (details[input.input_label]?.trim() ? 1 : 0);
-  }, 0);
-
-  // Calculate the progress
-  const progressPercentage = (filledFields / totalFields) * 100;
-
-  // Update the progress state with the calculated percentage, ensuring it does not exceed 100%
-  setProgress(Math.min(progressPercentage, 100));
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  setEmailValid(emailRegex.test(email));
-}, [email, issueCategory, subcategories.length, subIssue, details, inputs]);
-
-
-
-
-
-useEffect(() => {
-  const interval = setInterval(() => {
-    const progressDifference = Math.abs(displayProgress - progress);
-    if (progressDifference > 0.5) {
-      setDisplayProgress((prev) => {
-        return progress > prev ? prev + 1 : prev - 1;
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
+        headers: {
+          Authorization: token || '',
+        },
       });
+      const data = await response.json();
+      if (data.status === 'success') {
+        const validCategories = filterValidCategories(data.data);
+        setCategories(validCategories);
+        if (validCategories.length === 0) {
+          setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
+        }
+      } else {
+        setError('Failed to fetch form data: ' + data.message);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+      setError('Error fetching form data');
+      setLoading(false);
     }
-  }, 10);
-  return () => clearInterval(interval);
-}, [displayProgress, progress]);
-
-
+  };
 
   useEffect(() => {
-    const fetchFormData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
-          headers: {
-            Authorization: token || '',
-          },
-        });
-        const data = await response.json();
-        if (data.status === 'success') {
-          const validCategories = filterValidCategories(data.data);
-          setCategories(validCategories);
-          if (validCategories.length === 0) {
-            setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
-          }
-        } else {
-          setError('Failed to fetch form data: ' + data.message);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching form data:', error);
-        setError('Error fetching form data');
-        setLoading(false);
-      }
-    };
-  
-    fetchFormData();
+    fetchCategories();
   }, [token]);
 
   const filterValidCategories = (categories: Category[]): Category[] => {
@@ -291,81 +180,99 @@ useEffect(() => {
     return category.inputs.length > 0 && category.issue !== null;
   };
 
-  return {
-    email,
-    setEmail,
-    issueCategory,
-    subIssue,
-    details,
-    progress,
-    submitted,
-    setSubmitted,
-    loading,
-    setLoading,
-    currentStep,
-    setCurrentStep,
-    emailValid,
-    setEmailValid,
-    reviewMode,
-    setReviewMode,
-    subIssueTransition,
-    displayProgress,
-    handleIssueChange,
-    handleSubIssueChange,
-    handleDetailChange,
-    handleBack,
-    categories,
-    subcategories,
-    inputs,
-    error,
-    setError,
-  };
-}
+const handleCategoryChange = useCallback(
+  (event: Event, level: number) => {
+    const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+    const selectedCategory = level === 0
+      ? categories.find((cat) => cat.category_id === categoryId)
+      : selectedCategoryPath[level - 1].subcategories?.find((cat) => cat.category_id === categoryId);
 
-const SupportForm: FunctionalComponent<Props> = () => {
-  const {
-    email,
-    setEmail,
-    issueCategory,
-    subIssue,
-    details,
-    progress,
-    submitted,
-    setSubmitted,
-    loading,
-    setLoading,
-    currentStep,
-    setCurrentStep,
-    emailValid,
-    setEmailValid,
-    reviewMode,
-    setReviewMode,
-    subIssueTransition,
-    displayProgress,
-    handleIssueChange,
-    handleSubIssueChange,
-    handleDetailChange,
-    handleBack,
-    categories,
-    subcategories,
-    inputs,
-    error,
-    setError,
-  } = useSupportForm(getToken());
+    if (selectedCategory) {
+      setSelectedCategoryPath((prev) => {
+        const newPath = prev.slice(0, level);
+        newPath.push(selectedCategory);
+        return newPath;
+      });
+
+      if (selectedCategory.subcategories && selectedCategory.subcategories.length > 0) {
+        setCurrentStep(level + 1); // Go to subcategory selection
+      } else if (selectedCategory.issue !== null && selectedCategory.inputs.length > 0) {
+        setCurrentStep(level + 2); // Go directly to input fields if issue and inputs exist
+      } else {
+        setCurrentStep(level + 1); // Proceed to the next step
+      }
+    }
+  },
+  [categories, selectedCategoryPath]
+);
+
+
+  const handleDetailChange = useCallback((key: string, value: string) => {
+    setDetails((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (currentStep > 0) {
+      setSelectedCategoryPath((prev) => prev.slice(0, -1));
+      setCurrentStep(currentStep - 1);
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    let totalFields = 1; // Start with the email field
+    let filledFields = email ? 1 : 0; // Check if the email is filled
+
+    // Always include the main category selection as a mandatory field
+    totalFields++;
+    if (selectedCategoryPath.length > 0) filledFields++; // Check if the issue category is selected
+
+    // Include subcategory field only if subcategories are available
+    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
+    if (lastSelectedCategory?.subcategories.length > 0) {
+      totalFields++;
+      if (selectedCategoryPath.length > 1) filledFields++; // Check if the sub-issue is selected
+    }
+
+    // Include individual inputs as separate fields
+    const inputs = lastSelectedCategory?.inputs || [];
+    totalFields += inputs.length; // Add the count of input fields to total fields
+    filledFields += inputs.reduce((count, input) => {
+      return count + (details[input.input_label]?.trim() ? 1 : 0);
+    }, 0);
+
+    const progressPercentage = (filledFields / totalFields) * 100;
+    setProgress(Math.min(progressPercentage, 100));
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setEmailValid(emailRegex.test(email));
+  }, [email, selectedCategoryPath, details]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const progressDifference = Math.abs(displayProgress - progress);
+      if (progressDifference > 0.5) {
+        setDisplayProgress((prev) => {
+          return progress > prev ? prev + 1 : prev - 1;
+        });
+      }
+    }, 10);
+    return () => clearInterval(interval);
+  }, [displayProgress, progress]);
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
 
+    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
+
     const requestData = {
       email,
-      category_id: subIssue ? subIssue.category_id : issueCategory?.category_id,
-      inputs: inputs.map((input) => ({
+      category_id: lastSelectedCategory.category_id,
+      inputs: lastSelectedCategory.inputs.map((input) => ({
         input_id: input.input_id,
         value: details[input.input_label] || ""
       })),
     };
 
-    // Validate required inputs
     let validationFailed = false;
     requestData.inputs.forEach((input) => {
       if (input.value.trim() === "") {
@@ -403,22 +310,76 @@ const SupportForm: FunctionalComponent<Props> = () => {
     }
   };
 
+  return {
+    email,
+    setEmail,
+    selectedCategoryPath,
+    details,
+    progress,
+    submitted,
+    setSubmitted,
+    loading,
+    setLoading,
+    currentStep,
+    setCurrentStep,
+    emailValid,
+    setEmailValid,
+    reviewMode,
+    setReviewMode,
+    subIssueTransition,
+    displayProgress,
+    handleCategoryChange,
+    handleDetailChange,
+    handleBack,
+    categories,
+    error,
+    setError,
+    handleSubmit, // Return handleSubmit function
+  };
+}
+
+const SupportForm: FunctionalComponent<Props> = () => {
+  const {
+    email,
+    setEmail,
+    selectedCategoryPath,
+    details,
+    progress,
+    submitted,
+    setSubmitted,
+    loading,
+    setLoading,
+    currentStep,
+    setCurrentStep,
+    emailValid,
+    setEmailValid,
+    reviewMode,
+    setReviewMode,
+    subIssueTransition,
+    displayProgress,
+    handleCategoryChange,
+    handleDetailChange,
+    handleBack,
+    categories,
+    error,
+    setError,
+    handleSubmit, // Destructure handleSubmit
+  } = useSupportForm(getToken());
+
   const renderInputs = () => {
     if (reviewMode) return null;
-  
-    // Check if inputs are available for either the selected subIssue or the main issueCategory
-    const hasInputs = inputs.length > 0;
-    const hasIssue = subIssue || issueCategory;
-  
-    // If no inputs and no issue description, display a message
-    if (!hasInputs && !hasIssue) {
+
+    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
+    const inputs = lastSelectedCategory?.inputs || [];
+
+    if (inputs.length === 0) {
       return (
         <div className="text-center text-gray-500">
           No specific inputs required for the selected category.
         </div>
       );
     }
-  
+
     return inputs.map((input) => (
       <InputField
         key={input.input_id}
@@ -436,24 +397,10 @@ const SupportForm: FunctionalComponent<Props> = () => {
       />
     ));
   };
-  
-  // In the submit button rendering logic
-  const isSubmittable = () => {
-    // Ensure there's an issue or inputs to submit, and all required fields are filled
-    return (subIssue || issueCategory) && inputs.every(input => details[input.input_label]?.trim() !== '');
-  };
-  
-  // Usage in the component's JSX
-  <button
-    className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${isSubmittable() ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-300`}
-    type="button"
-    onClick={() => setReviewMode(true)}
-    disabled={!isSubmittable()}
-  >
-    Review and Submit
-  </button>
 
   const renderReview = () => {
+    const lastSelectedCategory = selectedCategoryPath[selectedCategoryPath.length - 1];
+
     return (
       <div>
         <div className="flex items-baseline justify-between mb-4">
@@ -474,12 +421,11 @@ const SupportForm: FunctionalComponent<Props> = () => {
         <div className="mb-4">
           <strong>Email:</strong> {email}
         </div>
-        <div className="mb-4">
-          <strong>Issue Category:</strong> {issueCategory?.category_name}
-        </div>
-        <div className="mb-4">
-          <strong>Sub-Issue:</strong> {subIssue?.category_name}
-        </div>
+        {selectedCategoryPath.map((category, index) => (
+          <div key={index} className="mb-4">
+            <strong>{index === 0 ? 'Issue Category' : 'Sub-Issue'}:</strong> {category.category_name}
+          </div>
+        ))}
         {Object.entries(details).map(([key, value], index) => (
           <div key={index} className="mb-4">
             <strong>{key}:</strong> {value}
@@ -527,7 +473,6 @@ const SupportForm: FunctionalComponent<Props> = () => {
     );
   }
 
-
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -543,7 +488,6 @@ const SupportForm: FunctionalComponent<Props> = () => {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen">
@@ -702,9 +646,9 @@ const SupportForm: FunctionalComponent<Props> = () => {
                     id="issue-category-select"
                     className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
                     value={
-                      issueCategory ? issueCategory.category_id.toString() : ""
+                      selectedCategoryPath[0] ? selectedCategoryPath[0].category_id.toString() : ""
                     }
-                    onChange={handleIssueChange}
+                    onChange={(e) => handleCategoryChange(e, 0)}
                     required
                     aria-label="Select Issue Category"
                     aria-describedby="category-help"
@@ -727,28 +671,28 @@ const SupportForm: FunctionalComponent<Props> = () => {
                   </p>
                 </div>
               )}
-{!reviewMode && currentStep === 1 && subcategories.length > 0 && (
+{!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].subcategories?.length > 0 && (
   <div className={`mb-4 ${subIssueTransition ? "animate-fade-in" : ""}`}>
     <label
       htmlFor="sub-issue-select"
       className="block text-gray-700 text-sm font-bold mb-2"
     >
-      Sub-Issue
+      {`Sub-Issue Level ${currentStep}`}
     </label>
     <select
       id="sub-issue-select"
       className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
-      value={subIssue ? subIssue.category_id.toString() : ""}
-      onChange={handleSubIssueChange}
+      value={selectedCategoryPath[currentStep] ? selectedCategoryPath[currentStep].category_id.toString() : ""}
+      onChange={(e) => handleCategoryChange(e, currentStep)}
       required
-      aria-label="Select Sub-Issue"
+      aria-label={`Select Sub-Issue Level ${currentStep}`}
       aria-describedby="sub-issue-help"
       disabled={loading}
     >
       <option value="" disabled>
         Select a Sub-Issue
       </option>
-      {subcategories.map((sub) => (
+      {selectedCategoryPath[currentStep - 1].subcategories.map((sub) => (
         <option key={sub.category_id} value={sub.category_id}>
           {sub.category_name}
         </option>
@@ -759,8 +703,9 @@ const SupportForm: FunctionalComponent<Props> = () => {
     </p>
   </div>
 )}
-              {!reviewMode && currentStep === 2 && renderInputs()}
-              {!reviewMode && currentStep === 2 && (
+
+              {!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].inputs.length > 0 && renderInputs()}
+              {!reviewMode && currentStep > 0 && selectedCategoryPath[currentStep - 1].inputs.length > 0 && (
                 <div>
                   <button
                     className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
