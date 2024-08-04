@@ -15,6 +15,7 @@ export const AdminDashboard: FunctionalComponent = () => {
     setCategories,
     toggleArticleStaffOnly,
     setArticles,
+    loading,
     toggleArticleArchive,
     deleteArticle,
     deleteCategory,
@@ -226,7 +227,38 @@ export const AdminDashboard: FunctionalComponent = () => {
             </div>
           </div>
 
-          {categories.length === 0 ? (
+          {categories.length === 0 && loading ? (
+            <>
+              <div key="fakeCategory" className="mt-5">
+                <div className="flex hover:opacity-80 !space-x-0 justify-between items-center w-full text-left text-lg font-semibold text-stone-900 py-2 transition duration-300 ease-in-out transform hover:scale-100 focus:outline-none">
+                  <div className="flex items-center">
+                    <div className="h-5 w-40 bg-gray-200 animate animate-pulse rounded-xl mr-2"></div>{" "}
+                    (
+                    <div className="h-5 w-4 bg-gray-200 animate animate-pulse rounded-2xl"></div>
+                    <span className={"ml-2"}>Articles</span>)
+                  </div>
+                  <span
+                    className={`transform transition-transform duration-300 text-indigo-500 rotate-0`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : categories.length === 0 ? (
             <p className="text-gray-500">No categories found.</p>
           ) : (
             categories.map((category: Category) => {
@@ -296,7 +328,46 @@ export const AdminDashboard: FunctionalComponent = () => {
                         )}
                       </div>
                     )}
-                    {categoryArticles.length === 0 ? (
+{articleCount > 0 && loading ? (
+  <>
+    {Array.from({ length: articleCount }).map((_, index) => {
+      const includeBgStone50 = Math.random() < 0.5;
+      const includeBorder = Math.random() < 0.5;
+      const classes = [
+        'flex justify-between items-center mb-4 transition duration-300 ease-in-out p-4 transform',
+        includeBgStone50 ? 'bg-stone-50' : '',
+        includeBorder ? 'border-l-4 border-indigo-600' : '',
+        (includeBgStone50 || includeBorder) ? 'animate animate-pulse' : '',
+      ].join(' ').trim();
+
+      const archiveClass = includeBgStone50 ? 'w-20' : 'w-16';
+      const publicClass = includeBorder ? 'w-16' : 'w-20';
+
+      return (
+        <div key={index} class="border-b border-gray-200 opacity-60">
+          <div class={classes}>
+            <div>
+              <h4 class="font-medium text-lg bg-gray-300 animate animate-pulse w-36 h-4"></h4>
+              <p class="mt-1 bg-gray-200 animate animate-pulse w-28 h-4"></p>
+              <div class="flex space-x-4 text-sm mt-1">
+                <div class={`cursor-pointer focus:cursor-default transition duration-300 ease-in-out text-indigo-500 hover:underline bg-indigo-200 animate animate-pulse ${archiveClass} h-4`}></div>
+                <div class={`cursor-pointer focus:cursor-default transition duration-300 ease-in-out text-indigo-500 hover:underline bg-indigo-200 animate animate-pulse ${publicClass} h-4`}></div>
+              </div>
+            </div>
+            <div class="flex space-x-4 text-sm mt-1">
+              <button class="transition duration-300 ease-in-out text-red-500 hover:underline bg-red-200 animate animate-pulse w-12 h-4"></button>
+              <button class="transition duration-300 ease-in-out bg-indigo-200 animate animate-pulse w-12 h-4"></button>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </>
+                    ) : categoryArticles.length === 0 && loading ? (
+                      <>
+                        <div className="bg-gray-200 text-gray-800 h-4 w-24 animate animate-pulse"></div>
+                      </>
+                    ) : categoryArticles.length === 0 ? (
                       <p className="text-gray-500">No articles found.</p>
                     ) : (
                       categoryArticles.map((article: Article) => (
@@ -360,7 +431,9 @@ export const AdminDashboard: FunctionalComponent = () => {
                                 )}
                                 {isFeatureEnabled("EditArticle") && (
                                   <button
-                                    onClick={() => handleEdit(article.ArticleID)}
+                                    onClick={() =>
+                                      handleEdit(article.ArticleID)
+                                    }
                                     className="text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
                                   >
                                     Edit
