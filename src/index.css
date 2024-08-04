@@ -610,3 +610,468 @@ body {
     75% { transform: translateX(10px); }
 }
 
+
+
+body {
+  font-family: "Montserrat", sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  scrollbar-gutter: stable;
+  /* Ensure the body is scrollable */
+  height: 100vh;
+  overflow-y: scroll;
+}
+
+
+
+:root {
+  --green-1: #38a169; /* Dark green */
+  --green-2: #2f855a; /* Darker green */
+  --green-3: #68d391; /* Lighter green */
+  --bg-colour: #ffffff; /* Light gray for the banner */
+  --section-width: 360px;
+  --color-red: hsl(343, 98%, 52%);
+  --color-blue: hsl(199, 100%, 38%);
+  --color-green: hsl(119, 59%, 64%);
+  --color-yellow: hsl(49, 83%, 69%);
+  --background-dark: rgba(0, 0, 0, 0.5); /* For overlay */
+  --font-primary: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-size-caption: 1rem; /* Default font size for captions */
+}
+
+
+
+
+nav > button > span {
+  transition: all 300ms ease-in-out;
+  grid-area: stack;
+}
+
+nav > button > span:last-of-type {
+  margin-top: 0.25rem;
+  transform: scale(0);
+  transition-delay: 0ms;
+  border-radius: 50%;
+}
+
+nav > button:focus-visible > span:first-of-type,
+nav > button:hover > span:first-of-type {
+  transform: scale(0);
+}
+
+nav > button:focus-visible > span:last-of-type,
+nav > button:hover > span:last-of-type {
+  transform: scale(1);
+}
+
+nav > button > svg {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+
+nav > button:hover > svg {
+  opacity: 1;
+  animation: rotate 6s linear infinite;
+}
+
+
+.navbar-text {
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  background: linear-gradient(to right, #8B4513, #A0522D, #D2691E);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.material-symbols-outlined {
+  color: red!;
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+}
+
+@keyframes rotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.banner-wrapper {
+  background: var(--bg-colour); /* Light gray background for the entire row */
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.banner {
+  width: calc(var(--section-width) * 3);
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.banner::before,
+.banner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  height: 100%;
+  z-index: 2;
+}
+
+.banner::before {
+  left: 0;
+  width: calc(
+    var(--section-width) * 1
+  ); /* Increased gradient size on the left */
+  background: linear-gradient(to right, var(--bg-colour), transparent 100%);
+}
+
+.banner::after {
+  right: 0;
+  width: calc(
+    var(--section-width) * 1
+  ); /* Increased gradient size on the right */
+  background: linear-gradient(to left, var(--bg-colour), transparent 100%);
+}
+
+.banner-container {
+  display: flex;
+  will-change: transform;
+  transition: transform 1s ease;
+  width: calc(
+    var(--section-width) * 8
+  ); /* Total sections times 2 for duplication */
+}
+
+.banner-section {
+  min-width: var(--section-width);
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.banner-icon {
+  font-size: 40px;
+  color: var(--green-1);
+  margin-bottom: 20px;
+}
+
+.banner-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--green-2);
+}
+
+.banner-sub-text {
+  font-size: 16px;
+  color: var(--green-3);
+  text-transform: uppercase; /* Make sub-text uppercase */
+}
+
+
+
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-delay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-delay-blur {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-in-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 1s ease-in-out;
+}
+
+.animate-fade-in-delay {
+  animation: fade-in-delay 1s ease-in-out 0.5s;
+  animation-fill-mode: forwards;
+}
+
+.animate-fade-in-delay-blur {
+  animation: fade-in-delay-blur 1s ease-in-out 0.5s;
+  animation-fill-mode: forwards;
+}
+
+.animate-zoom-in {
+  animation: zoom-in 1s ease-in-out;
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 1s ease-in-out;
+}
+
+@keyframes custom-bounce {
+  0%, 100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-custom-bounce {
+  animation: custom-bounce 1s infinite;
+  animation-iteration-count: 1; /* Change this to the desired number of iterations */
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    transform: rotate(-360deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0);
+    opacity: 1;
+  }
+}
+
+.navbar-item {
+  animation: slideIn 0.5s ease forwards;
+  opacity: 0;
+}
+
+.navbar-item:nth-child(1) {
+  animation-delay: 0.2s;
+}
+
+.navbar-item:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.navbar-item:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.navbar-item:nth-child(4) {
+  animation-delay: 0.8s;
+}
+
+.navbar-logo {
+  animation: rotateIn 1s ease forwards;
+  opacity: 0;
+  animation-delay: 0s; /* Adjust delay if needed */
+}
+
+
+
+
+#toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 1;
+}
+
+.toast {
+  visibility: hidden;
+  max-width: 50px;
+  height: 50px;
+  margin: auto;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  position: relative;
+  font-size: 17px;
+  white-space: nowrap;
+  align-items: center;
+  overflow: hidden; /* Hide overflow initially */
+}
+
+.toast #img {
+  width: 50px;
+  height: 50px;
+  background-color: #111;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast #desc, .toast button {
+  padding: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-grow: 1;
+  opacity: 0; /* Hide initially */
+  display: none; /* Hide initially */
+  transition: opacity 0.5s;
+}
+
+.toast.show {
+  visibility: visible;
+  animation: fadein 0.5s, expand 0.5s 0.5s, stay 3s 1s, shrink 0.5s 4s, fadeout 0.5s 4.5s;
+}
+
+.toast.show #desc, .toast.show button {
+  display: block; /* Show on expand */
+  opacity: 1; /* Fade in text and button */
+  transition: opacity 0.5s 0.5s; /* Delay opacity transition */
+}
+
+.toast button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 16px;
+  transition: color 0.3s, opacity 0.5s;
+}
+
+.toast button:hover {
+  color: #8B4513; /* Brown color for hover state */
+}
+
+@keyframes fadein {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@keyframes expand {
+  from {
+    min-width: 50px;
+    display:block;
+  }
+  to {
+    min-width: 350px;
+    display:flex;
+  }
+}
+
+@keyframes stay {
+  from {
+    min-width: 350px;
+    display:flex;
+
+  }
+  to {
+    min-width: 350px;
+    display:flex;
+
+  }
+}
+
+@keyframes shrink {
+  from {
+    min-width: 350px;
+    display:flex;
+  }
+  to {
+    min-width: 50px;
+    display:block;
+
+  }
+}
+
+@keyframes fadeout {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+  to {
+    bottom: 60px;
+    opacity: 0;
+  }
+}
+
+

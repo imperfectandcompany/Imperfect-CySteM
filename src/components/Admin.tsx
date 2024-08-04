@@ -1,28 +1,45 @@
-// src/components/Admin.tsx
-
 import { FunctionalComponent } from 'preact';
-import { useState } from 'preact/hooks';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import Breadcrumb from './Breadcrumb';
+import { useState } from 'preact/hooks';
 
 export const Admin: FunctionalComponent = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth(); // Use useAuth instead of useMockAuth
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const { addToast } = useToast();
+
+
 
   const handleLogin = async (event: Event) => {
     event.preventDefault();
+
+    if (!email || !password) {
+      addToast('Email and password are required.', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      await login(email, password); // login is now an async function
+      await login(email, password);
     } catch (error) {
       console.error('Login failed', error);
-      // Handle login failure, e.g., show an error message to the user
+      addToast('Login failed. Please check your credentials and try again.', 'error');
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <main class="max-w-md mx-auto p-8 md:p-12 my-10 rounded-lg shadow-xs">
-      <h1 class="font-semibold text-3xl pb-5 text-center md:text-left">Log into Admin</h1>
-      <form onSubmit={handleLogin}>
+    <>
+    <Breadcrumb path={`/admin`} />
+    <main class="max-w-md mx-auto p-8 md:p-12 my-10 rounded-lg shadow-xs ">
+      <h1 class="font-semibold text-3xl pb-5 text-center md:text-left animate-zoom-in">Log into Admin</h1>
+      <form class="opacity-0 animate-fade-in-delay" onSubmit={handleLogin}>
         <div class="mb-4">
           <label class="block text-md font-light mb-2" for="email">Email</label>
           <input
@@ -48,16 +65,43 @@ export const Admin: FunctionalComponent = () => {
           />
         </div>
 
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center justify-end mb-5">
           <button
             type="submit"
-            class="bg-indigo-600 flex-initial justify-items-start hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded focus:outline-none focus:shadow-outline"
+            class="relative bg-red-600 flex-initial justify-items-start hover:bg-red-700 text-white font-semibold py-2 px-6 rounded focus:outline-none focus:shadow-outline"
+            disabled={isLoading}
           >
             Log In
+            {isLoading && (
+              <div class="absolute inset-0 flex items-center justify-center">
+                <svg
+                  class="spinner h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+              </div>
+            )}
           </button>
         </div>
-        <p class="text-center text-md font-light">Powered by Imperfect and Company LLC</p>
       </form>
     </main>
+    <p class="text-center bottom-0 text-md font-light mt-8 text-stone-200 select-none animate-fade-in-delay">Powered by Imperfect and Company LLC</p>
+
+    </>
   );
 };

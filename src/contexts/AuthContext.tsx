@@ -15,7 +15,7 @@ interface AuthContextType {
   getUsernameById: (userId: number) => Promise<string>;
   isAuthenticated: boolean;
   setIsAuthenticated: (value: boolean) => void; // Specify the type for setIsAuthenticated
-  isLoading: boolean; // Add this line
+  isLoading: boolean; 
   setUser: (user: UserType | null) => void; // Specify the type for setUser
 }
 
@@ -33,9 +33,6 @@ export const AuthProvider = ({ children }: { children: any }) => {
   const [isLoading, setIsLoading] = useState(true); // Add a loading state
 
   const verifyToken = async () => {
-
-    // TODO IMPLEMENT RETRY MECHANISM ON FAILRUE FOR NETWORK ERRORS LIKE ERR_NETWORK_CHANGED WHICH WILL CAUSE A FAILED TO FETCH ERROR
-    // AND SUBSEQUENT FAILED TO LOAD RESOURCE ERRORS SUCH AS ERR_NAME_NOT_RESOLVED
     setIsLoading(true); // Set loading to true when starting verification
     const token = getToken();
     if (token) {
@@ -73,10 +70,14 @@ export const AuthProvider = ({ children }: { children: any }) => {
     verifyToken();
   }, []);
 
+
   const login = async (
     username: string,
     password: string
   ): Promise<boolean> => {
+  
+    setIsLoading(true);
+  
     try {
       const response = await fetch("https://api.imperfectgamers.org/auth", {
         method: "POST",
@@ -85,17 +86,17 @@ export const AuthProvider = ({ children }: { children: any }) => {
         },
         body: JSON.stringify({ username, password }),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(data.message || "Login failed");
       }
-
+  
       const { token, uid, username: usernameTODO } = data;
-
+  
       setUserToken(token);
-
+  
       setUser({
         userId: uid,
         userToken: token,
@@ -104,8 +105,10 @@ export const AuthProvider = ({ children }: { children: any }) => {
       setIsAuthenticated(true);
       return true;
     } catch (error) {
-      console.error("Login error:", error);
-      return false;
+      setIsLoading(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

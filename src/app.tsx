@@ -26,6 +26,8 @@ import { AdminRecycleBin } from "./components/AdminRecycleBin";
 import SupportForm from "./components/SupportForm";
 import AdminSupportForm from "./components/AdminSupportForm";
 import SupportRequestDetails from "./components/SupportForm/SupportRequestDetails";
+import { ToastProvider } from "./contexts/ToastContext";
+import ToastContainer from "./components/ToastContainer";
 
 export interface AppState {
   searchQuery: string | null;
@@ -116,29 +118,123 @@ interface AdminRouteProps {
   path: string;
 }
 
+interface ProgressBarProps {
+  duration?: number; // duration in milliseconds, default to 3000ms
+}
+
+const ProgressBar: preact.FunctionalComponent<ProgressBarProps> = ({ duration = 3000 }) => {
+  const [width, setWidth] = useState<number>(0);
+  const [closing, setClosing] = useState<boolean>(false);
+
+  useEffect(() => {
+    const increment = 100 / (duration / 100);
+    let progress = 0;
+
+    const interval = setInterval(() => {
+      progress += increment;
+      setWidth(Math.min(progress, 100));
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => setClosing(true), 500); // delay before starting the closing animation
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [duration]);
+
+  return (
+    <div
+      className={`w-full h-2 bg-gray-200 rounded overflow-hidden relative transition-all duration-500 ${closing ? 'transform scale-y-0' : ''}`}
+    >
+      <div
+        className={`h-full bg-red-500 rounded transition-all duration-500 ${closing ? 'w-0' : ''}`}
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+};
+export default ProgressBar;
+
+
 const AdminRoute: React.FC<AdminRouteProps> = ({ component: Component, ...rest }) => {
   const { isAuthenticated, isLoading, setIsAuthenticated, setUser } = useAuth();
 
-  // Handle loading state at the top to avoid rendering additional logic
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    if (isLoading) {
+      setShowLoading(true);
+      setLoadingStartTime(Date.now());
+    } else if (loadingStartTime !== null) {
+      const elapsedTime = Date.now() - loadingStartTime;
+
+      if (elapsedTime < 1000) {
+        timer = setTimeout(() => {
+          setShowLoading(false);
+          setLoadingStartTime(null); // Reset loading start time
+        }, 1000 - elapsedTime);
+      } else {
+        setShowLoading(false);
+        setLoadingStartTime(null); // Reset loading start time
+      }
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [isLoading, loadingStartTime]);
+
+ // Handle loading state at the top to avoid rendering additional logic
+ if (showLoading) {
+  return (
+    <div className="fixed inset-0 z-50 space-x-8  mx-auto text-center mr-0 flex items-center w-full justify-center animate-pulse text-3xl font-bold bg-white">
+      <img
+        className="h-26 w-32 "
+        src="https://imperfectdesignsystem.com/assets/img/imperfectandcompany/umbrella.png"
+        alt="Imperfect and Company logo"
+      />
+<div className="flex flex-col mr-8 space-y-8">
+      <div className="flex items-center mx-auto">Imperfect Identity</div>
+<ProgressBar duration={250}/>
+</div>
+    </div>
+  );
+}
+
+useEffect(() => {
+  // Check if the current path is an admin path
+  const isAdminPath = window.location.pathname.startsWith("/admin");
+
   if (isLoading) {
-    return <div>Loading...</div>; // Replace with your loading component or spinner
+    // If still loading, do not perform any routing
+    return;
   }
 
-  // UseEffect to manage authentication and redirection logic
-  useEffect(() => {
-    if (!getToken() && isAuthenticated) {
-      removeUserToken();
-      setUser(null);
-      setIsAuthenticated(false);
-    }
-
-    // Redirect logic based on authentication and current path
-    if (isAuthenticated && (window.location.pathname === "/admin" || window.location.pathname === "/admin/")) {
-      route("/admin/dashboard", true);
-    } else if (!isAuthenticated && (window.location.pathname !== "/admin" && window.location.pathname !== "/admin/")) {
+  if (!getToken() && isAuthenticated) {
+    removeUserToken();
+    setUser(null);
+    setIsAuthenticated(false);
+    if (isAdminPath) {
+      // Redirect to admin login if not authenticated and trying to access an admin path
       route("/admin", true);
     }
-  }, [isAuthenticated, setIsAuthenticated, setUser]);
+  } else if (isAuthenticated) {
+    if (window.location.pathname === "/admin" || window.location.pathname === "/admin/") {
+      // Redirect from base admin path to dashboard only if authenticated
+      route("/admin/dashboard", true);
+    }
+    // If the user is authenticated and on an admin path, do nothing
+  } else if (!isAuthenticated && isAdminPath) {
+    // Redirect to admin login if not authenticated and on an admin path
+    route("/admin", true);
+  }
+}, [isAuthenticated, isLoading, setIsAuthenticated, setUser]);
 
   // Directly return the component if authenticated, otherwise handle redirection
   return <Component {...rest} />;
@@ -297,12 +393,12 @@ export function App(): VNode {
       history.replaceState({}, "", "/");
     }
   }
-  const token = getToken();
 
   return (
+    <ToastProvider>
     <ContentProvider>
       <AuthProvider>
-        <div className="flex flex-col min-h-screen mx-auto md:py-8 max-w-screen-xl">
+      <div className="flex flex-col min-h-screen mx-auto md:py-8 md:max-w-screen-xl lg:max-w-screen-lg xl:max-w-screen-2xl">
           {isFeatureEnabled("NotificationBanner") && (
             <div class="relative my-8 md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 mx-4 sm:mx-6 md:mx-8 lg:mx-10 xl:mx-4">
               <div className="bg-blue-900 text-white text-center p-4 rounded-lg">
@@ -350,6 +446,7 @@ export function App(): VNode {
             onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
           />
           <main className="flex-1 relative">
+          <ToastContainer />
             <ErrorBoundary>
               <Router>
                 <Home
@@ -456,5 +553,6 @@ export function App(): VNode {
         </div>
       </AuthProvider>
     </ContentProvider>
+    </ToastProvider>
   );
 }
