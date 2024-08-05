@@ -120,9 +120,10 @@ interface AdminRouteProps {
 
 interface ProgressBarProps {
   duration?: number; // duration in milliseconds, default to 3000ms
+  color?: string; // default red
 }
 
-const ProgressBar: preact.FunctionalComponent<ProgressBarProps> = ({ duration = 3000 }) => {
+const ProgressBar: preact.FunctionalComponent<ProgressBarProps> = ({ duration = 3000, color = 'red' }) => {
   const [width, setWidth] = useState<number>(0);
   const [closing, setClosing] = useState<boolean>(false);
 
@@ -148,7 +149,7 @@ const ProgressBar: preact.FunctionalComponent<ProgressBarProps> = ({ duration = 
       className={`w-full h-2 bg-gray-200 rounded overflow-hidden relative transition-all duration-500 ${closing ? 'transform scale-y-0' : ''}`}
     >
       <div
-        className={`h-full bg-red-500 rounded transition-all duration-500 ${closing ? 'w-0' : ''}`}
+        className={`h-full bg-${color}-500 rounded transition-all duration-500 ${closing ? 'w-0' : ''}`}
         style={{ width: `${width}%` }}
       />
     </div>
@@ -418,7 +419,7 @@ export function App(): VNode {
                 </button>
                 <p className="text-xs sm:text-sm md:text-base">
                   <span className="font-medium text-indigo-50">Update:</span>{" "}
-                  <span className="text-indigo-100">Fri, Jun 21, 2024</span>
+                  <span className="text-indigo-100">Mon, Aug 4th, 2024</span>
                   <br />
                   This site is currently a work in progress. For immediate
                   assistance, please visit our discord at{" "}

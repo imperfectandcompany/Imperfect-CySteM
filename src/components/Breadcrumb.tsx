@@ -298,10 +298,16 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
 
   if (article) {
     breadcrumbItems.push(
-      <li key={`article-${articleTitle}`} className="inline font-bold">
-        <span className="mx-2 text-gray-500">/</span>
+      <li key={`category-${articleTitle}`} className="inline">
+      <span className="mx-2 text-gray-500">/</span>
+      <Link
+        href={`/article/${article.Slug}`}
+        className="text-indigo-600 hover:text-indigo-800"
+        onClick={onBreadcrumbClick}
+      >
         {article.Title} {/* Use Title directly */}
-      </li>
+      </Link>
+    </li>
     );
   }
 

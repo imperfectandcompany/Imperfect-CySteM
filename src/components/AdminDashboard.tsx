@@ -160,7 +160,7 @@ export const AdminDashboard: FunctionalComponent = () => {
         </div>
         <section className="mt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-indigo-600 mb-4 sm:mb-0">
+            <h2 className="text-xl font-bold !text-indigo-600 mb-4 sm:mb-0">
               Content Management
             </h2>
             <div className="relative popover-container space-x-2">
