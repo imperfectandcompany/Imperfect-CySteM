@@ -1,11 +1,14 @@
 /** src/components/Home.tsx **/
 
-import { useContext } from 'preact/hooks';
-import { ContentContext } from '../contexts/ContentContext';
-import { route } from 'preact-router';
+import { useContext } from "preact/hooks";
+import { ContentContext } from "../contexts/ContentContext";
+import { route } from "preact-router";
 
 const Home = () => {
-  const { categories, articles } = useContext(ContentContext) || { categories: [], articles: [] };
+  const { categories, articles, loading } = useContext(ContentContext) || {
+    categories: [],
+    articles: [],
+  };
 
   // Function to navigate to category details
   const navigateToCategory = (categorySlug: string) => {
@@ -14,7 +17,7 @@ const Home = () => {
 
   return (
     <>
-          <svg
+      <svg
         className="absolute blur-3xl right-0 opacity-80"
         width="50%"
         height="100%"
@@ -75,15 +78,32 @@ const Home = () => {
         </p>
         <div className="additional-image mt-8" aria-hidden="true"></div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
-          {categories.map((category) => (
-            <div
-              key={category.CategoryID}
-              className="category-card bg-white hover:bg-blue-100 cursor-pointer shadow-md hover:shadow-lg rounded-lg p-4 transition duration-200 ease-in-out transform hover:-translate-y-1"
-              onClick={() => navigateToCategory(category.Slug)}
-            >
-              <h3 className="text-xl font-bold text-gray-800">{category.Title}</h3>
-            </div>
-          ))}
+          {loading
+            ? Array.from(
+                { length: Math.floor(Math.random() * 3) + 1 },
+                (_, index) => (
+                  <div
+                    key={index}
+                    className="category-card bg-white cursor-pointer shadow-md rounded-lg p-4"
+                  >
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-gray-300 rounded w-3/4"></div>{" "}
+                      {/* Skeleton text line */}
+                    </div>
+                  </div>
+                )
+              )
+            : categories.map((category) => (
+                <div
+                  key={category.CategoryID}
+                  className="bg-white hover:bg-blue-100 cursor-pointer shadow-md hover:shadow-lg rounded-lg p-4 transition duration-200 ease-in-out transform hover:-translate-y-1"
+                  onClick={() => navigateToCategory(category.Slug)}
+                >
+                  <h3 className="text-xl font-bold text-gray-800">
+                    {category.Title}
+                  </h3>
+                </div>
+              ))}
         </div>
       </div>
     </>

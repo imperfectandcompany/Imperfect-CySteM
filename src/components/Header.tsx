@@ -38,7 +38,7 @@ export const Header: FunctionalComponent<HeaderProps> = ({
 
   return (
     <header className="flex flex-wrap  md:items-center justify-between px-4 py-3 ite shadow-sm sm:px-6 md:px-8 lg:px-10 xl:px-12">
-      <div className="flex items-center cursor-pointer z-10">
+      <div className="flex items-center cursor-pointer z-10 navbar-logo ">
         <Link href="/" onClick={onLogoClick}>
           <img
             alt="Imperfect Gamers Logo, a gaming community"
@@ -47,11 +47,11 @@ export const Header: FunctionalComponent<HeaderProps> = ({
           />
         </Link>
       </div>
-      <div className="flex items-center space-x-4 mt-3 sm:mt-0">
+      <div className="flex items-center space-x-4 mt-3 sm:mt-0 navbar-item ">
         {(isFeatureEnabled("AdminDashboard") && isAuthenticated) && (
           <Link
             href={isAuthenticated ? '/admin/dashboard' : '/admin'}
-            className={`items-center md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition`}
+            className={`items-center navbar-text md:block px-4 py-3 text-indigo-400 hover:text-indigo-550 transition`}
           >
             Admin
           </Link>
