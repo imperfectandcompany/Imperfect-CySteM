@@ -18,6 +18,7 @@ import {
 } from "../contexts/ContentContext";
 import { parseContent } from "../contentParser";
 import { renderContent } from "../contentRenderer";
+import EditorModule from "./EditorModule";
 
 export const AdminCreateArticle: FunctionalComponent = () => {
   const [title, setTitle] = useState("");
@@ -209,6 +210,9 @@ export const AdminCreateArticle: FunctionalComponent = () => {
 
     return (
       <div className="resize-y w-full text-lg rounded-sm bg-white focus:outline-none">
+        
+<EditorModule/>
+
         {currentView === "raw" ? (
           <textarea
             ref={textAreaRef}
@@ -261,7 +265,7 @@ export const AdminCreateArticle: FunctionalComponent = () => {
         /> */}
 
           <div className="mt-4">
-            <label className="block ">Detailed Description:</label>
+            <label className="block ">Article Contents:</label>
             {renderDetailedDescription()}
             <button
               type="button"

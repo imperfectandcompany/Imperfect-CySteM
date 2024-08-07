@@ -1116,3 +1116,427 @@ nav > button:hover > svg {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* responsive grid */
   gap: 16px; /* consistent spacing */
 }
+
+
+
+
+
+/* Create article part */
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .menu-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e1dfdd;
+            display: flex;
+            padding: 5px 10px;
+            gap: 20px;
+            position: relative;
+        }
+        .menu-bar .menu-item {
+            position: relative;
+        }
+        .menu-bar .menu-button {
+            background-color: transparent;
+            padding: 10px;
+            color: #323130;
+            font-size: 16px;
+            border: none;
+            transition: background-color 0.3s, color 0.3s;
+            cursor: pointer;
+        }
+        .menu-bar .menu-button:hover {
+            background-color: #edebe9;
+            color: #000;
+        }
+        .menu-bar .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #ffffff;
+            border: 1px solid #e1dfdd;
+            display: none;
+            flex-direction: column;
+            z-index: 30;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            min-width: 200px;
+        }
+        .menu-bar .dropdown button,
+        .menu-bar .dropdown label {
+            padding: 10px;
+            width: 100%;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .menu-bar .dropdown button:hover,
+        .menu-bar .dropdown label:hover {
+            background-color: #f3f4f6;
+        }
+        .menu-bar .dropdown button.disabled {
+            cursor: not-allowed;
+            color: #a0aec0;
+        }
+        .toolbar {
+            background-color: #ffffff;
+            border: 1px solid #e1dfdd;
+            display: flex;
+            flex-wrap: wrap;
+            padding: 5px 10px;
+            gap: 5px;
+            position: relative;
+            z-index: 10;
+        }
+        .toolbar button {
+            background-color: #ffffff;
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 45px;
+            color: #323130;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.3s;
+            position: relative;
+        }
+        .toolbar button:hover {
+            background-color: #edebe9;
+            transform: translateY(-2px);
+        }
+        .toolbar button:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .tooltip {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #323130;
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 40;
+            pointer-events: none;
+        }
+        .content-container {
+            border: 1px solid #e1dfdd;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .editable {
+            cursor: pointer;
+        }
+        .editable:hover {
+            background-color: #e2e8f0;
+        }
+        .viewport {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #e1dfdd;
+            overflow: auto;
+            background-color: #ffffff;
+        }
+        .viewport-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            width: 100%;
+            z-index: 5;
+        }
+        .viewport-toolbar select,
+        .viewport-toolbar input {
+            padding: 5px;
+            border: 1px solid #e1dfdd;
+            border-radius: 4px;
+            margin-right: 10px;
+            background-color: #ffffff;
+            z-index: 2;
+            position: relative;
+        }
+        .outer-container {
+            background-color: #f9f9f9;
+            border: 1px solid #e1dfdd;
+        }
+        .preview-container {
+            border: 1px solid #e1dfdd;
+            padding: 10px;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        .dimension-ruler {
+            position: relative;
+            width: 100%;
+            height: 30px;
+            background-color: #f3f4f6;
+            border: 1px solid #e1dfdd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            z-index: 1;
+        }
+        .dimension-ruler::before,
+        .dimension-ruler::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: #e1dfdd;
+        }
+        .dimension-ruler::before {
+            left: 50%;
+        }
+        .dimension-ruler::after {
+            right: 50%;
+        }
+        .dimension-ruler span {
+            position: absolute;
+            background-color: #ffffff;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #323130;
+            transition: opacity 0.3s;
+        }
+        .dimension-ruler:hover span {
+            opacity: 0;
+        }
+        .dimension-ruler .bar {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: #e1dfdd;
+            transition: background-color 0.3s;
+        }
+        .dimension-ruler .bar:hover {
+            background-color: #d1d5db;
+        }
+        .dimension-ruler .bar:hover::after {
+            content: attr(data-width);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #323130;
+        }
+        .dimension-ruler .bar:hover ~ .bar {
+            background-color: #d1d5db;
+        }
+        .device-button {
+            position: relative;
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            color: #323130;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .device-button:hover {
+            background-color: #edebe9;
+            transform: translateY(-2px);
+            z-index: 1;
+        }
+        .device-button:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .device-button .tooltip {
+            z-index: 20;
+        }
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 18px;
+        }
+        .add-element-block {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            border: 1px dashed #e1dfdd;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+        .add-element-block:hover {
+            background-color: #f3f4f6;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #ffffff;
+            border: 1px solid #e1dfdd;
+            flex-direction: column;
+            z-index: 30;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .dropdown-menu button {
+            padding: 10px;
+            width: 100%;
+            text-align: left;
+            background-color: transparent;
+            border: none;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .dropdown-menu button:hover {
+            background-color: #f3f4f6;
+        }
+        .search-bar {
+            padding: 10px;
+            border-bottom: 1px solid #e1dfdd;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #e1dfdd;
+            border-radius: 4px;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            border: 1px solid #e1dfdd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            z-index: 50;
+            width: 80%;
+            max-width: 600px;
+            padding: 20px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1dfdd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .modal-close {
+            cursor: pointer;
+            font-size: 18px;
+            color: #323130;
+        }
+        .modal-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+
+
+
+
+
+
+
+
+
+
+        .menu-bar {
+          background-color: #ffffff;
+          border-bottom: 1px solid #e1dfdd;
+          display: flex;
+          padding: 5px 10px;
+          gap: 20px;
+          position: relative;
+      }
+      .menu-bar .menu-item {
+          position: relative;
+      }
+      .menu-bar .menu-button {
+          background-color: transparent;
+          padding: 10px;
+          color: #323130;
+          font-size: 16px;
+          border: none;
+          transition: background-color 0.3s, color 0.3s;
+          cursor: pointer;
+      }
+      .menu-bar .menu-button:hover {
+          background-color: #edebe9;
+          color: #000;
+      }
+      .menu-bar .dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          background-color: #ffffff;
+          border: 1px solid #e1dfdd;
+          display: none;
+          flex-direction: column;
+          z-index: 30;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+          min-width: 200px;
+      }
+      .menu-bar .dropdown button,
+      .menu-bar .dropdown label {
+          padding: 10px;
+          width: 100%;
+          text-align: left;
+          background-color: transparent;
+          border: none;
+          transition: background-color 0.3s;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+      }
+      .menu-bar .dropdown button:hover,
+      .menu-bar .dropdown label:hover {
+          background-color: #f3f4f6;
+      }
+      .menu-bar .dropdown button.disabled {
+          cursor: not-allowed;
+          color: #a0aec0;
+      }
+      .menu-bar .menu-item:hover .dropdown {
+          display: flex;
+      }
