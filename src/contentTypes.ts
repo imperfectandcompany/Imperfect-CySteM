@@ -1,360 +1,278 @@
-// src/contentTypes.ts
-
-export interface HeaderElement {
-  type: 'header';
-  level: number;
-  content: string;
+export interface BaseContentElement {
+    type: string;
+    content: string;
+    style?: string;
+    id: string;
+    isEditing?: boolean;
+    setEditing?: (id: string, isEditing: boolean) => void;
 }
 
-export interface ParagraphElement {
-  type: 'paragraph';
-  content: string;
+export interface HeaderElement extends BaseContentElement {
+    type: 'header';
+    level: number;
 }
 
-export interface ImageElement {
-  type: 'image';
-  url: string;
-  alt: string;
+export interface ParagraphElement extends BaseContentElement {
+    type: 'paragraph';
 }
 
-export interface ListElement {
-  type: 'list';
-  ordered: boolean;
-  items: string[];
-  indent?: number; // for nested lists
+export interface ImageElement extends BaseContentElement {
+    type: 'image';
+    url: string;
+    alt: string;
 }
 
-export interface CodeBlockElement {
-  type: 'codeBlock';
-  language: string;
-  content: string;
+export interface ListElement extends BaseContentElement {
+    type: 'list';
+    ordered: boolean;
+    items: string[];
+    indent?: number; // for nested lists
 }
 
-export interface CustomComponentElement {
-  type: 'custom';
-  directive: string;
-  args: string;
-  content: string[];
+export interface CodeBlockElement extends BaseContentElement {
+    type: 'codeBlock';
+    language: string;
 }
 
-export interface InteractiveElement {
-  type: 'interactive';
-  args: string;
-  content: string[];
+export interface CustomComponentElement extends Omit<BaseContentElement, 'content'> {
+    type: 'custom';
+    directive: string;
+    args: string;
+    content: string[];
 }
 
-export interface ErrorElement {
-  type: 'error';
-  message: string;
-  content: string;
-}
-export interface AccordionElement {
-  type: 'accordion';
-  content: string;
-  style: string;
+export interface InteractiveElement extends Omit<BaseContentElement, 'content'> {
+    type: 'interactive';
+    args: string;
+    content: string[];
 }
 
-export interface TabElement {
-  type: 'tab';
-  content: string;
-  style: string;
+export interface ErrorElement extends BaseContentElement {
+    type: 'error';
+    message: string;
 }
 
-export interface GalleryElement {
-  type: 'gallery';
-  content: string;
-  style: string;
+export interface AccordionElement extends BaseContentElement {
+    type: 'accordion';
 }
 
-export interface CarouselElement {
-  type: 'carousel';
-  content: string;
-  style: string;
+export interface TabElement extends BaseContentElement {
+    type: 'tab';
 }
 
-export interface CodeElement {
-  type: 'code';
-  content: string;
-  style: string;
+export interface GalleryElement extends BaseContentElement {
+    type: 'gallery';
 }
 
-export interface TestimonialElement {
-  type: 'testimonial';
-  content: string;
-  style: string;
+export interface CarouselElement extends BaseContentElement {
+    type: 'carousel';
 }
 
-export interface CountdownElement {
-  type: 'countdown';
-  content: string;
-  style: string;
+export interface CodeElement extends BaseContentElement {
+    type: 'code';
 }
 
-export interface AlertElement {
-  type: 'alert';
-  content: string;
-  style: string;
+export interface TestimonialElement extends BaseContentElement {
+    type: 'testimonial';
 }
 
-export interface TableElement {
-  type: 'table';
-  content: string;
-  style: string;
+export interface CountdownElement extends BaseContentElement {
+    type: 'countdown';
 }
 
-export interface CardElement {
-  type: 'card';
-  content: string;
-  style: string;
+export interface AlertElement extends BaseContentElement {
+    type: 'alert';
 }
 
-export interface ModalElement {
-  type: 'modal';
-  content: string;
-  style: string;
+export interface TableElement extends BaseContentElement {
+    type: 'table';
 }
 
-export interface ProgressElement {
-  type: 'progress';
-  content: string;
-  style: string;
+export interface CardElement extends BaseContentElement {
+    type: 'card';
 }
 
-export interface LeaderboardElement {
-  type: 'leaderboard';
-  content: string;
-  style: string;
+export interface ModalElement extends BaseContentElement {
+    type: 'modal';
 }
 
-export interface YoutubeElement {
-  type: 'youtube';
-  url: string;
-  style: string;
+export interface ProgressElement extends BaseContentElement {
+    type: 'progress';
 }
 
-export interface FeatureElement {
-  type: 'feature';
-  content: string;
-  style: string;
+export interface LeaderboardElement extends BaseContentElement {
+    type: 'leaderboard';
 }
 
-export interface ChangelogElement {
-  type: 'changelog';
-  content: string;
-  style: string;
+export interface YoutubeElement extends BaseContentElement {
+    type: 'youtube';
+    url: string;
 }
 
-export interface StatsElement {
-  type: 'stats';
-  content: string;
-  style: string;
+export interface FeatureElement extends BaseContentElement {
+    type: 'feature';
 }
 
-export interface FaqElement {
-  type: 'faq';
-  content: string;
-  style: string;
+export interface ChangelogElement extends BaseContentElement {
+    type: 'changelog';
 }
 
-export interface DataVisualizationElement {
-  type: 'data-visualization';
-  content: string;
-  style: string;
+export interface StatsElement extends BaseContentElement {
+    type: 'stats';
 }
 
-export interface InfoCardElement {
-  type: 'info-card';
-  content: string;
-  style: string;
+export interface FaqElement extends BaseContentElement {
+    type: 'faq';
 }
 
-export interface ServerInfoElement {
-  type: 'server-info';
-  content: string;
-  style: string;
+export interface DataVisualizationElement extends BaseContentElement {
+    type: 'data-visualization';
 }
 
-export interface AdminCommandElement {
-  type: 'admin-command';
-  content: string;
-  style: string;
+export interface InfoCardElement extends BaseContentElement {
+    type: 'info-card';
 }
 
-export interface EventLogElement {
-  type: 'event-log';
-  content: string;
-  style: string;
+export interface ServerInfoElement extends BaseContentElement {
+    type: 'server-info';
 }
 
-export interface PatchNotesElement {
-  type: 'patch-notes';
-  content: string;
-  style: string;
+export interface AdminCommandElement extends BaseContentElement {
+    type: 'admin-command';
 }
 
-export interface ServerRulesElement {
-  type: 'server-rules';
-  content: string;
-  style: string;
+export interface EventLogElement extends BaseContentElement {
+    type: 'event-log';
 }
 
-export interface CommunitySpotlightElement {
-  type: 'community-spotlight';
-  content: string;
-  style: string;
+export interface PatchNotesElement extends BaseContentElement {
+    type: 'patch-notes';
 }
 
-export interface WarningAlertElement {
-  type: 'warning-alert';
-  content: string;
-  style: string;
+export interface ServerRulesElement extends BaseContentElement {
+    type: 'server-rules';
 }
 
-export interface NeutralAlertElement {
-  type: 'neutral-alert';
-  content: string;
-  style: string;
+export interface CommunitySpotlightElement extends BaseContentElement {
+    type: 'community-spotlight';
 }
 
-export interface SteamProfileElement {
-  type: 'steam-profile';
-  content: string;
-  style: string;
+export interface WarningAlertElement extends BaseContentElement {
+    type: 'warning-alert';
 }
 
-export interface PlayerCommandElement {
-  type: 'player-command';
-  content: string;
-  style: string;
+export interface NeutralAlertElement extends BaseContentElement {
+    type: 'neutral-alert';
 }
 
-export interface BugTrackerElement {
-  type: 'bug-tracker';
-  content: string;
-  style: string;
+export interface SteamProfileElement extends BaseContentElement {
+    type: 'steam-profile';
 }
 
-export interface AchievementElement {
-  type: 'achievement';
-  content: string;
-  style: string;
+export interface PlayerCommandElement extends BaseContentElement {
+    type: 'player-command';
 }
 
-export interface ServerScheduleElement {
-  type: 'server-schedule';
-  content: string;
-  style: string;
+export interface BugTrackerElement extends BaseContentElement {
+    type: 'bug-tracker';
 }
 
-export interface NewMapElement {
-  type: 'new-map';
-  content: string;
-  style: string;
+export interface AchievementElement extends BaseContentElement {
+    type: 'achievement';
 }
 
-export interface ServerPerformanceElement {
-  type: 'server-performance';
-  content: string;
-  style: string;
+export interface ServerScheduleElement extends BaseContentElement {
+    type: 'server-schedule';
 }
 
-export interface ModerationActionsElement {
-  type: 'moderation-actions';
-  content: string;
-  style: string;
+export interface NewMapElement extends BaseContentElement {
+    type: 'new-map';
 }
 
-export interface MediaGalleryElement {
-  type: 'media-gallery';
-  content: string;
-  style: string;
+export interface ServerPerformanceElement extends BaseContentElement {
+    type: 'server-performance';
 }
 
-export interface CustomCommandsElement {
-  type: 'custom-commands';
-  content: string;
-  style: string;
+export interface ModerationActionsElement extends BaseContentElement {
+    type: 'moderation-actions';
 }
 
-export interface AchievementUnlocksElement {
-  type: 'achievement-unlocks';
-  content: string;
-  style: string;
+export interface MediaGalleryElement extends BaseContentElement {
+    type: 'media-gallery';
 }
 
-export interface RankingSystemElement {
-  type: 'ranking-system';
-  content: string;
-  style: string;
+export interface CustomCommandsElement extends BaseContentElement {
+    type: 'custom-commands';
 }
 
-export interface RankingPointsElement {
-  type: 'ranking-points';
-  content: string;
-  style: string;
+export interface AchievementUnlocksElement extends BaseContentElement {
+    type: 'achievement-unlocks';
 }
 
-export interface TextStyleElement {
-  type: 'textstyle';
-  content: string;
-  style: string;
+export interface RankingSystemElement extends BaseContentElement {
+    type: 'ranking-system';
 }
 
-export interface SpacingElement {
-  type: 'spacing';
-  content: string;
-  style: string;
+export interface RankingPointsElement extends BaseContentElement {
+    type: 'ranking-points';
+}
+
+export interface TextStyleElement extends BaseContentElement {
+    type: 'textstyle';
+}
+
+export interface SpacingElement extends BaseContentElement {
+    type: 'spacing';
 }
 
 export type ContentElement =
-  | HeaderElement
-  | ParagraphElement
-  | ImageElement
-  | ListElement
-  | CodeBlockElement
-  | CustomComponentElement
-  | InteractiveElement
-  | ErrorElement
-  | AccordionElement
-  | TabElement
-  | GalleryElement
-  | CarouselElement
-  | CodeElement
-  | TestimonialElement
-  | CountdownElement
-  | AlertElement
-  | TableElement
-  | CardElement
-  | ModalElement
-  | ProgressElement
-  | LeaderboardElement
-  | YoutubeElement
-  | FeatureElement
-  | ChangelogElement
-  | StatsElement
-  | FaqElement
-  | DataVisualizationElement
-  | InfoCardElement
-  | ServerInfoElement
-  | AdminCommandElement
-  | EventLogElement
-  | PatchNotesElement
-  | ServerRulesElement
-  | CommunitySpotlightElement
-  | WarningAlertElement
-  | NeutralAlertElement
-  | SteamProfileElement
-  | PlayerCommandElement
-  | BugTrackerElement
-  | AchievementElement
-  | ServerScheduleElement
-  | NewMapElement
-  | ServerPerformanceElement
-  | ModerationActionsElement
-  | MediaGalleryElement
-  | CustomCommandsElement
-  | AchievementUnlocksElement
-  | RankingSystemElement
-  | RankingPointsElement
-  | TextStyleElement
-  | SpacingElement;
+    | HeaderElement
+    | ParagraphElement
+    | ImageElement
+    | ListElement
+    | CodeBlockElement
+    | CustomComponentElement
+    | InteractiveElement
+    | ErrorElement
+    | AccordionElement
+    | TabElement
+    | GalleryElement
+    | CarouselElement
+    | CodeElement
+    | TestimonialElement
+    | CountdownElement
+    | AlertElement
+    | TableElement
+    | CardElement
+    | ModalElement
+    | ProgressElement
+    | LeaderboardElement
+    | YoutubeElement
+    | ChangelogElement
+    | StatsElement
+    | FaqElement
+    | DataVisualizationElement
+    | InfoCardElement
+    | ServerInfoElement
+    | AdminCommandElement
+    | EventLogElement
+    | PatchNotesElement
+    | ServerRulesElement
+    | CommunitySpotlightElement
+    | WarningAlertElement
+    | NeutralAlertElement
+    | SteamProfileElement
+    | PlayerCommandElement
+    | BugTrackerElement
+    | AchievementElement
+    | ServerScheduleElement
+    | NewMapElement
+    | ServerPerformanceElement
+    | ModerationActionsElement
+    | MediaGalleryElement
+    | CustomCommandsElement
+    | AchievementUnlocksElement
+    | RankingSystemElement
+    | RankingPointsElement
+    | TextStyleElement
+    | SpacingElement;

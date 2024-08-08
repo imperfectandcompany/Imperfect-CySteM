@@ -149,14 +149,44 @@ interface ToolbarProps {
 
 const Toolbar = ({ showModal }: ToolbarProps) => {
   return (
-    <div className="toolbar select-none">
-      <button title="Show Syntax" onClick={showModal}>
+    <div className="toolbar select-none flex flex-row-reverse justify-between p-2 bg-gray-200 rounded">
+      <button title="Show Syntax" onClick={showModal} className="toolbar-button">
         <i className="fas fa-code"></i>
         <div className="tooltip">Show Syntax</div>
       </button>
+      
+      {/* Text alignment buttons */}
+      {/* <div className="text-alignment flex">
+        <button title="Align Left" onClick={() => onAlignChange('left')} className="toolbar-button">
+          <i className="fas fa-align-left"></i>
+        </button>
+        <button title="Center Align" onClick={() => onAlignChange('center')} className="toolbar-button">
+          <i className="fas fa-align-center"></i>
+        </button>
+        <button title="Align Right" onClick={() => onAlignChange('right')} className="toolbar-button">
+          <i className="fas fa-align-right"></i>
+        </button>
+        <button title="Justify" onClick={() => onAlignChange('justify')} className="toolbar-button">
+          <i className="fas fa-align-justify"></i>
+        </button>
+      </div> */}
+
+      {/* Text style buttons */}
+      {/* <div className="text-style flex">
+        <button title="Bold" onClick={() => onStyleChange('bold')} className="toolbar-button">
+          <i className="fas fa-bold"></i>
+        </button>
+        <button title="Italic" onClick={() => onStyleChange('italic')} className="toolbar-button">
+          <i className="fas fa-italic"></i>
+        </button>
+        <button title="Underline" onClick={() => onStyleChange('underline')} className="toolbar-button">
+          <i className="fas fa-underline"></i>
+        </button>
+      </div> */}
     </div>
   );
 };
+
 
 interface ViewToolbarProps {
   onViewChange: (view: string) => void;
@@ -264,8 +294,14 @@ const DimensionRuler = ({ viewport }: DimensionRulerProps) => {
   );
 };
 
+const initialRawContent = `
+header|Welcome to our site|header-class
+paragraph|This is a sample paragraph|paragraph-class
+image|https://placehold.co/600x400|Image description
+`;
+
 const EditorModule = () => {
-  const [elements, setElements] = useState<ContentElement[]>([]);
+      const [elements, setElements] = useState<ContentElement[]>(parseContent(initialRawContent));
   const [viewport, setViewport] = useState({ width: 375, height: 812 });
   const [view, setView] = useState("mobile");
   const [isDimensionsEnabled, setDimensionsEnabled] = useState(true);
@@ -582,7 +618,7 @@ const EditorModule = () => {
                   No elements added. Use the button below to add elements.
                 </div>
               ) : (
-                renderContent(elements)
+                renderContent(elements, setElements)
               )}
             </div>
             <div className="add-element-block select-none" onClick={handleDropdownToggle}>
