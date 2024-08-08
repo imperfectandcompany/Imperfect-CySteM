@@ -1123,9 +1123,6 @@ nav > button:hover > svg {
 
 /* Create article part */
 
-        body {
-            font-family: 'Inter', sans-serif;
-        }
         .menu-bar {
             background-color: #ffffff;
             border-bottom: 1px solid #e1dfdd;
@@ -1187,7 +1184,6 @@ nav > button:hover > svg {
         .toolbar {
             background-color: #ffffff;
             border: 1px solid #e1dfdd;
-            display: flex;
             flex-wrap: wrap;
             padding: 5px 10px;
             gap: 5px;
@@ -1386,7 +1382,7 @@ nav > button:hover > svg {
             align-items: center;
             padding: 10px;
             border: 1px dashed #e1dfdd;
-            margin-top: 20px;
+            margin: 20px;
             cursor: pointer;
             transition: background-color 0.3s;
             position: relative;
@@ -1395,90 +1391,178 @@ nav > button:hover > svg {
             background-color: #f3f4f6;
         }
         .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: #ffffff;
-            border: 1px solid #e1dfdd;
-            flex-direction: column;
-            z-index: 30;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-            min-width: 200px;
-            max-height: 300px;
-            overflow-y: auto;
+          position: fixed; /* Change from absolute to fixed */
+          background-color: #ffffff;
+          border: 1px solid #e1dfdd;
+          flex-direction: column;
+          z-index: 30;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+          min-width: 200px;
+          max-height: 300px;
+          overflow: hidden;
+      }
+      .dropdown-menu button {
+        padding: 10px;
+        width: 100%;
+        text-align: left;
+        background-color: transparent;
+        border: none;
+        transition: background-color 0.3s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .dropdown-menu button:hover {
+        background-color: #f3f4f6;
+    }
+      
+      .search-bar {
+          padding: 10px;
+          border-bottom: 1px solid #e1dfdd;
+          position: sticky;
+          top: 0;
+          background-color: #ffffff;
+          z-index: 1;
+          cursor: text;
+      }
+      
+      .search-bar input {
+          width: 100%;
+          padding: 5px;
+          border: 1px solid #e1dfdd;
+          border-radius: 4px;
+          outline: none;
+          transition: border-color 0.3s, box-shadow 0.3s;
+      }
+      
+      .search-bar input:focus {
+          border-color: #0078d4;
+          box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
+      }
+      
+      .dropdown-menu-items {
+          max-height: 250px;
+          overflow-y: auto;
+      }
+
+
+
+/* Add animations for the modal */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+}
+
+.modal-enter {
+  animation: modal-enter 0.3s forwards;
+}
+
+.modal-leave {
+  animation: modal-leave 0.3s forwards;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.modal-enter {
+  animation: modal-enter 0.3s forwards;
+}
+
+.modal-leave {
+  animation: modal-leave 0.3s forwards;
+}
+
+
+.modal {
+  background-color: #ffffff;
+  border: 1px solid #e1dfdd;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  width: 80%;
+  max-width: 600px;
+  padding: 20px;
+  opacity: 0;
+}
+        
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e1dfdd;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-close {
+  cursor: pointer;
+  font-size: 18px;
+  color: #323130;
+}
+
+.modal-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+        .copy-button {
+          background-color: #0078d4;
+          color: #ffffff;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-top: 20px;
+          display: block;
+          width: 100%;
+          text-align: center;
+          transition: background-color 0.3s;
         }
-        .dropdown-menu button {
-            padding: 10px;
-            width: 100%;
-            text-align: left;
-            background-color: transparent;
-            border: none;
-            transition: background-color 0.3s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-        }
-        .dropdown-menu button:hover {
-            background-color: #f3f4f6;
-        }
-        .search-bar {
-            padding: 10px;
-            border-bottom: 1px solid #e1dfdd;
-        }
-        .search-bar input {
-            width: 100%;
-            padding: 5px;
-            border: 1px solid #e1dfdd;
-            border-radius: 4px;
-        }
-        .modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #ffffff;
-            border: 1px solid #e1dfdd;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-            z-index: 50;
-            width: 80%;
-            max-width: 600px;
-            padding: 20px;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e1dfdd;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .modal-header h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-        .modal-close {
-            cursor: pointer;
-            font-size: 18px;
-            color: #323130;
-        }
-        .modal-content {
-            max-height: 400px;
-            overflow-y: auto;
+        
+        .copy-button:hover {
+          background-color: #005a9e;
         }
 
 
-
-
-
-
-
-
-
-
-
+        .copy-button:disabled {
+  background-color: #e1e1e1;
+  cursor: not-allowed;
+  color: #a0a0a0;
+}
+        
         .menu-bar {
           background-color: #ffffff;
           border-bottom: 1px solid #e1dfdd;
@@ -1515,6 +1599,8 @@ nav > button:hover > svg {
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
           border-radius: 4px;
           min-width: 200px;
+          width: auto; /* Adjust width automatically based on content */
+          white-space: nowrap; /* Prevent text from wrapping */
       }
       .menu-bar .dropdown button,
       .menu-bar .dropdown label {
@@ -1528,6 +1614,7 @@ nav > button:hover > svg {
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
+          white-space: nowrap; /* Prevent text from wrapping */
       }
       .menu-bar .dropdown button:hover,
       .menu-bar .dropdown label:hover {
