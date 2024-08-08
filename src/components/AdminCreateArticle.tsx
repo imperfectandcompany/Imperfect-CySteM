@@ -213,7 +213,7 @@ export const AdminCreateArticle: FunctionalComponent = () => {
         
 <EditorModule/>
 
-        {currentView === "raw" ? (
+        {/* {currentView === "raw" ? (
           <textarea
             ref={textAreaRef}
             className="border border-gray-300 hover:border-gray-400 resize-y w-full rounded-sm p-2 focus:outline-none"
@@ -227,7 +227,7 @@ export const AdminCreateArticle: FunctionalComponent = () => {
               <p className="text-gray-500">Preview will be displayed here.</p>
             )}
           </div>
-        )}
+        )} */}
       </div>
     );
   };
