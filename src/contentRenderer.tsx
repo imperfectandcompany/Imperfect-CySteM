@@ -12,11 +12,202 @@ import {
   ErrorElement,
 } from "./contentTypes";
 
+interface EditableComponentProps {
+  tag: keyof JSX.IntrinsicElements;
+  children: string;
+  onChange: (value: string) => void;
+  [key: string]: any;
+}
+
+const EditableComponent = ({
+  tag: Tag,
+  children,
+  onChange,
+  ...props
+}: EditableComponentProps) => {
+  const [isEditing, setEditing] = useState(false);
+  const [text, setText] = useState(children);
+
+  function handleDoubleClick() {
+    setEditing(true);
+  }
+
+  function handleChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    setText(target.value);
+    onChange(target.value);
+  }
+
+  function handleBlur() {
+    setEditing(false);
+  }
+
+  if (isEditing) {
+    return (
+      <input
+        type="text"
+        value={text}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="p-2 text-base w-full"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <Tag onDblClick={handleDoubleClick} {...props}>
+      {text}
+    </Tag>
+  );
+};
+
+interface EditableImageProps {
+  url: string;
+  alt: string;
+  onChange: (newUrl: string, newAlt: string) => void;
+}
+
+const EditableImage = ({ url, alt, onChange }: EditableImageProps) => {
+  const [isEditing, setEditing] = useState(false);
+  const [imageUrl, setImageUrl] = useState(url);
+  const [imageAlt, setImageAlt] = useState(alt);
+
+  function handleDoubleClick() {
+    setEditing(true);
+  }
+
+  function handleBlur() {
+    setEditing(false);
+    onChange(imageUrl, imageAlt);
+  }
+
+  if (isEditing) {
+    return (
+      <div className="flex flex-col">
+        <input
+          type="text"
+          value={imageUrl}
+          onChange={(e) => setImageUrl((e.target as HTMLInputElement).value)}
+          onBlur={handleBlur}
+          className="p-2 mb-2 text-base w-full"
+          autoFocus
+        />
+        <input
+          type="text"
+          value={imageAlt}
+          onChange={(e) => setImageAlt((e.target as HTMLInputElement).value)}
+          onBlur={handleBlur}
+          className="p-2 text-base w-full"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={imageAlt}
+      onDblClick={handleDoubleClick}
+      className="cursor-pointer"
+    />
+  );
+};
+
+interface EditableListProps {
+  items: string[];
+  ordered: boolean;
+  onChange: (newItems: string[]) => void;
+}
+
+const EditableList = ({ items, ordered, onChange }: EditableListProps) => {
+  const [isEditing, setEditing] = useState(false);
+  const [listItems, setListItems] = useState(items);
+
+  function handleItemChange(index: number, value: string) {
+    const newItems = [...listItems];
+    newItems[index] = value;
+    setListItems(newItems);
+    onChange(newItems);
+  }
+
+  function handleAddItem() {
+    const newItems = [...listItems, ""];
+    setListItems(newItems);
+    onChange(newItems);
+  }
+
+  function handleRemoveItem(index: number) {
+    const newItems = listItems.filter((_, idx) => idx !== index);
+    setListItems(newItems);
+    onChange(newItems);
+  }
+
+  return ordered ? (
+    <ol>
+      {listItems.map((item, index) => (
+        <li key={index} className="flex items-center">
+          <EditableComponent
+            tag="span"
+            children={item}
+            onChange={(value) => handleItemChange(index, value)}
+          />
+          <button onClick={() => handleRemoveItem(index)}>Remove</button>
+        </li>
+      ))}
+      <button onClick={handleAddItem}>Add Item</button>
+    </ol>
+  ) : (
+    <ul>
+      {listItems.map((item, index) => (
+        <li key={index} className="flex items-center">
+          <EditableComponent
+            tag="span"
+            children={item}
+            onChange={(value) => handleItemChange(index, value)}
+          />
+          <button onClick={() => handleRemoveItem(index)}>Remove</button>
+        </li>
+      ))}
+      <button onClick={handleAddItem}>Add Item</button>
+    </ul>
+  );
+};
+
 export function renderContent(
   elements: ContentElement[],
   setElements: (newElements: ContentElement[]) => void
 ): (JSX.Element | null)[] {
   const [editingElement, setEditingElement] = useState<string | null>(null);
+
+  const handleImageChange = (id: string, newUrl: string, newAlt: string) => {
+    const updatedElements = elements.map((element) =>
+      element.id === id
+        ? {
+            ...element,
+            url: newUrl,
+            alt: newAlt,
+          }
+        : element
+    );
+    setElements(updatedElements as ContentElement[]);
+  };
+
+  const handleListChange = (id: string, newItems: string[]) => {
+    const updatedElements = elements.map((element) =>
+      element.id === id
+        ? {
+            ...element,
+            items: newItems,
+          }
+        : element
+    );
+    setElements(updatedElements as ContentElement[]);
+  };
+
+  const toggleEditing = (id: string, isEditing: boolean) => {
+    setEditingElement(isEditing ? id : null);
+  };
 
   const handleContentChange = (id: string, newContent: string) => {
     const updatedElements = elements.map((element) =>
@@ -27,13 +218,9 @@ export function renderContent(
               ? [...element.content, newContent]
               : newContent,
           }
-          : element
-        );
+        : element
+    );
     setElements(updatedElements as ContentElement[]);
-  };
-
-  const toggleEditing = (id: string, isEditing: boolean) => {
-    setEditingElement(isEditing ? id : null);
   };
 
   return elements.map((element, index) => {
@@ -55,7 +242,7 @@ export function renderContent(
             className="w-full p-2 border rounded"
           />
         ) : (
-          renderElement(element, index)
+          renderElement(element, index, handleContentChange, handleImageChange, handleListChange)
         )}
         <button
           onClick={() => toggleEditing(element.id, !isEditing)}
@@ -69,104 +256,105 @@ export function renderContent(
 }
 
 function renderHeader(element: HeaderElement, index: number): JSX.Element {
-    const Tag = `h${element.level}` as keyof JSX.IntrinsicElements;
-    return (
-      <Tag key={index} dangerouslySetInnerHTML={{ __html: element.content }} />
-    );
-  }
-  
-  function renderList(element: ListElement, index: number): JSX.Element {
-    return element.ordered ? (
-      <ol key={index}>
-        {element.items.map((item, idx) => (
-          <li key={idx} dangerouslySetInnerHTML={{ __html: item }} />
-        ))}
-      </ol>
-    ) : (
-      <ul key={index}>
-        {element.items.map((item, idx) => (
-          <li key={idx} dangerouslySetInnerHTML={{ __html: item }} />
-        ))}
-      </ul>
-    );
-  }
+  const Tag = `h${element.level}` as keyof JSX.IntrinsicElements;
+  return (
+    <Tag key={index} dangerouslySetInnerHTML={{ __html: element.content }} />
+  );
+}
 
+function renderList(
+  element: ListElement,
+  index: number,
+  handleListChange: (id: string, newItems: string[]) => void
+): JSX.Element {
+  return (
+    <EditableList
+      key={index}
+      items={element.items}
+      ordered={element.ordered}
+      onChange={(newItems) => handleListChange(element.id, newItems)}
+    />
+  );
+}
 
-function renderCodeBlock(
-    element: CodeBlockElement,
-    index: number
-  ): JSX.Element {
-    return (
-      <pre key={index}>
-        <code
-          className={`language-${element.language}`}
-          dangerouslySetInnerHTML={{ __html: element.content }}
-        />
-      </pre>
-    );
-  }
-  
-  function renderCustomComponent(
-    element: CustomComponentElement,
-    index: number
-  ): JSX.Element {
-    return (
-      <div key={index} className={`custom-component custom-${element.directive}`}>
-        {element.content.map((line, idx) => (
-          <p key={idx}>{line}</p>
-        ))}
-      </div>
-    );
-  }
-  
-  function renderInteractiveElement(
-    element: InteractiveElement,
-    index: number
-  ): JSX.Element {
-    return (
-      <div key={index} className={`interactive-element`}>
-        {element.content.map((line, idx) => (
-          <p key={idx}>{line}</p>
-        ))}
-      </div>
-    );
-  }
-  
-  function renderErrorElement(element: ErrorElement, index: number): JSX.Element {
-    return (
-      <div key={index} className="error-element">
-        <strong>Error:</strong> {element.message}
-        <pre>{element.content}</pre>
-      </div>
-    );
-  }
+function renderCodeBlock(element: CodeBlockElement, index: number): JSX.Element {
+  return (
+    <pre key={index}>
+      <code
+        className={`language-${element.language}`}
+        dangerouslySetInnerHTML={{ __html: element.content }}
+      />
+    </pre>
+  );
+}
+
+function renderCustomComponent(
+  element: CustomComponentElement,
+  index: number
+): JSX.Element {
+  return (
+    <div key={index} className={`custom-component custom-${element.directive}`}>
+      {element.content.map((line, idx) => (
+        <p key={idx}>{line}</p>
+      ))}
+    </div>
+  );
+}
+
+function renderInteractiveElement(
+  element: InteractiveElement,
+  index: number
+): JSX.Element {
+  return (
+    <div key={index} className={`interactive-element`}>
+      {element.content.map((line, idx) => (
+        <p key={idx}>{line}</p>
+      ))}
+    </div>
+  );
+}
+
+function renderErrorElement(element: ErrorElement, index: number): JSX.Element {
+  return (
+    <div key={index} className="error-element">
+      <strong>Error:</strong> {element.message}
+      <pre>{element.content}</pre>
+    </div>
+  );
+}
 
 function renderElement(
-  element: ContentElement,
-  index: number
-): JSX.Element | null {
-  switch (element.type) {
-    case "header":
-      return renderHeader(element as HeaderElement, index);
-    case "paragraph":
-      return (
-        <p
-          key={index}
-          dangerouslySetInnerHTML={{
-            __html: (element as ParagraphElement).content,
-          }}
-        />
-      );
-    case "image":
-      return (
-        <img
-          key={index}
-          src={(element as ImageElement).url}
-          alt={(element as ImageElement).alt}
-        />
-      );
+    element: ContentElement,
+    index: number,
+    handleContentChange: (id: string, newContent: string) => void,
+    handleImageChange: (id: string, newUrl: string, newAlt: string) => void,
+    handleListChange: (id: string, newItems: string[]) => void
+  ): JSX.Element | null {
+    switch (element.type) {
+        case "header":
+          return renderHeader(element as HeaderElement, index);
+        case "paragraph":
+          return (
+            <EditableComponent
+              key={index}
+              tag="p"
+              children={(element as ParagraphElement).content}
+              onChange={(value) => handleContentChange(element.id, value)}
+            />
+          );
+        case "image":
+          return (
+            <EditableImage
+              key={index}
+              url={(element as ImageElement).url}
+              alt={(element as ImageElement).alt}
+              onChange={(newUrl, newAlt) =>
+                handleImageChange(element.id, newUrl, newAlt)
+              }
+            />
+          );
     case "list":
-      return renderList(element as ListElement, index);
+      return renderList(element as ListElement, index, handleListChange);
     case "codeBlock":
       return renderCodeBlock(element as CodeBlockElement, index);
     case "custom":
@@ -320,16 +508,6 @@ function renderElement(
           className={`w-full h-64 ${element.style}`}
         ></iframe>
       );
-    // case "feature":
-    //   return (
-    //     <div
-    //       key={index}
-    //       className={`p-4 shadow-lg rounded-lg ${element.style}`}
-    //     >
-    //       <i className="fas fa-star text-yellow-500"></i>
-    //       <p>{element.content}</p>
-    //     </div>
-    //   );
     case "changelog":
       return (
         <div
