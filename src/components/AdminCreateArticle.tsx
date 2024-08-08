@@ -16,9 +16,8 @@ import {
   Category,
   ContentContext,
 } from "../contexts/ContentContext";
-import { parseContent } from "../contentParser";
-import { renderContent } from "../contentRenderer";
 import EditorModule from "./EditorModule";
+import { parseContent } from "./EditorModule/Content/contentParser";
 
 export const AdminCreateArticle: FunctionalComponent = () => {
   const [title, setTitle] = useState("");
@@ -204,9 +203,10 @@ export const AdminCreateArticle: FunctionalComponent = () => {
     const contentElements = detailedDescription
       ? parseContent(detailedDescription)
       : "";
-    const renderedContent = contentElements
-      ? renderContent(contentElements)
-      : null;
+
+    // const renderedContent = contentElements
+      // ? renderContent(contentElements)
+      // : null;
 
     return (
       <div className="resize-y w-full text-lg rounded-sm bg-white focus:outline-none">

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "preact/hooks";
-import { Fragment, JSX } from "preact/jsx-runtime";
-import { ContentElement } from "../../contentTypes";
-import { parseContent } from "../../contentParser";
-import { renderContent } from "../../contentRenderer";
+import { Fragment } from "preact/jsx-runtime";
+import { parseContent } from "./Content/contentParser";
+import { ContentElement } from "./Content/contentTypes";
+import { renderContent } from "./Renderers";
 
 
   
@@ -271,7 +271,7 @@ const EditorModule = () => {
 
   const insertElement = (type: string) => {
     const placeholder: Record<string, string> = {
-      header: "header | Your header text | text-xl font-bold",
+        header: "header|Your header text|header-class",
       paragraph: "paragraph | Your paragraph text | text-base",
       image: "image | https://placehold.co/600x400 | Alt text",
       list: "list | Item 1; Item 2; Item 3 | list-disc pl-5",
@@ -345,7 +345,8 @@ const EditorModule = () => {
     };
 
     const newElement = parseContent(placeholder[type])[0];
-    setElements([...elements, newElement]);
+    setElements((prevElements) => [...prevElements, newElement]);
+
     setSearchTerm("");
     setDropdownVisible(false); // Dismiss the dropdown
   };
@@ -401,48 +402,48 @@ const EditorModule = () => {
     "list",
     "code",
     "accordion",
-    "achievement",
-    "achievementunlocks",
-    "admincommand",
-    "alert",
-    "bugtracker",
-    "card",
-    "carousel",
-    "changelog",
-    "code",
-    "communityspotlight",
-    "countdown",
-    "customcommands",
-    "datavisualization",
-    "eventlog",
-    "faq",
-    "feature",
-    "gallery",
-    "infocard",
-    "leaderboard",
-    "mediagallery",
-    "modal",
-    "moderationactions",
-    "neutralalert",
-    "newmap",
-    "patchnotes",
-    "playercommand",
-    "progress",
-    "rankingpoints",
-    "rankingsystem",
-    "serverinfo",
-    "serverperformance",
-    "serverrules",
-    "serverschedule",
-    "spacing",
-    "stats",
-    "steamprofile",
-    "tab",
-    "table",
-    "testimonial",
-    "textstyle",
-    "warningalert",
-    "youtube",
+    // "achievement",
+    // "achievementunlocks",
+    // "admincommand",
+    // "alert",
+    // "bugtracker",
+    // "card",
+    // "carousel",
+    // "changelog",
+    // "code",
+    // "communityspotlight",
+    // "countdown",
+    // "customcommands",
+    // "datavisualization",
+    // "eventlog",
+    // "faq",
+    // "feature",
+    // "gallery",
+    // "infocard",
+    // "leaderboard",
+    // "mediagallery",
+    // "modal",
+    // "moderationactions",
+    // "neutralalert",
+    // "newmap",
+    // "patchnotes",
+    // "playercommand",
+    // "progress",
+    // "rankingpoints",
+    // "rankingsystem",
+    // "serverinfo",
+    // "serverperformance",
+    // "serverrules",
+    // "serverschedule",
+    // "spacing",
+    // "stats",
+    // "steamprofile",
+    // "tab",
+    // "table",
+    // "testimonial",
+    // "textstyle",
+    // "warningalert",
+    // "youtube",
   ].filter((type) => type.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const handleClickAway = (e: MouseEvent) => {

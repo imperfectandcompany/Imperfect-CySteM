@@ -52,7 +52,7 @@ export const AdminCreateCategory: FunctionalComponent = () => {
     try {
       // Use the API to create a new category
       const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/category/create`, {
+      const response = await fetch(`${API_BASE_URL}/category/create.`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
