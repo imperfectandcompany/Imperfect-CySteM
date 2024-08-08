@@ -1,8 +1,6 @@
 import { FunctionalComponent } from "preact";
 import { useState, useEffect, useRef, useContext, StateUpdater } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
-import { parseContent } from "../contentParser";
-import { renderContent } from "../contentRenderer";
 import { ChangeEvent } from "preact/compat";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
@@ -14,6 +12,7 @@ import {
   Category,
   ContentContext,
 } from "../contexts/ContentContext";
+import { parseContent } from "./EditorModule/Content/contentParser";
 
 interface Props {
   matches: {
@@ -140,9 +139,9 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   }, [articleText, currentView]);
 
   const contentElements = articleText ? parseContent(articleText) : null;
-  const renderedContent = contentElements
-    ? renderContent(contentElements)
-    : null;
+  // const renderedContent = contentElements
+  //   ? renderContent(contentElements)
+  //   : null;
 
     const saveEdit = async () => {
       if (!history || !selectedCategory) return;
@@ -419,7 +418,7 @@ setCategories((prevCategories: Category[]) =>
                   </div>
                 </div>
               )}
-              <div className="detail-description">{renderedContent}</div>
+              {/* <div className="detail-description">{renderedContent}</div> */}
             </div>
           </>
         );
