@@ -1,170 +1,154 @@
 import { useState } from "preact/hooks";
 import { JSX } from "preact/jsx-runtime";
 import { renderList } from "./renderList";
-import { EditableImage } from "../EditableImage";
 import { renderCodeBlock } from "./renderCodeblock";
-import EditableComponent from "../EditableComponent";
 import { renderHeader } from "./renderHeader";
 import { renderCustomComponent } from "./renderCustomComponent";
 import { renderErrorElement } from "./renderErrorElement";
 import { renderInteractiveElement } from "./renderInteractiveElement";
 import { ContentElement, HeaderElement, ParagraphElement, ImageElement, ListElement, CodeBlockElement, CustomComponentElement, InteractiveElement, ErrorElement, TableElement } from "../Content/contentTypes";
 import { EditableTable } from "./renderTable";
+import { EditableImage } from "../Editables/EditableImage";
+import { EditableComponent } from "../Editables/EditableComponent";
 
 
 
 export function renderContent(
-  elements: ContentElement[],
-  setElements: (newElements: ContentElement[]) => void
-): (JSX.Element | null)[] {
-  const [editingElement, setEditingElement] = useState<string | null>(null);
-  const [modalContent, setModalContent] = useState<string>("");
-
-  const handleImageChange = (id: string, newUrl: string, newAlt: string) => {
-    const updatedElements = elements.map((element) =>
-      element.id === id
-        ? {
-            ...element,
-            url: newUrl,
-            alt: newAlt,
-          }
-        : element
-    );
-    setElements(updatedElements as ContentElement[]);
-  };
-
-  const handleListChange = (id: string, newItems: string[]) => {
-    const updatedElements = elements.map((element) =>
-      element.id === id
-        ? {
-            ...element,
-            items: newItems,
-          }
-        : element
-    );
-    setElements(updatedElements as ContentElement[]);
-  };
-
-  const handleListRemove = (id: string) => {
-    const updatedElements = elements.filter((element) => element.id !== id);
-    setElements(updatedElements as ContentElement[]);
-  };
-
-  const toggleEditing = (id: string, isEditing: boolean, content?: string) => {
-    setEditingElement(isEditing ? id : null);
-    if (content !== undefined) {
-      setModalContent(content);
-    }
-  };
-
-  const handleContentChange = (id: string, newContent: string) => {
-    const updatedElements = elements.map((element) =>
-      element.id === id
-        ? {
-            ...element,
-            content: Array.isArray(element.content)
-              ? [...element.content, newContent]
-              : newContent,
-          }
-        : element
-    );
-    setElements(updatedElements as ContentElement[]);
-  };
-
-
-
-const FullScreenModal = ({
-    children,
-    onClose,
-    onSave,
-  }: {
-    children: JSX.Element;
-    onClose: () => void;
-    onSave: () => void;
-  }) => {
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center z-50 transition-all duration-300 ease-in-out transform scale-100">
-        <div className="relative w-full h-full p-6">
-          <button
-            onClick={onClose}
-            className="absolute top-2 right-2 text-2xl font-bold"
-          >
-            &times;
-          </button>
-          {children}
-          <button
-            onClick={onSave}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-
-
-  const handleSave = () => {
-    if (editingElement !== null) {
-      handleContentChange(editingElement, modalContent);
-      setEditingElement(null);
-    }
-  };
-
-  return elements.map((element, index) => {
-    const isEditing = editingElement === element.id;
-    element.isEditing = isEditing;
-    element.setEditing = toggleEditing;
-
-    return (
-      <div
-        key={index}
-        className="relative p-4 border rounded my-2 md:my-4 lg:my-6"
-      >
-        {isEditing ? (
-          <FullScreenModal
-            onClose={() => toggleEditing(element.id, false)}
-            onSave={handleSave}
-          >
-            <textarea
-              value={modalContent}
-              onInput={(e) =>
-                setModalContent((e.target as HTMLTextAreaElement).value)
-              }
-              className="w-full h-full p-2 border rounded"
-            />
-          </FullScreenModal>
-        ) : (
-          renderElement(
-            element,
-            index,
-            handleContentChange,
-            handleImageChange,
-            handleListChange,
-            handleListRemove
-          )
-        )}
-        {element.type !== "image" && element.type !== "list" && (
-          <button
-            onClick={() =>
-              toggleEditing(
-                element.id,
-                !isEditing,
-                Array.isArray(element.content)
-                  ? element.content.join(", ")
-                  : element.content
-              )
+    elements: ContentElement[],
+    setElements: (newElements: ContentElement[]) => void
+  ): (JSX.Element | null)[] {
+    const [editingElement, setEditingElement] = useState<string | null>(null);
+    const [modalContent, setModalContent] = useState<string>("");
+  
+    const handleImageChange = (id: string, newUrl: string, newAlt: string) => {
+      const updatedElements = elements.map((element) =>
+        element.id === id
+          ? {
+              ...element,
+              url: newUrl,
+              alt: newAlt,
             }
-            className="absolute top-0 right-0 p-1 text-xs bg-gray-200 border rounded"
-          >
-            {isEditing ? "Save" : "Edit"}
-          </button>
-        )}
-      </div>
-    );
-  });
-}
+          : element
+      );
+      setElements(updatedElements as ContentElement[]);
+    };
+  
+    const handleListChange = (id: string, newItems: string[]) => {
+      const updatedElements = elements.map((element) =>
+        element.id === id
+          ? {
+              ...element,
+              items: newItems,
+            }
+          : element
+      );
+      setElements(updatedElements as ContentElement[]);
+    };
+  
+    const handleListRemove = (id: string) => {
+      const updatedElements = elements.filter((element) => element.id !== id);
+      setElements(updatedElements as ContentElement[]);
+    };
+  
+    const toggleEditing = (id: string, isEditing: boolean, content?: string) => {
+      if (editingElement && editingElement !== id) {
+        handleSave();  // Save any previous editing element before switching
+      }
+      setEditingElement(isEditing ? id : null);
+      if (content !== undefined) {
+        setModalContent(content);
+      }
+    };
+  
+    const handleContentChange = (id: string, newContent: string) => {
+      const updatedElements = elements.map((element) =>
+        element.id === id
+          ? {
+              ...element,
+              content: newContent,
+            }
+          : element
+      );
+      setElements(updatedElements as ContentElement[]);
+    };
+  
+    const handleSave = () => {
+      if (editingElement !== null) {
+        handleContentChange(editingElement, modalContent);
+        setEditingElement(null);
+        setModalContent("");
+      }
+    };
+  
+    const handleCancel = () => {
+      setEditingElement(null);
+      setModalContent("");
+    };
+  
+    return elements.map((element, index) => {
+      const isEditing = editingElement === element.id;
+      element.isEditing = isEditing;
+      element.setEditing = toggleEditing;
+  
+      return (
+        <div
+          key={index}
+          className="relative p-4 border rounded my-2 md:my-4 lg:my-6"
+        >
+          {isEditing ? (
+            <div className="flex flex-col space-y-2">
+              <textarea
+                value={modalContent}
+                onInput={(e) =>
+                  setModalContent((e.target as HTMLTextAreaElement).value)
+                }
+                className="w-full h-full p-2 border rounded"
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={handleSave}
+                  className="p-1 text-xs bg-green-200 border rounded"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="p-1 text-xs bg-red-200 border rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            renderElement(
+              element,
+              index,
+              handleContentChange,
+              handleImageChange,
+              handleListChange,
+              handleListRemove
+            )
+          )}
+          {element.type !== "image" && element.type !== "list" && !isEditing && (
+            <button
+              onClick={() =>
+                toggleEditing(
+                  element.id,
+                  !isEditing,
+                  Array.isArray(element.content)
+                    ? element.content.join(", ")
+                    : element.content
+                )
+              }
+              className="absolute top-0 right-0 p-1 text-xs bg-gray-200 border rounded"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      );
+    });
+  }
 
 export function renderElement(
   element: ContentElement,
@@ -177,34 +161,43 @@ export function renderElement(
   switch (element.type) {
     case "header":
       return renderHeader(element as HeaderElement, index);
-    case "paragraph":
-      return (
-        <EditableComponent
-          key={index}
-          tag="p"
-          children={(element as ParagraphElement).content}
-          onChange={(value) => handleContentChange(element.id, value)}
-          className="text-base md:text-lg lg:text-xl"
-        />
-      );
-    case "image":
-      return (
-        <EditableImage
-          key={index}
-          url={(element as ImageElement).url}
-          alt={(element as ImageElement).alt}
-          onChange={(newUrl, newAlt) =>
-            handleImageChange(element.id, newUrl, newAlt)
-          }
-        />
-      );
-    case "list":
-      return renderList(
-        element as ListElement,
-        index,
-        handleListChange,
-        handleListRemove
-      );
+      case "paragraph":
+        return (
+          <EditableComponent
+            key={index}
+            tag="p"
+            children={(element as ParagraphElement).content}
+            onChange={(value: string) => handleContentChange(element.id, value)}
+            className="text-base md:text-lg lg:text-xl"
+          />
+        );
+        case "image":
+            return (
+              <EditableImage
+                key={index}
+                url={(element as ImageElement).url}
+                alt={(element as ImageElement).alt}
+                onChange={(newUrl: string, newAlt: string) =>
+                  handleImageChange(element.id, newUrl, newAlt)
+                }
+              />
+            );
+            case "list":
+                return renderList(
+                  element as ListElement,
+                  index,
+                  handleListChange,
+                  handleListRemove
+                );
+                case "code":
+                    return renderCodeBlock(element as unknown as CodeBlockElement, index);
+                  case "accordion":
+                    return (
+                      <details key={index} className={element.style}>
+                        <summary>Accordion Title</summary>
+                        <p>{element.content}</p>
+                      </details>
+                    );                
     // case "codeBlock":
     //   return renderCodeBlock(element as CodeBlockElement, index);
     // case "custom":
@@ -213,13 +206,6 @@ export function renderElement(
     //   return renderInteractiveElement(element as InteractiveElement, index);
     // case "error":
     //   return renderErrorElement(element as ErrorElement, index);
-    case "accordion":
-      return (
-        <details key={index} className={element.style}>
-          <summary>Accordion Title</summary>
-          <p>{element.content}</p>
-        </details>
-      );
     // case "tab":
     //   return (
     //     <div key={index} className={element.style}>
@@ -242,12 +228,12 @@ export function renderElement(
         //         ))}
         //       </div>
         //     );
-      case "code":
-        return (
-          <pre key={index} className={element.style}>
-            <code>{element.content}</code>
-          </pre>
-        );
+    //   case "code":
+    //     return (
+    //       <pre key={index} className={element.style}>
+    //         <code>{element.content}</code>
+    //       </pre>
+    //     );
     //   case "testimonial":
     //     return (
     //       <div

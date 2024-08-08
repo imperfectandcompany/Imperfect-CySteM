@@ -1,9 +1,7 @@
 import { useState } from "preact/hooks";
 import { JSX } from "preact/jsx-runtime";
 import { ListElement } from "../Content/contentTypes";
-import EditableComponent from "../EditableComponent";
-
-
+import { EditableComponent } from "../Editables/EditableComponent";
 
 interface EditableListProps {
     items: string[];
@@ -56,7 +54,7 @@ const EditableList = ({
                 <EditableComponent
                   tag="span"
                   children={item}
-                  onChange={(value) => handleItemChange(index, value)}
+                  onChange={(value: string) => handleItemChange(index, value)}
                   className="mr-2"
                 />
                 {isEditing && (
@@ -82,7 +80,7 @@ const EditableList = ({
                 <EditableComponent
                   tag="span"
                   children={item}
-                  onChange={(value) => handleItemChange(index, value)}
+                  onChange={(value: string) => handleItemChange(index, value)}
                   className="mr-2"
                 />
                 {isEditing && (

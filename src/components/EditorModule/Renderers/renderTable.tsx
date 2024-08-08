@@ -5,7 +5,7 @@ interface EditableTableProps {
     onChange: (value: string) => void;
   }
   
-  const EditableTable = ({ content, onChange }: EditableTableProps) => {
+  export const EditableTable = ({ content, onChange }: EditableTableProps) => {
     const [isEditing, setEditing] = useState(false);
     const [tableContent, setTableContent] = useState(content);
   
