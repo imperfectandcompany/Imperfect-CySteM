@@ -10,6 +10,7 @@ import { ContentElement, HeaderElement, ParagraphElement, ImageElement, ListElem
 import { EditableTable } from "./renderTable";
 import { EditableImage } from "../Editables/EditableImage";
 import { EditableComponent } from "../Editables/EditableComponent";
+import { EditableList } from "../Editables/EditableList";
 
 
 
@@ -20,19 +21,23 @@ export function renderContent(
     const [editingElement, setEditingElement] = useState<string | null>(null);
     const [modalContent, setModalContent] = useState<string>("");
   
+
     const handleImageChange = (id: string, newUrl: string, newAlt: string) => {
-      const updatedElements = elements.map((element) =>
-        element.id === id
-          ? {
-              ...element,
-              url: newUrl,
-              alt: newAlt,
-            }
-          : element
-      );
-      setElements(updatedElements as ContentElement[]);
-    };
-  
+          console.log("Updating image:", id, newUrl, newAlt); // Debug log
+            const updatedElements = elements.map((element) =>
+              element.id === id
+                ? {
+                    ...element,
+                    url: newUrl,
+                    alt: newAlt,
+                  }
+                : element
+            );
+            console.log("Updated Elements:", updatedElements); // Debug log to ensure elements are updated correctly
+            setElements(updatedElements as ContentElement[]);
+          };
+          
+
     const handleListChange = (id: string, newItems: string[]) => {
       const updatedElements = elements.map((element) =>
         element.id === id
@@ -50,35 +55,42 @@ export function renderContent(
       setElements(updatedElements as ContentElement[]);
     };
   
-    const toggleEditing = (id: string, isEditing: boolean, content?: string) => {
-      if (editingElement && editingElement !== id) {
-        handleSave();  // Save any previous editing element before switching
-      }
-      setEditingElement(isEditing ? id : null);
-      if (content !== undefined) {
-        setModalContent(content);
-      }
-    };
-  
+    const toggleEditing = (id: string, isEditing: boolean) => {
+        setEditingElement(isEditing ? id : null);
+      };
+
     const handleContentChange = (id: string, newContent: string) => {
-      const updatedElements = elements.map((element) =>
-        element.id === id
-          ? {
-              ...element,
-              content: newContent,
-            }
-          : element
-      );
-      setElements(updatedElements as ContentElement[]);
-    };
+        const updatedElements = elements.map((element) =>
+          element.id === id
+            ? {
+                ...element,
+                content: newContent,
+              }
+            : element
+        );
+        setElements(updatedElements as ContentElement[]);
+      };
+    
+      const handleSave = () => {
+        if (editingElement !== null) {
+          const element = elements.find(el => el.id === editingElement);
+          
+          if (element && element.type !== 'image' && element.type !== 'list') {
+            handleContentChange(editingElement, modalContent);
+          }
+      
+          setEditingElement(null);
+          setModalContent("");
+        }
+      };
+      
   
-    const handleSave = () => {
-      if (editingElement !== null) {
-        handleContentChange(editingElement, modalContent);
-        setEditingElement(null);
-        setModalContent("");
-      }
-    };
+    // const handleSave = () => {
+    //   if (editingElement !== null) {
+    //     setEditingElement(null);
+    //     setModalContent("");
+    //   }
+    // };
   
     const handleCancel = () => {
       setEditingElement(null);
@@ -86,9 +98,7 @@ export function renderContent(
     };
   
     return elements.map((element, index) => {
-      const isEditing = editingElement === element.id;
-      element.isEditing = isEditing;
-      element.setEditing = toggleEditing;
+        const isEditing = editingElement === element.id;
   
       return (
         <div
@@ -96,59 +106,74 @@ export function renderContent(
           className="relative p-4 border rounded my-2 md:my-4 lg:my-6"
         >
           {isEditing ? (
-            <div className="flex flex-col space-y-2">
-              <textarea
-                value={modalContent}
-                onInput={(e) =>
-                  setModalContent((e.target as HTMLTextAreaElement).value)
+            element.type === "image" ? (
+                <EditableImage
+                key={index}
+                url={(element as ImageElement).url}
+                alt={(element as ImageElement).alt}
+                onChange={(newUrl: string, newAlt: string) =>
+                  handleImageChange(element.id, newUrl, newAlt)
                 }
-                className="w-full h-full p-2 border rounded"
+                isEditing={isEditing} // Controls whether the component is in editing mode
+                onSave={handleSave} // Save action
+                onCancel={handleCancel} // Cancel action
               />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleSave}
-                  className="p-1 text-xs bg-green-200 border rounded"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="p-1 text-xs bg-red-200 border rounded"
-                >
-                  Cancel
-                </button>
+            ) : element.type === "list" ? (
+              <EditableList
+                items={(element as ListElement).items}
+                onChange={(newItems: string[]) => handleListChange(element.id, newItems)}
+                onRemove={() => handleListRemove(element.id)}
+                onSave={handleSave}
+                onCancel={handleCancel}
+              />
+            ) : (
+              <div className="flex flex-col space-y-2">
+                <textarea
+                  value={modalContent}
+                  onInput={(e) =>
+                    setModalContent((e.target as HTMLTextAreaElement).value)
+                  }
+                  className="w-full h-full p-2 border rounded"
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={handleSave}
+                    className="p-1 text-xs bg-green-200 border rounded"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="p-1 text-xs bg-red-200 border rounded"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            renderElement(
-              element,
-              index,
-              handleContentChange,
-              handleImageChange,
-              handleListChange,
-              handleListRemove
             )
-          )}
-          {element.type !== "image" && element.type !== "list" && !isEditing && (
-            <button
-              onClick={() =>
-                toggleEditing(
-                  element.id,
-                  !isEditing,
-                  Array.isArray(element.content)
-                    ? element.content.join(", ")
-                    : element.content
-                )
-              }
-              className="absolute top-0 right-0 p-1 text-xs bg-gray-200 border rounded"
-            >
-              Edit
-            </button>
+          ) : (
+            <>
+              {renderElement(
+                element,
+                index,
+                handleContentChange,
+                handleImageChange,
+                handleListChange,
+                handleListRemove
+              )}
+              <button
+                onClick={() => toggleEditing(element.id, true)}
+                className="absolute top-0 right-0 p-1 text-xs bg-gray-200 border rounded"
+              >
+                Edit
+              </button>
+            </>
           )}
         </div>
       );
     });
   }
+  
 
 export function renderElement(
   element: ContentElement,
@@ -173,13 +198,16 @@ export function renderElement(
         );
         case "image":
             return (
-              <EditableImage
+                <EditableImage
                 key={index}
-                url={(element as ImageElement).url}
-                alt={(element as ImageElement).alt}
+                url={(element as ImageElement).url}  // Directly using url
+                alt={(element as ImageElement).alt}  // Directly using alt
                 onChange={(newUrl: string, newAlt: string) =>
-                  handleImageChange(element.id, newUrl, newAlt)
-                }
+                    handleImageChange(element.id, newUrl, newAlt)
+                  }
+                isEditing={false}  // Initially not in editing mode
+                onSave={() => {}}   // Placeholder
+                onCancel={() => {}} // Placeholder
               />
             );
             case "list":
