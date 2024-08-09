@@ -23,20 +23,22 @@ export const updateContent = (
 };
 
 // Dynamic property updater
-function updateElementProperties(element: ContentElement, newContent: string): ContentElement {
+export function updateElementProperties(element: ContentElement, newContent: string | string[]): ContentElement {
   const propertiesToUpdate = Object.keys(element).filter(key => key !== 'id' && key !== 'type');
 
-  // Split newContent if multiple properties need updating
-  const contentParts = newContent.split('|');
+  const contentParts = Array.isArray(newContent) ? newContent : newContent.split('|');
 
-  const updatedElement: any = { ...element };
-  
+  const updatedElement = { ...element } as any;
+
   propertiesToUpdate.forEach((property, index) => {
-    updatedElement[property] = contentParts[index] || updatedElement[property];
+    if (index < contentParts.length && contentParts[index] !== undefined && contentParts[index] !== '') {
+      updatedElement[property] = contentParts[index];
+    }
   });
 
   return updatedElement as ContentElement;
 }
+
 
 // Type guard to check if an element uses an array of strings for its content
 function isCustomContentElement(element: ContentElement): element is CustomContentElement {

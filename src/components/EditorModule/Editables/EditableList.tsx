@@ -3,12 +3,11 @@ import { useState } from 'preact/hooks';
 interface EditableListProps {
   items: string[];
   onChange: (newItems: string[]) => void;
-  onRemove: () => void;
   onSave: () => void;
   onCancel: () => void;
 }
 
-export const EditableList = ({ items, onChange, onRemove, onSave, onCancel }: EditableListProps) => {
+export const EditableList = ({ items, onChange, onSave, onCancel }: EditableListProps) => {
   const [editingItems, setEditingItems] = useState(items);
 
   const handleItemChange = (index: number, value: string) => {
@@ -73,14 +72,6 @@ export const EditableList = ({ items, onChange, onRemove, onSave, onCancel }: Ed
           className="p-1 text-xs bg-red-200 border rounded"
         >
           Cancel
-        </button>
-      </div>
-      <div className="flex justify-end">
-        <button
-          onClick={onRemove}
-          className="p-1 text-xs bg-red-400 border rounded"
-        >
-          Remove Entire List
         </button>
       </div>
     </div>
