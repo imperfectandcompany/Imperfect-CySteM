@@ -253,9 +253,9 @@ const DimensionRuler = ({ viewport }: DimensionRulerProps) => {
 };
 
 const initialRawContent = `
-header|Welcome to our site|header-class
-paragraph|This is a sample paragraph|paragraph-class
-image|https://placehold.co/600x400|Image description
+header| Welcome to our sit lole |header-class
+paragraph| This is a sample paragraph|paragraph-class
+image | https://placehold.co/600x40 | Image description
 `;
 
 const EditorModule = () => {
@@ -515,19 +515,23 @@ const EditorModule = () => {
   };
 
   
-  const generateSyntax = () => {
+  function generateElementSyntax(element: ContentElement): string {
+    const { type, id, ...properties } = element; // Extract type and id, leave other properties
+    const propsArray = Object.values(properties);
+
+    // Join type and properties into a syntax string
+    return [type, ...propsArray.map(prop => Array.isArray(prop) ? prop.join('; ') : prop)].join(' | ');
+}
+
+function generateSyntax(elements: ContentElement[]): string {
     if (elements.length === 0) {
-      return null;
+        return '';
     }
+
+    return elements.map(generateElementSyntax).join('\n');
+}
   
-    return elements.map(element => {
-      const content = 'content' in element && element.content ? element.content.toString().replace(/,/g, '; ') : '';
-      const style = 'style' in element ? element.style : '';
-      return `${element.type} | ${content} | ${style}`;
-    }).join('\n');
-  };
-  
-  const syntax = generateSyntax();
+  const syntax = generateSyntax(elements);
   
   const copySyntax = () => {
       if (syntax !== null) {

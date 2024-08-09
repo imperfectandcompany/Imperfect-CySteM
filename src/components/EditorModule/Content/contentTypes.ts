@@ -16,7 +16,7 @@ export interface ParagraphElement extends BaseContentElement {
     type: 'paragraph';
 }
 
-export interface ImageElement extends BaseContentElement {
+export interface ImageElement extends Omit<BaseContentElement, 'content'> {
     type: 'image';
     url: string;
     alt: string;
