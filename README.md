@@ -2,11 +2,12 @@
   <img src="https://cdn.imperfectgamers.org/inc/assets/img/icon/isometric_ig_circle.png" width="100" />
 </p>
 <p align="center">
-    <h1 align="center">IMPERFECT GAMERS SITE SUPPORT</h1>
+    <h1 align="center">IMPERFECT CySteM</h1>
 </p>
 
 <p align="center">
-	    <em>Perfect Support for Imperfect Gamers.</em>
+	    <em>Perfect Support for Imperfect.</em>
+	Validated through Imperfect Gamers utility.
     <em>https://support.imperfectgamers.org/</em>
 </p>
 
@@ -15,6 +16,13 @@
 <p>
 
 
+Latest screenshots (August 9th):
+<img width="1128" alt="image" src="https://github.com/user-attachments/assets/49d67b00-450e-4bbb-ab85-a8fce3ddf7ea">
+<img width="993" alt="image" src="https://github.com/user-attachments/assets/5eb99c73-5c26-480f-812f-f41f55c60996">
+<img width="993" alt="image" src="https://github.com/user-attachments/assets/997e1cc0-fb31-44fc-9ef6-69efdde5a886">
+<img width="924" alt="image" src="https://github.com/user-attachments/assets/e6411378-47a7-4648-a3be-9794c25ed746">
+<img width="924" alt="image" src="https://github.com/user-attachments/assets/70dd4a8a-19ea-4d32-bd0d-5350e32a1f4c">
+These screenshots do not include the refinements that were made to the other aspects. just significant intro to new feature.
 
 # New Feature Update: Imperfect Editor Module
 
