@@ -6,178 +6,307 @@ import { renderTable } from "./renderTable";
 import { EditableImage } from "../Editables/EditableImage";
 import { EditableComponent } from "../Editables/EditableComponent";
 import { EditableList } from "../Editables/EditableList";
-import { CodeBlockElement, ContentElement, HeaderElement, ImageElement, ListElement, TableElement } from "../Content/contentTypes";
 import { updateElementProperties } from "../Content/contentUtils";
 import { renderCodeBlock } from "./renderCodeblock";
+import {
+  ContentElement,
+  ListElement,
+  CodeBlockElement,
+  TableElement,
+} from "../Content/contentTypes";
 
-  function hasContentProperty(element: ContentElement): element is ContentElement & { content: string | string[] } {
-  return 'content' in element;
+function hasContentProperty(
+  element: ContentElement
+): element is ContentElement & { content: string | string[] } {
+  return "content" in element;
 }
 
 export function renderContent(
-    elements: ContentElement[],
-    setElements: (newElements: ContentElement[]) => void
-  ): (JSX.Element | null)[] {
-    const [editingElement, setEditingElement] = useState<string | null>(null);
-    const [modalContent, setModalContent] = useState<string>("");
+  elements: ContentElement[],
+  setElements: (newElements: ContentElement[]) => void,
+  isPreviewMode: boolean
+): JSX.Element[] {
+  const [editingElement, setEditingElement] = useState<string | null>(null);
+  const [draggedElementIndex, setDraggedElementIndex] = useState<number | null>(null);
+  let lastHoveredElement: HTMLElement | null = null;
   
-const handleContentChange = (id: string, newContent: string | string[]) => {
-  const updatedElements = elements.map(element => {
-    if (element.id === id) {
-      // Special case for headers to ensure the content is correctly updated
-      if (element.type === 'header') {
-        return { ...element, content: newContent as string };
+  const handleDragStart = (index: number, event: DragEvent) => {
+    setDraggedElementIndex(index);
+    // Use the closest parent element that contains the entire element including buttons
+    const elementToDrag = (event.currentTarget as HTMLElement)?.closest(
+      ".draggable-element"
+    ) as HTMLElement;
+    event.dataTransfer?.setDragImage(elementToDrag, 0, 0);
+  };
+  
+  const handleDragOver = (event: DragEvent) => {
+    event.preventDefault();
+    const target = event.currentTarget as HTMLElement | null;
+    if (target) {
+      // Remove the class from the last hovered element
+      if (lastHoveredElement && lastHoveredElement !== target) {
+        lastHoveredElement.classList.remove('dragging-over');
       }
-      // General case for other elements
-      return updateElementProperties(element, newContent);
+      // Add the class to the current hovered element
+      target.classList.add('dragging-over');
+      // Update the last hovered element
+      lastHoveredElement = target;
     }
-    return element;
-  });
-  setElements(updatedElements as ContentElement[]);
-};
+  };
   
-    const handleSave = () => {
-        if (editingElement !== null) {
-          const element = elements.find(el => el.id === editingElement);
-      
-          if (element && hasContentProperty(element)) {
-            handleContentChange(editingElement, modalContent);
-          }
-      
-          setEditingElement(null);
-          setModalContent("");
+  const handleDragLeave = (event: DragEvent) => {
+    const target = event.currentTarget as HTMLElement | null;
+    if (target && lastHoveredElement === target) {
+      target.classList.remove('dragging-over');
+      lastHoveredElement = null; // Clear the reference when leaving the element
+    }
+  };
+  
+  const handleDrop = (index: number, event: DragEvent) => {
+    if (draggedElementIndex !== null && draggedElementIndex !== index) {
+      const reorderedElements = [...elements];
+      const [draggedElement] = reorderedElements.splice(draggedElementIndex, 1);
+      reorderedElements.splice(index, 0, draggedElement);
+      setElements(reorderedElements);
+    }
+    setDraggedElementIndex(null); // Always reset the dragged element index
+    (event.currentTarget as HTMLElement).classList.remove('dragging-over'); // Remove feedback class
+    lastHoveredElement = null; // Reset the last hovered element
+  };
+  
+  const handleDragEnd = () => {
+    setDraggedElementIndex(null); // Reset the dragged element index on drag end
+    if (lastHoveredElement) {
+      lastHoveredElement.classList.remove('dragging-over'); // Clean up the feedback class
+    }
+    lastHoveredElement = null; // Reset the last hovered element
+  };
+  
+  const handleRemove = (id: string) => {
+    const updatedElements = elements.filter((element) => element.id !== id);
+    setElements(updatedElements);
+  };
+
+  const [modalContent, setModalContent] = useState<string>("");
+
+  const handleContentChange = (id: string, newContent: string | string[]) => {
+    const updatedElements = elements.map((element) => {
+      if (element.id === id) {
+        // Special case for headers to ensure the content is correctly updated
+        if (element.type === "header") {
+          return { ...element, content: newContent as string };
         }
-      };
-      
-  
-    const handleCancel = () => {
+        // General case for other elements
+        return updateElementProperties(element, newContent);
+      }
+      return element;
+    });
+    setElements(updatedElements as ContentElement[]);
+  };
+
+  const handleSave = () => {
+    if (editingElement !== null) {
+      const element = elements.find((el) => el.id === editingElement);
+
+      if (element && hasContentProperty(element)) {
+        handleContentChange(editingElement, modalContent);
+      }
+
       setEditingElement(null);
       setModalContent("");
-    };
-  
-    return elements.map((element, index) => {
-      const isEditing = editingElement === element.id;
-  
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingElement(null);
+    setModalContent("");
+  };
+
+  return elements.map((element, index) => {
+    const isEditing = editingElement === element.id;
+    const isEditingAny = editingElement !== null; // Check if any element is being edited
+
+    return (
+<div
+  key={element.id}
+  className={`relative ${
+    isPreviewMode ? "" : "p-4 border rounded my-2 md:my-4 lg:my-6"
+  } draggable-element`}
+  onDragOver={handleDragOver}
+  onDragLeave={handleDragLeave}  // Add this line to listen for the drag leave event
+  onDrop={(event) => !isEditing && handleDrop(index, event)}
+  onDragEnd={handleDragEnd} // Ensure opacity resets after dragging
+  style={
+    isPreviewMode
+      ? {}
+      : { opacity: draggedElementIndex === index ? 0.5 : 1 }
+  }
+>
+        {!isPreviewMode && editingElement === element.id ? (
+          renderEditableElement(
+            element,
+            modalContent,
+            setModalContent,
+            () => {
+              setEditingElement(null);
+              handleSave();
+            },
+            () => {
+              setEditingElement(null);
+              handleCancel();
+            },
+            handleContentChange
+          )
+        ) : (
+          <>
+            {/* Drag Handle */}
+
+            {!isPreviewMode && (
+              <div className="relative top-0 left-0 right-0 flex items-center justify-between">
+                {/* Drag button on the left */}
+                {!isPreviewMode && !isEditing && (
+                  <div className="flex-0 text-center">
+                    <span
+                      className={`drag-handle flex items-center bg-stone-50 select-none ${
+                        isEditingAny ? "!cursor-not-allowed" : ""
+                      }`}
+                      draggable={!isPreviewMode && !isEditingAny}
+                      onDragStart={(e) => handleDragStart(index, e)}
+                    >
+                      ⋮⋮
+                    </span>
+                  </div>
+                )}
+
+                {/* Remove and Edit buttons on the right */}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleRemove(element.id)}
+                    className="p-1 text-xs bg-red-200 border rounded"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingElement(element.id);
+                      if (hasContentProperty(element)) {
+                        setModalContent(
+                          typeof element.content === "string"
+                            ? element.content
+                            : ""
+                        );
+                      }
+                    }}
+                    className="p-1 text-xs bg-gray-200 border rounded"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            )}
+
+
+{renderElement(element, index, handleContentChange)}
+
+          </>
+        )}
+      </div>
+    );
+  });
+}
+
+function renderEditableElement(
+  element: ContentElement,
+  modalContent: string,
+  setModalContent: (content: string) => void,
+  handleSave: () => void,
+  handleCancel: () => void,
+  handleContentChange: (id: string, newContent: string | string[]) => void
+): JSX.Element | null {
+  switch (element.type) {
+    case "image":
       return (
-        <div key={index} className="relative p-4 border rounded my-2 md:my-4 lg:my-6">
-          {isEditing ? (
-            renderEditableElement(
-              element,
-              modalContent,
-              setModalContent,
-              handleSave,
-              handleCancel,
-              handleContentChange
-            )
-          ) : (
-            <>
-              {renderElement(element, index, handleContentChange)}
-              <button
-                onClick={() => {
-                  setEditingElement(element.id);
-                  if (hasContentProperty(element)) {
-                    setModalContent(typeof element.content === 'string' ? element.content : '');
-                  } else {
-                    setModalContent('');
-                  }
-                }}
-                className="absolute top-0 right-0 p-1 text-xs bg-gray-200 border rounded"
-              >
-                Edit
-              </button>
-            </>
-          )}
+        <EditableImage
+          url={(element as any).url}
+          alt={(element as any).alt}
+          onChange={(newUrl, newAlt) =>
+            handleContentChange(element.id, `${newUrl}|${newAlt}`)
+          }
+          isEditing={true}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      );
+    case "list":
+      return (
+        <EditableList
+          items={(element as ListElement).items}
+          onChange={(newItems) => handleContentChange(element.id, newItems)}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          isEditing={true}
+        />
+      );
+    default:
+      return (
+        <div className="flex flex-col space-y-2">
+          <textarea
+            value={modalContent}
+            onInput={(e) =>
+              setModalContent((e.target as HTMLTextAreaElement).value)
+            }
+            className="w-full h-full p-2 border rounded"
+          />
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={handleSave}
+              className="p-1 text-xs bg-green-200 border rounded"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleCancel}
+              className="p-1 text-xs bg-red-200 border rounded"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       );
-    });
   }
+}
 
-  function renderEditableElement(
-    element: ContentElement,
-    modalContent: string,
-    setModalContent: (content: string) => void,
-    handleSave: () => void,
-    handleCancel: () => void,
-    handleContentChange: (id: string, newContent: string | string[]) => void
-  ): JSX.Element | null {
-    switch (element.type) {
-      case "image":
-        return (
-          <EditableImage
-            url={(element as any).url}
-            alt={(element as any).alt}
-            onChange={(newUrl, newAlt) => handleContentChange(element.id, `${newUrl}|${newAlt}`)}
-            isEditing={true}
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
-        );
-      case "list":
-        return (
-          <EditableList
-            items={(element as any).items}
-            onChange={(newItems) => handleContentChange(element.id, newItems)}
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
-        );
-      default:
-        return (
-          <div className="flex flex-col space-y-2">
-            <textarea
-              value={modalContent}
-              onInput={(e) => setModalContent((e.target as HTMLTextAreaElement).value)}
-              className="w-full h-full p-2 border rounded"
-            />
-            <div className="flex justify-end space-x-2">
-              <button onClick={handleSave} className="p-1 text-xs bg-green-200 border rounded">
-                Save
-              </button>
-              <button onClick={handleCancel} className="p-1 text-xs bg-red-200 border rounded">
-                Cancel
-              </button>
-            </div>
-          </div>
-        );
-    }
+function renderElement(
+  element: ContentElement,
+  index: number,
+  handleContentChange: (id: string, newContent: string | string[]) => void
+): JSX.Element | null {
+  switch (element.type) {
+    case "header":
+      return renderHeader(element, index);
+    case "paragraph":
+      return (
+        <EditableComponent
+          tag="p"
+          children={element.content as string}
+          onChange={(value: string | string[]) =>
+            handleContentChange(element.id, value)
+          }
+          className="text-base md:text-lg lg:text-xl"
+        />
+      );
+    case "image":
+      return <img src={(element as any).url} alt={(element as any).alt} />;
+    case "list":
+      return renderList(element as ListElement, index, handleContentChange);
+    case "code":
+      return renderCodeBlock(element as unknown as CodeBlockElement, index);
+    case "table":
+      return renderTable(element as TableElement, handleContentChange); // Updated here
+    default:
+      return null;
   }
-  
-  function renderElement(
-    element: ContentElement,
-    index: number,
-    handleContentChange: (id: string, newContent: string | string[]) => void
-  ): JSX.Element | null {
-    switch (element.type) {
-      case "header":
-        return renderHeader(element, index);
-      case "paragraph":
-        return (
-          <EditableComponent
-            tag="p"
-            children={element.content as string}
-            onChange={(value: string | string[]) => handleContentChange(element.id, value)}
-            className="text-base md:text-lg lg:text-xl"
-          />
-        );
-      case "image":
-        return (
-          <img src={(element as any).url} alt={(element as any).alt} />
-        );
-      case "list":
-        return renderList(element as any, index, handleContentChange);
-                case "code":
-                    return renderCodeBlock(element as unknown as CodeBlockElement, index);        
-      case "table":
-        return renderTable(element as TableElement, handleContentChange); // Updated here
-      default:
-        return null;
-    }
-  }
-  
-  
-  
-  
-
+}
 // export function renderElement(
 //   element: ContentElement,
 //   index: number,
@@ -228,7 +357,7 @@ const handleContentChange = (id: string, newContent: string | string[]) => {
 //                         <summary>Accordion Title</summary>
 //                         <p>{element.content}</p>
 //                       </details>
-//                     );                
+//                     );
 //     // case "codeBlock":
 //     //   return renderCodeBlock(element as CodeBlockElement, index);
 //     // case "custom":

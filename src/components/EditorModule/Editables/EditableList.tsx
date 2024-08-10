@@ -1,14 +1,19 @@
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 
 interface EditableListProps {
   items: string[];
   onChange: (newItems: string[]) => void;
   onSave: () => void;
   onCancel: () => void;
+  isEditing: boolean;
 }
 
-export const EditableList = ({ items, onChange, onSave, onCancel }: EditableListProps) => {
-  const [editingItems, setEditingItems] = useState(items);
+export const EditableList = ({ items, onChange, onSave, onCancel, isEditing }: EditableListProps) => {
+  const [editingItems, setEditingItems] = useState<string[]>(items);
+
+  useEffect(() => {
+    setEditingItems(items);
+  }, [items]);
 
   const handleItemChange = (index: number, value: string) => {
     const updatedItems = [...editingItems];
@@ -26,7 +31,9 @@ export const EditableList = ({ items, onChange, onSave, onCancel }: EditableList
   };
 
   const handleSave = () => {
-    onChange(editingItems);
+    // Join items with `;` delimiter to maintain consistency
+    const formattedItems = editingItems.map(item => item.trim()).filter(item => item !== "");
+    onChange(formattedItems);
     onSave();
   };
 
@@ -35,45 +42,57 @@ export const EditableList = ({ items, onChange, onSave, onCancel }: EditableList
     onCancel();
   };
 
-  return (
-    <div className="flex flex-col space-y-2">
-      {editingItems.map((item, index) => (
-        <div key={index} className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={item}
-            onChange={(e) => handleItemChange(index, (e.target as HTMLInputElement).value)}
-            className="p-2 text-base w-full"
-            placeholder="Enter list item"
-          />
+  if (isEditing) {
+    return (
+      <div className="flex flex-col space-y-2">
+        {editingItems.map((item, index) => (
+          <div key={index} className="flex items-center space-x-2">
+            <input
+              type="text"
+              value={item}
+              onChange={(e) => handleItemChange(index, (e.target as HTMLInputElement).value)}
+              className="p-2 text-base w-full"
+              placeholder="Enter list item"
+            />
+            <button
+              onClick={() => handleRemoveItem(index)}
+              className="p-1 text-xs bg-red-200 border rounded"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={handleAddItem}
+          className="p-1 text-xs bg-blue-200 border rounded"
+        >
+          Add Item
+        </button>
+        <div className="flex justify-end space-x-2">
           <button
-            onClick={() => handleRemoveItem(index)}
+            onClick={handleSave}
+            className="p-1 text-xs bg-green-200 border rounded"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleCancel}
             className="p-1 text-xs bg-red-200 border rounded"
           >
-            Remove
+            Cancel
           </button>
         </div>
-      ))}
-      <button
-        onClick={handleAddItem}
-        className="p-1 text-xs bg-blue-200 border rounded"
-      >
-        Add Item
-      </button>
-      <div className="flex justify-end space-x-2">
-        <button
-          onClick={handleSave}
-          className="p-1 text-xs bg-green-200 border rounded"
-        >
-          Save
-        </button>
-        <button
-          onClick={handleCancel}
-          className="p-1 text-xs bg-red-200 border rounded"
-        >
-          Cancel
-        </button>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <ul className="list-disc pl-5">
+      {items.map((item, index) => (
+        <li key={index} className="text-base">
+         {item}
+        </li>
+      ))}
+    </ul>
   );
 };

@@ -70,8 +70,8 @@
     ViewArticleChangelog: true, // Set this to true or false to enable/disable...
     ViewPotentialArticleChanges: true, // Set this to true or false to enable/disable...
     articleDetailedCharacterLimit: false, // Set this to true or false to enable/disable...
-    SupportSystem: false,
-    AdminViewRequests: false
+    SupportSystem: true,
+    AdminViewRequests: true
   };
     
   export function isFeatureEnabled(flag: keyof FeatureFlags): boolean {

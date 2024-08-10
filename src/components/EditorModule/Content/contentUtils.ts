@@ -24,20 +24,28 @@ export const updateContent = (
 
 // Dynamic property updater
 export function updateElementProperties(element: ContentElement, newContent: string | string[]): ContentElement {
-  const propertiesToUpdate = Object.keys(element).filter(key => key !== 'id' && key !== 'type');
-
-  const contentParts = Array.isArray(newContent) ? newContent : newContent.split('|');
-
   const updatedElement = { ...element } as any;
 
-  propertiesToUpdate.forEach((property, index) => {
-    if (index < contentParts.length && contentParts[index] !== undefined && contentParts[index] !== '') {
-      updatedElement[property] = contentParts[index];
-    }
-  });
+  if (Array.isArray(newContent)) {
+    // If newContent is an array, treat it as a list of items
+    updatedElement.items = newContent;
+  } else {
+    // If newContent is a string, split it by `|` and map it to properties
+    const contentParts = newContent.split('|');
+    const propertiesToUpdate = Object.keys(element).filter(key => key !== 'id' && key !== 'type');
+
+    propertiesToUpdate.forEach((property, index) => {
+      if (index < contentParts.length && contentParts[index] !== undefined && contentParts[index] !== '') {
+        updatedElement[property] = contentParts[index];
+      }
+    });
+  }
 
   return updatedElement as ContentElement;
 }
+
+
+
 
 
 // Type guard to check if an element uses an array of strings for its content

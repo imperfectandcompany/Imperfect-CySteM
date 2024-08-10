@@ -1627,3 +1627,40 @@ nav > button:hover > svg {
       .menu-bar .menu-item:hover .dropdown {
           display: flex;
       }
+
+
+       /* Drag handle styling */
+.drag-handle {
+  cursor: grab;
+  display: inline-block;
+  margin-right: 10px;
+  opacity: 0.7;
+  background-color: white; /* Ensure background is solid during drag */
+}
+
+.drag-handle:hover {
+  opacity: 1;
+}
+
+.dragging .drag-handle {
+  cursor: grabbing;
+  opacity: 1;
+}
+
+/* Visual feedback for dragging */
+.draggable-element:active .drag-handle {
+  transform: scale(1.02);
+}
+
+/* Ensure the entire element is displayed during drag */
+.draggable-element {
+  background-color: white; /* Add solid background */
+  box-shadow: none; /* Remove any drop shadow */
+  opacity: 1; /* Remove transparency */
+}
+
+
+.dragging-over {
+  border: 2px dashed #0078d42f;
+  background-color: #f0f8ff65;
+}
