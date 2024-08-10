@@ -4,12 +4,6 @@ import { parseContent } from "./Content/contentParser";
 import { ContentElement } from "./Content/contentTypes";
 import { renderContent } from "./Renderers";
 
-
-  
-  
-  
-
-
 interface MenuBarProps {
     isDimensionsEnabled: boolean;
     setDimensionsEnabled: (value: boolean) => void;
@@ -103,9 +97,13 @@ interface MenuBarProps {
 
 interface ToolbarProps {
   showModal: () => void;
+  setIsPreviewMode: (isPreview: boolean) => void;
+  isPreviewMode: boolean;
 }
 
-const Toolbar = ({ showModal }: ToolbarProps) => {
+
+const Toolbar = ({ showModal, setIsPreviewMode, isPreviewMode }: ToolbarProps) => {
+
   return (
     <div className="toolbar select-none flex flex-row-reverse justify-between p-2 bg-gray-200 rounded">
       <button title="Show Syntax" onClick={showModal} className="toolbar-button">
@@ -113,6 +111,11 @@ const Toolbar = ({ showModal }: ToolbarProps) => {
         <div className="tooltip">Show Syntax</div>
       </button>
       
+      <button title="Preview Article" onClick={() => setIsPreviewMode(!isPreviewMode)} className="toolbar-button">
+      <i className={isPreviewMode ? "fas fa-edit" : "fas fa-eye"}></i>
+      <div className="tooltip">{isPreviewMode ? "Edit Mode" : "Preview Article"}</div>
+</button>
+
       {/* Text alignment buttons */}
       {/* <div className="text-alignment flex">
         <button title="Align Left" onClick={() => onAlignChange('left')} className="toolbar-button">
@@ -252,11 +255,7 @@ const DimensionRuler = ({ viewport }: DimensionRulerProps) => {
   );
 };
 
-const initialRawContent = `
-header| Welcome to our sit lole |header-class
-paragraph| This is a sample paragraph|paragraph-class
-image | https://placehold.co/600x40 | Image description
-`;
+const initialRawContent = ``;
 
 const EditorModule = () => {
       const [elements, setElements] = useState<ContentElement[]>(parseContent(initialRawContent));
@@ -269,11 +268,15 @@ const EditorModule = () => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
+
+
+  const [elementIdCounter, setElementIdCounter] = useState(0);
+
   const insertElement = (type: string) => {
     const placeholder: Record<string, string> = {
         header: "header|Your header text|header-class",
       paragraph: "paragraph | Your paragraph text | text-base",
-      image: "image | https://placehold.co/600x400 | Alt text",
+      image: "image | https://placehold.co/300x200 | Alt text",
       list: "list | Item 1; Item 2; Item 3 | list-disc pl-5",
       accordion: "accordion | Click to expand | bg-blue-200",
       tab: "tab | Tab content here | bg-green-200",
@@ -344,9 +347,12 @@ const EditorModule = () => {
       spacing: "spacing | Content with spacing | m-4 p-2",
     };
 
-    const newElement = parseContent(placeholder[type])[0];
+    const newElement = {
+        ...parseContent(placeholder[type])[0],
+        id: `element-${elementIdCounter}`  // Assign a unique ID
+    };
     setElements((prevElements) => [...prevElements, newElement]);
-
+    setElementIdCounter(prev => prev + 1);  // Increment counter
     setSearchTerm("");
     setDropdownVisible(false); // Dismiss the dropdown
   };
@@ -516,10 +522,9 @@ const EditorModule = () => {
 
   
   function generateElementSyntax(element: ContentElement): string {
-    const { type, id, ...properties } = element; // Extract type and id, leave other properties
-    const propsArray = Object.values(properties);
+    const { type, ...properties } = element; // Extract type, leave other properties
+    const propsArray = Object.values(properties).filter(prop => prop !== element.id); // Exclude ID in syntax
 
-    // Join type and properties into a syntax string
     return [type, ...propsArray.map(prop => Array.isArray(prop) ? prop.join('; ') : prop)].join(' | ');
 }
 
@@ -542,6 +547,7 @@ function generateSyntax(elements: ContentElement[]): string {
       }
   };
 
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
 
   return (
@@ -565,7 +571,7 @@ function generateSyntax(elements: ContentElement[]): string {
             isLayoutZoomEnabled={isLayoutZoomEnabled}
           />
         )}
-        <Toolbar showModal={showModal} />
+        <Toolbar showModal={showModal} setIsPreviewMode={setIsPreviewMode} isPreviewMode={isPreviewMode} />
         {isRulerEnabled && <DimensionRuler viewport={viewport} />}
         <div className="preview-container">
           <div
@@ -581,7 +587,7 @@ function generateSyntax(elements: ContentElement[]): string {
                   No elements added. Use the button below to add elements.
                 </div>
               ) : (
-                renderContent(elements, setElements)
+                renderContent(elements, setElements, isPreviewMode)
               )}
             </div>
             <div className="add-element-block select-none" onClick={handleDropdownToggle}>
