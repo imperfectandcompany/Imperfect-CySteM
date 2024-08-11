@@ -3,6 +3,7 @@ import { Fragment } from "preact/jsx-runtime";
 import { parseContent } from "./Content/contentParser";
 import { ContentElement } from "./Content/contentTypes";
 import { renderContent } from "./Renderers";
+import { FunctionalComponent } from "preact";
 
 interface MenuBarProps {
     isDimensionsEnabled: boolean;
@@ -106,12 +107,12 @@ const Toolbar = ({ showModal, setIsPreviewMode, isPreviewMode }: ToolbarProps) =
 
   return (
     <div className="toolbar select-none flex flex-row-reverse justify-between p-2 bg-gray-200 rounded">
-      <button title="Show Syntax" onClick={showModal} className="toolbar-button">
+      <button title="Show Syntax" onClick={(e) => { e.preventDefault(); showModal(); }} className="toolbar-button">
         <i className="fas fa-code"></i>
         <div className="tooltip">Show Syntax</div>
       </button>
       
-      <button title="Preview Article" onClick={() => setIsPreviewMode(!isPreviewMode)} className="toolbar-button">
+      <button title="Preview Article" onClick={(e) => { e.preventDefault(); setIsPreviewMode(!isPreviewMode); }} className="toolbar-button">
       <i className={isPreviewMode ? "fas fa-edit" : "fas fa-eye"}></i>
       <div className="tooltip">{isPreviewMode ? "Edit Mode" : "Preview Article"}</div>
 </button>
@@ -255,10 +256,14 @@ const DimensionRuler = ({ viewport }: DimensionRulerProps) => {
   );
 };
 
-const initialRawContent = ``;
 
-const EditorModule = () => {
-      const [elements, setElements] = useState<ContentElement[]>(parseContent(initialRawContent));
+// Interface for the props for EditorModule
+interface EditorModuleProps {
+  elements: ContentElement[];
+  setElements: React.Dispatch<React.SetStateAction<ContentElement[]>>;
+}
+
+const EditorModule: FunctionalComponent<EditorModuleProps> = ({ elements, setElements }) => {
   const [viewport, setViewport] = useState({ width: 375, height: 812 });
   const [view, setView] = useState("mobile");
   const [isDimensionsEnabled, setDimensionsEnabled] = useState(true);
@@ -274,10 +279,10 @@ const EditorModule = () => {
 
   const insertElement = (type: string) => {
     const placeholder: Record<string, string> = {
-        header: "header|Your header text|header-class",
+      header: "header | 1 | Your header text | header-class",
       paragraph: "paragraph | Your paragraph text | text-base",
       image: "image | https://placehold.co/300x200 | Alt text",
-      list: "list | Item 1; Item 2; Item 3 | list-disc pl-5",
+      list: "list | Item 1;Item 2;Item 3 | list-disc pl-5",
       accordion: "accordion | Click to expand | bg-blue-200",
       tab: "tab | Tab content here | bg-green-200",
       gallery: "gallery | Image URLs separated by semicolon | bg-purple-200",

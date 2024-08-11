@@ -2,14 +2,9 @@
 import { FunctionalComponent } from "preact";
 import { useState, useRef, useContext } from "preact/hooks";
 import { route } from "preact-router";
-import {
-  generateSlug,
-} from "../utils";
+import { generateSlug } from "../utils";
 import Breadcrumb from "./Breadcrumb";
-import {
-  checkArticleSlugExists,
-  createArticle,
-} from "../api";
+import { checkArticleSlugExists, createArticle } from "../api";
 import {
   Article,
   ArticleCreateResponse,
@@ -18,11 +13,11 @@ import {
 } from "../contexts/ContentContext";
 import EditorModule from "./EditorModule";
 import { parseContent } from "./EditorModule/Content/contentParser";
+import { ContentElement } from "./EditorModule/Content/contentTypes";
 
 export const AdminCreateArticle: FunctionalComponent = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [detailedDescription, setDetailedDescription] = useState("");
   const [imgSrc, setImgSrc] = useState("");
   const [category, setCategory] = useState("");
 
@@ -61,7 +56,8 @@ export const AdminCreateArticle: FunctionalComponent = () => {
     }, 500);
   };
 
-  const { setArticles, setCategoryArticlesCache, setCategories } = useContext(ContentContext);
+  const { setArticles, setCategoryArticlesCache, setCategories } =
+    useContext(ContentContext);
 
   const handleCreate = async (event: Event) => {
     event.preventDefault();
@@ -88,149 +84,171 @@ export const AdminCreateArticle: FunctionalComponent = () => {
     }
 
     if (category) {
-      try {
-        const result: ArticleCreateResponse = await createArticle({
-          title,
-          description,
-          detailedDescription,
-          categoryId: Number(category),
-          imgSrc,
-        });
-        if (result.articleID) {
-          // Optimistically update the articles in the context
-       const newArticle = {
-          ArticleID: result.articleID,
-          CategoryID: Number(category),
-          Title: title,
-          Description: description,
-          DetailedDescription: detailedDescription,
-          ImgSrc: imgSrc,
-          Archived: 0,
-          StaffOnly: 0,
-          Slug: generateSlug(title),
-          Version: result.versionID, // Assuming backend returns version ID
-          CreatedAt: new Date().toISOString(),
-          UpdatedAt: null,
-          DeletedAt: null,
-        };
+      function generateElementSyntax(element: ContentElement): string {
+        const { type, ...properties } = element; // Extract type, leave other properties
+        const propsArray = Object.values(properties).filter(
+          (prop) => prop !== element.id
+        ); // Exclude ID in syntax
 
+        return [
+          type,
+          ...propsArray.map((prop) =>
+            Array.isArray(prop) ? prop.join("; ") : prop
+          ),
+        ].join(" | ");
+      }
 
+      function generateSyntax(elements: ContentElement[]): string {
+        if (elements.length === 0) {
+          return "";
+        }
 
-        // Optimistically update the articles in the context
-        setArticles((prevArticles:Article[]) => [...prevArticles, newArticle]);
+        return elements.map(generateElementSyntax).join("\n");
+      }
 
-        // Update the category articles cache
-        setCategoryArticlesCache((prev: Record<string, Article[]>) => {
-          const updatedCache = { ...prev };
-          if (updatedCache[category]) {
-            updatedCache[category].push(newArticle);
+      const syntax = generateSyntax(elements);
+      if (syntax !== null) {
+        try {
+          const result: ArticleCreateResponse = await createArticle({
+            title,
+            description,
+            detailedDescription: syntax,
+            categoryId: Number(category),
+            imgSrc,
+          });
+          if (result.articleID) {
+            // Optimistically update the articles in the context
+            const newArticle = {
+              ArticleID: result.articleID,
+              CategoryID: Number(category),
+              Title: title,
+              Description: description,
+              DetailedDescription: syntax,
+              ImgSrc: imgSrc,
+              Archived: 0,
+              StaffOnly: 0,
+              Slug: generateSlug(title),
+              Version: result.versionID, // Assuming backend returns version ID
+              CreatedAt: new Date().toISOString(),
+              UpdatedAt: null,
+              DeletedAt: null,
+            };
+
+            // Optimistically update the articles in the context
+            setArticles((prevArticles: Article[]) => [
+              ...prevArticles,
+              newArticle,
+            ]);
+
+            // Update the category articles cache
+            setCategoryArticlesCache((prev: Record<string, Article[]>) => {
+              const updatedCache = { ...prev };
+              if (updatedCache[category]) {
+                updatedCache[category].push(newArticle);
+              } else {
+                updatedCache[category] = [newArticle];
+              }
+              return updatedCache;
+            });
+
+            // Update the category count in setCategories
+            setCategories((prevCategories: Category[]) =>
+              prevCategories.map((cat) =>
+                cat.CategoryID === Number(category)
+                  ? { ...cat, ArticleCount: cat.ArticleCount + 1 }
+                  : cat
+              )
+            );
+
+            // // Update the article count for the category
+            // setCategories((prevCategories: Category[]) =>
+            //   prevCategories.map((cat) => {
+            //     if (cat.CategoryID === Number(category)) {
+            //       return { ...cat, ArticleCount: 999 };
+            //     }
+            //     return cat;
+            //   })
+            // );
+
+            alert("Article created successfully!");
+            route(`/admin/edit/article/${result.articleID}`);
           } else {
-            updatedCache[category] = [newArticle];
+            alert("Failed to create article");
           }
-          return updatedCache;
-        });
-
-        // Update the category count in setCategories
-        setCategories((prevCategories: Category[]) => 
-          prevCategories.map((cat) => 
-            cat.CategoryID === Number(category)
-              ? { ...cat, ArticleCount: cat.ArticleCount + 1 }
-              : cat
-          )
-        );
-
-        
-
-
-
-
-   
-          // // Update the article count for the category
-          // setCategories((prevCategories: Category[]) =>
-          //   prevCategories.map((cat) => {
-          //     if (cat.CategoryID === Number(category)) {
-          //       return { ...cat, ArticleCount: 999 };
-          //     }
-          //     return cat;
-          //   })
-          // );
-
-          alert("Article created successfully!");
-          route(`/admin/edit/article/${result.articleID}`);
-        } else {
-          alert("Failed to create article");
+        } catch (error) {
+          if (error instanceof Error) {
+            alert(
+              error.message || "An error occurred while creating the article."
+            );
+          } else {
+            alert("An unknown error occurred while creating the article.");
+          }
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        if (error instanceof Error) {
-          alert(
-            error.message || "An error occurred while creating the article."
-          );
-        } else {
-          alert("An unknown error occurred while creating the article.");
-        }
-      } finally {
-        setLoading(false);
+      } else {
+        alert("No syntax to copy");
       }
     }
   };
 
-  const [currentView, setCurrentView] = useState("raw"); // Assuming you want to toggle between 'raw' and 'rendered' views
+  // const [currentView, setCurrentView] = useState("raw"); // Assuming you want to toggle between 'raw' and 'rendered' views
 
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  // const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  const toggleView = () => {
-    setCurrentView(currentView === "raw" ? "rendered" : "raw");
-  };
+  // const toggleView = () => {
+  //   setCurrentView(currentView === "raw" ? "rendered" : "raw");
+  // };
 
   // const handleDetailedDescriptionChange = (event: Event) => {
   //   const target = event.target as HTMLTextAreaElement;
   //   setDetailedDescription(target.value);
   // };
 
-  const handleDetailedDescriptionChange = (event: Event) => {
-    const target = event.target as HTMLTextAreaElement;
-    setDetailedDescription(target.value);
+  // const handleDetailedDescriptionChange = (event: Event) => {
+  //   const target = event.target as HTMLTextAreaElement;
+  //   setDetailedDescription(target.value);
 
-    // Adjust the number of rows based on the content
-    const numberOfLineBreaks = (target.value.match(/\n/g) || []).length;
-    // Minimum number of rows to show
-    const minRows = 1;
-    // Update the rows attribute to be at least the number of line breaks plus one
-    target.rows = minRows + numberOfLineBreaks;
-  };
+  //   // Adjust the number of rows based on the content
+  //   const numberOfLineBreaks = (target.value.match(/\n/g) || []).length;
+  //   // Minimum number of rows to show
+  //   const minRows = 1;
+  //   // Update the rows attribute to be at least the number of line breaks plus one
+  //   target.rows = minRows + numberOfLineBreaks;
+  // };
 
-  const renderDetailedDescription = () => {
-    const contentElements = detailedDescription
-      ? parseContent(detailedDescription)
-      : "";
+  // const renderDetailedDescription = () => {
+  //   // const contentElements = detailedDescription
+  //   //   ? parseContent(detailedDescription)
+  //   //   : "";
 
-    // const renderedContent = contentElements
-      // ? renderContent(contentElements)
-      // : null;
+  //   // const renderedContent = contentElements
+  //     // ? renderContent(contentElements)
+  //     // : null;
 
-    return (
-      <div className="resize-y w-full text-lg rounded-sm bg-white focus:outline-none">
-        
-<EditorModule/>
+  //   return (
+  //     <div className="resize-y w-full text-lg rounded-sm bg-white focus:outline-none">
 
-        {/* {currentView === "raw" ? (
-          <textarea
-            ref={textAreaRef}
-            className="border border-gray-300 hover:border-gray-400 resize-y w-full rounded-sm p-2 focus:outline-none"
-            placeholder="Enter detailed description..."
-            onInput={handleDetailedDescriptionChange}
-            value={detailedDescription}
-          ></textarea>
-        ) : (
-          <div className="detail-description border border-gray-300 p-2 rounded-sm">
-            {renderedContent || (
-              <p className="text-gray-500">Preview will be displayed here.</p>
-            )}
-          </div>
-        )} */}
-      </div>
-    );
-  };
+  //       {/* {currentView === "raw" ? (
+  //         <textarea
+  //           ref={textAreaRef}
+  //           className="border border-gray-300 hover:border-gray-400 resize-y w-full rounded-sm p-2 focus:outline-none"
+  //           placeholder="Enter detailed description..."
+  //           onInput={handleDetailedDescriptionChange}
+  //           value={detailedDescription}
+  //         ></textarea>
+  //       ) : (
+  //         <div className="detail-description border border-gray-300 p-2 rounded-sm">
+  //           {renderedContent || (
+  //             <p className="text-gray-500">Preview will be displayed here.</p>
+  //           )}
+  //         </div>
+  //       )} */}
+  //     </div>
+  //   );
+  // };
+
+  const [elements, setElements] = useState<ContentElement[]>(parseContent(``));
 
   return (
     <>
@@ -266,14 +284,17 @@ export const AdminCreateArticle: FunctionalComponent = () => {
 
           <div className="mt-4">
             <label className="block ">Article Contents:</label>
-            {renderDetailedDescription()}
-            <button
+            {/* {renderDetailedDescription()} */}
+            <div className="resize-y w-full text-lg rounded-sm bg-white focus:outline-none">
+              <EditorModule elements={elements} setElements={setElements} />
+            </div>
+            {/* <button
               type="button"
               onClick={toggleView}
-              className="mt-2 text-sm text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out"
+              className="mt-2 text-sm text-indigo-500 hover:text-indigo-800 transition duration-300 ease-in-out hidden"
             >
               {currentView === "raw" ? "Preview" : "Edit"}
-            </button>
+            </button> */}
           </div>
           <InputField
             label="Image Source"
@@ -310,7 +331,7 @@ export const AdminCreateArticle: FunctionalComponent = () => {
               category === "" || // Check if category is not selected
               !title.trim() || // Check if title is empty or only whitespace
               !description.trim() || // Check if description is empty or only whitespace
-              !detailedDescription.trim() || // Check if detailedDescription is empty or only whitespace
+              elements.length === 0 || // Check if elements array is empty
               !imgSrc.trim() // Check if imgSrc is empty or only whitespace
             }
           >

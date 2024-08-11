@@ -1,18 +1,20 @@
 import { FunctionalComponent } from "preact";
-import { useState, useEffect, useRef, useContext, StateUpdater } from "preact/hooks";
+import { useState, useEffect, useRef, useContext } from "preact/hooks";
 import Breadcrumb from "./Breadcrumb";
 import { ChangeEvent } from "preact/compat";
 import { TextDiffViewer } from "./TextDiffViewer";
 import { AdminArticleHistoryView } from "./AdminArticleHistoryView";
 import { isFeatureEnabled } from "../featureFlags";
 import {
-  Article,
   ArticleVersion,
   ArticleVersionsResponse,
   Category,
   ContentContext,
 } from "../contexts/ContentContext";
 import { parseContent } from "./EditorModule/Content/contentParser";
+import { renderContent } from "./EditorModule/Renderers";
+import { ContentElement } from "./EditorModule/Content/contentTypes";
+import EditorModule from "./EditorModule";
 
 interface Props {
   matches: {
@@ -36,10 +38,11 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
   const [history, setHistory] = useState<ArticleVersion[]>();
 
   const [articleTitle, setArticleTitle] = useState("");
-  const [articleText, setArticleText] = useState("");
+  const [articleElements, setArticleElements] = useState<ContentElement[]>(
+    parseContent(``)
+  );
   const [articleDescription, setArticleDescription] = useState("");
   const [articleImgSrc, setArticleImgSrc] = useState("");
-
   // Initialize selectedCategory with a numeric value or undefined
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(
     undefined
@@ -55,7 +58,9 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
           await fetchArticleVersions(articleId);
         setHistory(fetchedArticle.versions);
         setArticleTitle(fetchedArticle.versions[0].Title);
-        setArticleText(fetchedArticle.versions[0].DetailedDescription);
+        setArticleElements(
+          parseContent(fetchedArticle.versions[0].DetailedDescription)
+        );
         setArticleDescription(fetchedArticle.versions[0].Description);
         setArticleImgSrc(fetchedArticle.versions[0].ImgSrc);
         if (fetchedArticle && fetchedArticle.versions.length > 0) {
@@ -74,18 +79,53 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyUp = () => {
-    if (isFeatureEnabled("articleDetailedCharacterLimit")) {
-      if (textAreaRef.current) {
-        setCount(textAreaRef.current.value.length);
-      }
-    }
-  };
+  // const handleKeyUp = () => {
+  //   if (isFeatureEnabled("articleDetailedCharacterLimit")) {
+  //     if (textAreaRef.current) {
+  //       setCount(textAreaRef.current.value.length);
+  //     }
+  //   }
+  // };
 
-  const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const target = event.target as HTMLTextAreaElement;
-    setArticleText(target.value);
-  };
+  function generateElementSyntax(element: ContentElement): string {
+    const { type, id, ...properties } = element; // Exclude the ID from properties
+    const propsArray = [];
+
+    if (type === 'header') {
+        // For headers, specifically format to include level and content distinctly
+        propsArray.push(element.level); // Include level
+        propsArray.push(element.content); // Include content
+    } else {
+        // Handle other elements generically
+        Object.values(properties).forEach(prop => {
+            propsArray.push(Array.isArray(prop) ? prop.join("; ") : prop);
+        });
+    }
+
+    return [type, ...propsArray].join(" | ");
+}
+
+function generateSyntax(elements: ContentElement[]): string {
+    return elements.map(generateElementSyntax).join("\n");
+}
+
+
+  // function generateSyntax(elements: ContentElement[]): string {
+  //   if (elements.length === 0) {
+  //     return "";
+  //   }
+
+  //   return elements.map(generateElementSyntax).join("\n");
+  // }
+
+  const articleElementsSyntax = generateSyntax(articleElements);
+
+  console.log({articleElements});
+
+  // const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
+  //   const target = event.target as HTMLTextAreaElement;
+  //   setArticleText(target.value);
+  // };
 
   const handleDescriptionChange = (event: ChangeEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
@@ -102,9 +142,9 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     setArticleTitle(target.value);
   };
 
-  useEffect(() => {
-    adjustTextAreaHeight();
-  }, [articleText]); // Adjust text area height only when articleText changes
+  // useEffect(() => {
+  //   adjustTextAreaHeight();
+  // }, [articleText]); // Adjust text area height only when articleText changes
 
   const adjustTextAreaHeight = () => {
     if (textAreaRef.current) {
@@ -117,10 +157,10 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     "raw" | "rendered" | "potentialChanges"
   >("raw");
 
-  const toggleRendered = () => {
-    setCurrentView("rendered");
-    adjustTextAreaHeight(); // Ensure height adjusts on toggling
-  };
+  // const toggleRendered = () => {
+  //   setCurrentView("rendered");
+  //   adjustTextAreaHeight(); // Ensure height adjusts on toggling
+  // };
 
   const togglePotentialChanges = () => {
     setCurrentView("potentialChanges");
@@ -132,125 +172,138 @@ export const AdminEditArticle: FunctionalComponent<Props> = ({ matches }) => {
     adjustTextAreaHeight(); // Ensure height adjusts on toggling
   };
 
-  useEffect(() => {
-    if (textAreaRef.current) {
-      setTimeout(() => adjustTextAreaHeight(), 0); // Ensure DOM updates are processed
-    }
-  }, [articleText, currentView]);
+  // useEffect(() => {
+  //   if (textAreaRef.current) {
+  //     setTimeout(() => adjustTextAreaHeight(), 0); // Ensure DOM updates are processed
+  //   }
+  // }, [articleText, currentView]);
 
-  const contentElements = articleText ? parseContent(articleText) : null;
+  // const contentElements = articleText ? parseContent(articleText) : null;
   // const renderedContent = contentElements
   //   ? renderContent(contentElements)
   //   : null;
 
-    const saveEdit = async () => {
-      if (!history || !selectedCategory) return;
-    
-      setSaving(true);
-    
-      const updatedArticleData = {
-        categoryId: selectedCategory,
-        title: articleTitle,
-        description: articleDescription,
-        detailedDescription: articleText,
-        imgSrc: articleImgSrc,
-      };
-    
-      try {
-        const versionId = await updateArticleById(
-          history[0].ArticleID,
-          updatedArticleData
-        );
-    
-        // Fetch the latest version history and logs
-        const versionsHistory: ArticleVersionsResponse =
-          await fetchArticleVersions(history[0].ArticleID);
-        await fetchArticleActionLogs(articleId);
-    
-        // Assuming history[0].CategoryID is the original category ID and selectedCategory is the new one.
-        const oldCategoryId = history[0].CategoryID;
-        const newCategoryId = selectedCategory;
-    
-// Update categories' article counts
-setCategories((prevCategories: Category[]) =>
-  prevCategories.map((cat) => {
-    if (cat.CategoryID === oldCategoryId && oldCategoryId !== newCategoryId) {
-      // Decrement the article count for the old category only if the article was moved
-      return {
-        ...cat,
-        ArticleCount: Math.max(0, (cat.ArticleCount || 0) - 1),
-      };
-    } else if (cat.CategoryID === newCategoryId && oldCategoryId !== newCategoryId) {
-      // Increment the article count for the new category only if the article was moved
-      return {
-        ...cat,
-        ArticleCount: (cat.ArticleCount || 0) + 1,
-      };
-    }
-    return cat;
-  })
-);
+  const saveEdit = async () => {
+    if (!history || !selectedCategory) return;
 
-        // // Update categoryArticlesCache to reflect the article movement
-        // setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
-        //   const updatedCache = { ...prevCache };
-    
-        //   // Remove from the old category
-        //   if (updatedCache[oldCategoryId]) {
-        //     updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
-        //       (article) => article.ArticleID !== history[0].ArticleID
-        //     );
-        //   }
-    
-        //   // Add to the new category
-        //   if (updatedCache[newCategoryId]) {
-        //     updatedCache[newCategoryId] = [
-        //       ...updatedCache[newCategoryId],
-        //       {
-        //         ...history[0],
-        //         CategoryID: newCategoryId,
-        //         Version: versionId,
-        //         UpdatedAt: new Date().toISOString(),
-        //         DeletedAt: null,
-        //       },
-        //     ];
-        //   } else {
-        //     // If the new category does not exist in the cache, create it
-        //     updatedCache[newCategoryId] = [
-        //       {
-        //         ...history[0],
-        //         CategoryID: newCategoryId,
-        //         Version: versionId,
-        //         UpdatedAt: new Date().toISOString(),
-        //         DeletedAt: null,
-        //       },
-        //     ];
-        //   }
-    
-        //   return updatedCache;
-        // });
-    
-        // Update local state with the latest data
-        setHistory(versionsHistory.versions);
-        setArticleText(versionsHistory.versions[0].DetailedDescription);
-        setArticleTitle(versionsHistory.versions[0].Title);
-        setArticleDescription(versionsHistory.versions[0].Description);
-        setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
-        setSelectedCategory(Number(versionsHistory.versions[0].CategoryID));
-      } catch (error) {
-        console.error("Failed to update article:", error);
-      } finally {
-        setSaving(false);
-      }
+    setSaving(true);
+    // TODO CONVERT TO BASIC SYNTAX.
+    const updatedArticleData = {
+      categoryId: selectedCategory,
+      title: articleTitle,
+      description: articleDescription,
+      detailedDescription: articleElementsSyntax,
+      imgSrc: articleImgSrc,
     };
+
+    try {
+      const versionId = await updateArticleById(
+        history[0].ArticleID,
+        updatedArticleData
+      );
+
+      // Fetch the latest version history and logs
+      const versionsHistory: ArticleVersionsResponse =
+        await fetchArticleVersions(history[0].ArticleID);
+      await fetchArticleActionLogs(articleId);
+
+      // Assuming history[0].CategoryID is the original category ID and selectedCategory is the new one.
+      const oldCategoryId = history[0].CategoryID;
+      const newCategoryId = selectedCategory;
+
+      // Update categories' article counts
+      setCategories((prevCategories: Category[]) =>
+        prevCategories.map((cat) => {
+          if (
+            cat.CategoryID === oldCategoryId &&
+            oldCategoryId !== newCategoryId
+          ) {
+            // Decrement the article count for the old category only if the article was moved
+            return {
+              ...cat,
+              ArticleCount: Math.max(0, (cat.ArticleCount || 0) - 1),
+            };
+          } else if (
+            cat.CategoryID === newCategoryId &&
+            oldCategoryId !== newCategoryId
+          ) {
+            // Increment the article count for the new category only if the article was moved
+            return {
+              ...cat,
+              ArticleCount: (cat.ArticleCount || 0) + 1,
+            };
+          }
+          return cat;
+        })
+      );
+
+      // // Update categoryArticlesCache to reflect the article movement
+      // setCategoryArticlesCache((prevCache: { [categoryId: number]: Article[] }) => {
+      //   const updatedCache = { ...prevCache };
+
+      //   // Remove from the old category
+      //   if (updatedCache[oldCategoryId]) {
+      //     updatedCache[oldCategoryId] = updatedCache[oldCategoryId].filter(
+      //       (article) => article.ArticleID !== history[0].ArticleID
+      //     );
+      //   }
+
+      //   // Add to the new category
+      //   if (updatedCache[newCategoryId]) {
+      //     updatedCache[newCategoryId] = [
+      //       ...updatedCache[newCategoryId],
+      //       {
+      //         ...history[0],
+      //         CategoryID: newCategoryId,
+      //         Version: versionId,
+      //         UpdatedAt: new Date().toISOString(),
+      //         DeletedAt: null,
+      //       },
+      //     ];
+      //   } else {
+      //     // If the new category does not exist in the cache, create it
+      //     updatedCache[newCategoryId] = [
+      //       {
+      //         ...history[0],
+      //         CategoryID: newCategoryId,
+      //         Version: versionId,
+      //         UpdatedAt: new Date().toISOString(),
+      //         DeletedAt: null,
+      //       },
+      //     ];
+      //   }
+
+      //   return updatedCache;
+      // });
+
+      // Update local state with the latest data
+      setHistory(versionsHistory.versions);
+      //TODO BRING CONVERTER
+      setArticleElements(
+        parseContent(versionsHistory.versions[0].DetailedDescription)
+      );
+      setArticleTitle(versionsHistory.versions[0].Title);
+      setArticleDescription(versionsHistory.versions[0].Description);
+      setArticleImgSrc(versionsHistory.versions[0].ImgSrc);
+      setSelectedCategory(Number(versionsHistory.versions[0].CategoryID));
+    } catch (error) {
+      console.error("Failed to update article:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const isContentChanged =
     history &&
-    (articleText !== history[0]?.DetailedDescription ||
+    //TODO BRING CONVERTER
+    (articleElementsSyntax !== history[0]?.DetailedDescription ||
       selectedCategory !== history[0]?.CategoryID ||
       articleDescription !== history[0]?.Description ||
       articleTitle !== history[0]?.Title ||
       articleImgSrc !== history[0]?.ImgSrc);
+
+  //       const initialRawContent = `header | 1 | Your header text | header-class
+  // image | https://placehold.co/300x200 | Alt text`;
 
   const displayContent = () => {
     switch (currentView) {
@@ -314,7 +367,11 @@ setCategories((prevCategories: Category[]) =>
                     readOnly={loading || saving}
                   />
                 </div>
-                <div className="flex">
+                <EditorModule
+                  elements={articleElements}
+                  setElements={setArticleElements}
+                />
+                {/* <div className="flex bg-red-500">
                   <div className="m-5">
                     <div
                       className="w-10 h-10 font-bold text-center text-white bg-stone-500 border-4 border-stone-400 transition duration-300 rounded-full cursor-pointer hover:bg-stone-600"
@@ -330,7 +387,7 @@ setCategories((prevCategories: Category[]) =>
                       </svg>
                     </div>
                   </div>
-                  <textarea
+                  {/* <textarea
                     id="text"
                     name="article"
                     ref={textAreaRef}
@@ -344,8 +401,8 @@ setCategories((prevCategories: Category[]) =>
                     style={{ overflow: "hidden", resize: "vertical" }}
                     disabled={loading || saving}
                     readOnly={loading || saving}
-                  ></textarea>
-                </div>
+                  ></textarea> 
+                </div> */}
                 <div className="flex flex-row-reverse mt-4 relative">
                   <button
                     id="updateArticle"
@@ -369,7 +426,9 @@ setCategories((prevCategories: Category[]) =>
                     type="button"
                     onClick={() => {
                       if (history && history.length > 0) {
-                        setArticleText(history[0].DetailedDescription);
+                        setArticleElements(
+                          parseContent(history[0].DetailedDescription)
+                        );
                         setArticleTitle(history[0].Title);
                         setArticleDescription(history[0].Description);
                         setArticleImgSrc(history[0].ImgSrc);
@@ -422,11 +481,13 @@ setCategories((prevCategories: Category[]) =>
             </div>
           </>
         );
+      // TODO CONVERT ARTICLEELEMENTS TO SYNTAX
       case "potentialChanges":
-        return history && history[0]?.DetailedDescription !== articleText ? (
+        return history &&
+          history[0]?.DetailedDescription !== articleElementsSyntax ? (
           <TextDiffViewer
             oldText={history[0].DetailedDescription}
-            newText={articleText}
+            newText={articleElementsSyntax}
           />
         ) : (
           <p>No active changes to display.</p>
@@ -441,13 +502,13 @@ setCategories((prevCategories: Category[]) =>
   // }) => {
   //   setSelectedCategory(Number(event.target.value));
   // };
-
+ 
   return (
     <>
       <Breadcrumb
         path={`/admin/edit/article/${articleId}`}
         articleId={Number(articleId)}
-        articleTitle={loading ? '': history && history[0]?.Title}
+        articleTitle={loading ? "" : history && history[0]?.Title}
       />
       <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
         <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
@@ -466,12 +527,13 @@ setCategories((prevCategories: Category[]) =>
                 ? togglePotentialChanges()
                 : toggleRaw()
             }
+            // TODO LMAO
             disabled={
               loading ||
               saving ||
               !history ||
               (history &&
-                history[0]?.DetailedDescription === articleText &&
+                history[0]?.DetailedDescription === articleElementsSyntax &&
                 (currentView === "raw" || currentView === "rendered"))
             }
           >

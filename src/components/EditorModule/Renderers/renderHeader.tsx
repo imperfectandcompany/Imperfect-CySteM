@@ -8,7 +8,7 @@ export function renderHeader(element: HeaderElement, index: number): JSX.Element
     console.log("Rendering header:", element.content);
 
     return (
-      <Tag key={index} className="font-semibold text-xl md:text-2xl lg:text-3xl"
+      <Tag key={index} className={`font-semibold text-xl md:text-2xl lg:text-3xl ${element.style}`}
       dangerouslySetInnerHTML={{ __html: element.content }}
       >
         {element.content}
