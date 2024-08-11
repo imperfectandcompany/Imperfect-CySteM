@@ -73,13 +73,16 @@ import {
       const style = parts[2] ? parts[2].trim() : '';
   
       switch (type) {
-        case 'header':
-          elements.push({ type: 'header', level: 1, content, style, id: `header-${index}` } as HeaderElement);
-          break;
-        case 'paragraph':
-          elements.push({ type: 'paragraph', content, style, id: `paragraph-${index}` } as ParagraphElement);
-          break;
-        case 'image':
+            case 'header':
+              const level = parseInt(parts[1], 10); // Ensure level is an integer
+              const articleContent = parts[2] ? parts[2].trim() : '';
+              const headerStyle = parts[3] ? parts[3].trim() : ''; // Correctly extract style
+              elements.push({ type: 'header', level, content: articleContent.trim(), style:headerStyle.trim() , id: `header-${index}` });
+                break;
+            case 'paragraph':
+                elements.push({ type: 'paragraph', content, style, id: `paragraph-${index}` } as ParagraphElement);
+                break;
+            case 'image':
           const [url, alt] = [content, style]; // Direct mapping for image elements
           elements.push({ type: 'image', url, alt, id: `image-${index}` } as ImageElement);
           break;
