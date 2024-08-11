@@ -42,6 +42,7 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
   if (articleId) {
     // Find the article using the ID from the context
     article = contentContext?.articles.find((a) => a.ArticleID === articleId);
+
   } else if (articleTitle) {
     // Find the article using the title (slug) from the context
     article = contentContext?.articles.find(
@@ -305,7 +306,22 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
         className="text-indigo-600 hover:text-indigo-800"
         onClick={onBreadcrumbClick}
       >
-        {article.Title} {/* Use Title directly */}
+        {/* Use Title directly */}
+{article?.Title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || article.Title} 
+      </Link>
+    </li>
+    );
+  } else if(articleTitle){
+    breadcrumbItems.push(
+      <li key={`category-${articleTitle}`} className="inline">
+      <span className="mx-2 text-gray-500">/</span>
+      <Link
+        href={`/article/${generateSlug(articleTitle)}`}
+        className="text-indigo-600 hover:text-indigo-800"
+        onClick={onBreadcrumbClick}
+      >
+        {/* Use Title directly */}
+{articleTitle.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || articleTitle} 
       </Link>
     </li>
     );
@@ -313,7 +329,7 @@ const Breadcrumb: FunctionalComponent<BreadcrumbProps> = ({
 
   return (
     <div className="flex flex-col">
-      <nav className="bg-white py-3 px-5 md:rounded-md my-4 opacity-80 z-10">
+      <nav className="py-3 px-5 md:rounded-md my-4 opacity-80 z-10">
         <ul className="flex flex-wrap ml-2 md:ml-8 text-xs sm:text-sm md:text-md lg:text-lg text-gray-600">
           {breadcrumbItems}
         </ul>
