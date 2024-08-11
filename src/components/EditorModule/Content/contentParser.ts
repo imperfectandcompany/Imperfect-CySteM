@@ -82,10 +82,21 @@ import {
             case 'paragraph':
                 elements.push({ type: 'paragraph', content, style, id: `paragraph-${index}` } as ParagraphElement);
                 break;
-            case 'image':
-          const [url, alt] = [content, style]; // Direct mapping for image elements
-          elements.push({ type: 'image', url, alt, id: `image-${index}` } as ImageElement);
-          break;
+case 'image':
+    const imageParts = content.split('|');
+    const url = imageParts[0]?.trim();
+    const alt = imageParts[1]?.trim();
+    const title = imageParts[2]?.trim() || undefined; // Optional title
+    const subtitle = imageParts[3]?.trim() || undefined; // Optional subtitle
+    elements.push({
+        type: 'image',
+        url,
+        alt,
+        title,
+        subtitle,
+        id: `image-${index}`
+    } as ImageElement);
+    break;
         case 'list':
           elements.push({ type: 'list', items: content.split(';'), style, id: `list-${index}`, ordered: false } as unknown as ListElement);
           break;

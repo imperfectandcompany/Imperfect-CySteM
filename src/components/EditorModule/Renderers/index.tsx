@@ -14,6 +14,7 @@ import {
   CodeBlockElement,
   TableElement,
 } from "../Content/contentTypes";
+import { renderImage } from "./renderImage";
 
 function hasContentProperty(
   element: ContentElement
@@ -23,20 +24,22 @@ function hasContentProperty(
 
 export function renderContent(
   elements: ContentElement[],
-  setElements: (newElements: ContentElement[]) => void,
-  isPreviewMode: boolean
+  isPreviewMode: boolean,
+  setElements?: (newElements: ContentElement[]) => void
 ): JSX.Element[] {
   const [editingElement, setEditingElement] = useState<string | null>(null);
   const [draggedElementIndex, setDraggedElementIndex] = useState<number | null>(null);
   let lastHoveredElement: HTMLElement | null = null;
   
   const handleDragStart = (index: number, event: DragEvent) => {
-    setDraggedElementIndex(index);
-    // Use the closest parent element that contains the entire element including buttons
-    const elementToDrag = (event.currentTarget as HTMLElement)?.closest(
-      ".draggable-element"
-    ) as HTMLElement;
-    event.dataTransfer?.setDragImage(elementToDrag, 0, 0);
+if(setElements){
+  setDraggedElementIndex(index);
+  // Use the closest parent element that contains the entire element including buttons
+  const elementToDrag = (event.currentTarget as HTMLElement)?.closest(
+    ".draggable-element"
+  ) as HTMLElement;
+  event.dataTransfer?.setDragImage(elementToDrag, 0, 0);
+}
   };
   
   const handleDragOver = (event: DragEvent) => {
@@ -63,15 +66,17 @@ export function renderContent(
   };
   
   const handleDrop = (index: number, event: DragEvent) => {
-    if (draggedElementIndex !== null && draggedElementIndex !== index) {
-      const reorderedElements = [...elements];
-      const [draggedElement] = reorderedElements.splice(draggedElementIndex, 1);
-      reorderedElements.splice(index, 0, draggedElement);
-      setElements(reorderedElements);
-    }
-    setDraggedElementIndex(null); // Always reset the dragged element index
-    (event.currentTarget as HTMLElement).classList.remove('dragging-over'); // Remove feedback class
-    lastHoveredElement = null; // Reset the last hovered element
+if(setElements){
+  if (draggedElementIndex !== null && draggedElementIndex !== index) {
+    const reorderedElements = [...elements];
+    const [draggedElement] = reorderedElements.splice(draggedElementIndex, 1);
+    reorderedElements.splice(index, 0, draggedElement);
+    setElements(reorderedElements);
+  }
+  setDraggedElementIndex(null); // Always reset the dragged element index
+  (event.currentTarget as HTMLElement).classList.remove('dragging-over'); // Remove feedback class
+  lastHoveredElement = null; // Reset the last hovered element
+}
   };
   
   const handleDragEnd = () => {
@@ -83,8 +88,10 @@ export function renderContent(
   };
   
   const handleRemove = (id: string) => {
-    const updatedElements = elements.filter((element) => element.id !== id);
-    setElements(updatedElements);
+if(setElements){
+  const updatedElements = elements.filter((element) => element.id !== id);
+  setElements(updatedElements);
+}
   };
 
   const [modalContent, setModalContent] = useState<string>("");
@@ -101,7 +108,9 @@ export function renderContent(
       }
       return element;
     });
-    setElements(updatedElements as ContentElement[]);
+if(setElements){
+  setElements(updatedElements as ContentElement[]);
+}
   };
 
   const handleSave = () => {
@@ -130,12 +139,11 @@ export function renderContent(
 <div
   key={element.id}
   className={`relative ${
-    isPreviewMode ? "" : "p-4 border rounded my-2 md:my-4 lg:my-6"
-  } draggable-element`}
-  onDragOver={handleDragOver}
-  onDragLeave={handleDragLeave}  // Add this line to listen for the drag leave event
+    isPreviewMode ? "" : "p-4 border rounded my-2 md:my-4 lg:my-6 draggable-element"}`}
+  onDragOver={setElements ? (event) => handleDragOver(event) : undefined}
+  onDragLeave={handleDragLeave}
   onDrop={(event) => !isEditing && handleDrop(index, event)}
-  onDragEnd={handleDragEnd} // Ensure opacity resets after dragging
+  onDragEnd={handleDragEnd}
   style={
     isPreviewMode
       ? {}
@@ -227,11 +235,14 @@ function renderEditableElement(
     case "image":
       return (
         <EditableImage
-          url={(element as any).url}
-          alt={(element as any).alt}
-          onChange={(newUrl, newAlt) =>
-            handleContentChange(element.id, `${newUrl}|${newAlt}`)
-          }
+          url={element.url}
+          alt={element.alt}
+          title={element.title}
+          subtitle={element.subtitle}
+          onChange={(newUrl, newAlt, newTitle, newSubtitle) => {
+            const newContent = `${newUrl}|${newAlt}|${newTitle?.trim() || ''}|${newSubtitle?.trim() || ''}`;
+            handleContentChange(element.id, newContent);
+          }}
           isEditing={true}
           onSave={handleSave}
           onCancel={handleCancel}
@@ -296,7 +307,7 @@ function renderElement(
         />
       );
     case "image":
-      return <img src={(element as any).url} alt={(element as any).alt} />;
+      return renderImage(element, index); // Use the new renderImage function here
     case "list":
       return renderList(element as ListElement, index, handleContentChange);
     case "code":

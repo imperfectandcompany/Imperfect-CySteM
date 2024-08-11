@@ -1391,7 +1391,7 @@ nav > button:hover > svg {
             background-color: #f3f4f6;
         }
         .dropdown-menu {
-          position: fixed; /* Change from absolute to fixed */
+          position: fixed;
           background-color: #ffffff;
           border: 1px solid #e1dfdd;
           flex-direction: column;
@@ -1401,7 +1401,22 @@ nav > button:hover > svg {
           min-width: 200px;
           max-height: 300px;
           overflow: hidden;
+          transition: transform 0.3s ease-in-out;
       }
+      /* Styles for dropdown opening downwards */
+.dropdown-menu-down {
+    transform-origin: top;
+}
+
+/* Styles for dropdown opening upwards */
+.dropdown-menu-up {
+    transform-origin: bottom;
+}
+
+/* Override the position when opening upwards */
+.dropdown-menu-up {
+    transform: translateY(-100%);
+}
       .dropdown-menu button {
         padding: 10px;
         width: 100%;
@@ -1664,3 +1679,192 @@ nav > button:hover > svg {
   border: 2px dashed #0078d42f;
   background-color: #f0f8ff65;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* image with lightbox */
+
+
+.header-title {
+    font-family: 'Playfair Display', serif;
+}
+
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+                .event__item:hover .event__artwork {
+            transform: scale(1.05);
+            box-shadow: 0px 10px 15px rgba(0,0,0,.3);
+        }
+        .event__item:hover .event__artwork::before {
+            transform: rotate(45deg) translate(0px, -70%);
+            filter: blur(6px);
+        }
+        .event__item:hover .event__icon {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .event__artwork::before {
+            content: "";
+            background: rgba(255,255,255,.1);
+            transform: rotate(45deg) translate(0px, -90%);
+            filter: blur(4px);
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            transition: .4s;
+        }
+        .underline-effect {
+            position: relative;
+            display: inline-block;
+        }
+        .underline-effect::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            transform: scaleX(0);
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: white;
+            transform-origin: bottom right;
+            transition: transform 0.25s ease-out;
+        }
+        .underline-effect:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            flex-direction: column;
+        }
+        .lightbox img {
+            max-width: 90%;
+            max-height: 70%;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+            user-select: none; /* Prevent drag selection */
+        }
+        .lightbox.visible {
+            opacity: 1;
+        }
+        .lightbox.visible img {
+            transform: scale(1);
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            user-select: none;
+        }
+        .lightbox-close.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .event__info:hover .event__icon {
+            background-color: rgba(255, 255, 255, 0.7);
+            transition: background-color 0.3s ease;
+        }
+        .event__icon:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+            transition: background-color 0.3s ease;
+        }
+        .lightbox-animation {
+            animation: scaleIn 0.3s ease-out forwards;
+        }
+        .lightbox-animation-out {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .no-select {
+            user-select: none;
+        }
+        .lightbox-title, .lightbox-artist, .lightbox-alt {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .lightbox-title.visible, .lightbox-artist.visible, .lightbox-alt.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (max-width: 640px) {
+            .lightbox-title, .lightbox-artist {
+                text-align: left;
+                font-size: 0.875rem; /* Smaller font size for mobile */
+            }
+            .lightbox-alt {
+                text-align: left;
+                font-size: 0.75rem; /* Smaller font size for mobile */
+            }
+        }

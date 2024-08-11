@@ -1,6 +1,7 @@
 import { FunctionalComponent } from "preact";
 import { Article } from "../contexts/ContentContext";
 import { parseContent } from "./EditorModule/Content/contentParser";
+import { renderContent } from "./EditorModule/Renderers";
 
 interface DetailViewProps {
   item: Article;
@@ -78,8 +79,8 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
           <h1 className="mt-8 text-4xl font-normal tracking-tighter text-black/75 sm:text-5xl">
           {item.Title}
           </h1>
-          <div className="detail-description mt-4">
-            {/* {renderContent(contentElements)} */}
+          <div className="mt-4">
+            {renderContent(contentElements, true)}
           </div>
         </div>
       </div>

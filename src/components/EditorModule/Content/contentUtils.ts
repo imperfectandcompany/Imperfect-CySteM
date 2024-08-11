@@ -27,22 +27,24 @@ export function updateElementProperties(element: ContentElement, newContent: str
   const updatedElement = { ...element } as any;
 
   if (Array.isArray(newContent)) {
-    // If newContent is an array, treat it as a list of items
-    updatedElement.items = newContent;
+      // If newContent is an array, treat it as a list of items
+      updatedElement.items = newContent;
   } else {
-    // If newContent is a string, split it by `|` and map it to properties
-    const contentParts = newContent.split('|');
-    const propertiesToUpdate = Object.keys(element).filter(key => key !== 'id' && key !== 'type');
+      // If newContent is a string, split it by `|` and map it to properties
+      const contentParts = newContent.split('|');
+      const propertiesToUpdate = Object.keys(element).filter(key => key !== 'id' && key !== 'type');
 
-    propertiesToUpdate.forEach((property, index) => {
-      if (index < contentParts.length && contentParts[index] !== undefined && contentParts[index] !== '') {
-        updatedElement[property] = contentParts[index];
-      }
-    });
+      propertiesToUpdate.forEach((property, index) => {
+          if (index < contentParts.length) {
+              // Assign even empty strings correctly to the properties
+              updatedElement[property] = contentParts[index];
+          }
+      });
   }
 
   return updatedElement as ContentElement;
 }
+
 
 
 
