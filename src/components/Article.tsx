@@ -1,8 +1,7 @@
 // src/components/Article.tsx
 
-import { useContext, useEffect } from 'preact/hooks';
+import { useContext, useEffect, useState } from 'preact/hooks';
 import { ContentContext } from '../contexts/ContentContext';
-import { AccessRestricted } from './AccessRestricted';
 import { ArticleView } from './ArticleView';
 import Breadcrumb from './Breadcrumb';
 
@@ -68,16 +67,31 @@ const Article = ({ title, path, onBreadcrumbClick }: ArticleProps) => {
     );
   }
 
+  const [fadeOut, setFadeOut] = useState(false);
+
+
   function handleBackAction() {
     history.back();
   }
+     // Updated function to handle different types of clicks
+     const handleClick = (clickType: 'back' | 'breadcrumb') => {
+      setFadeOut(true);
+      setTimeout(() => {
+        if (clickType === 'back') {
+          handleBackAction();
+        } else {
+          onBreadcrumbClick();
+        }
+      }, 500); // Wait for the animation to complete
+    };
+
 
   return (
-    <div>
-      <Breadcrumb path={path} categorySlug={category?.Slug} articleTitle={title} onBreadcrumbClick={onBreadcrumbClick} />
-      {(article && category) && <ArticleView item={article} onBack={handleBackAction} />}
+    <div className={`${fadeOut ? 'fade-out' : ''}`}>
+      <Breadcrumb path={path} categorySlug={category?.Slug} articleTitle={title} articleId={article.ArticleID} onBreadcrumbClick={onBreadcrumbClick} onBreadcrumbClickHome={()=>handleClick('breadcrumb')} />
+      {(article && category) && <ArticleView item={article} onBack={()=>handleClick('back')} />}
     </div>
   );
 };
 
-export default Article;
+  export default Article;

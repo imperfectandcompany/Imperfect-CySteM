@@ -61,7 +61,7 @@ const ImageWithLightbox: FunctionalComponent<ImageWithLightboxProps> = ({ url, a
   };
 
   return (
-    <main className=" !bg-red-500 mx-auto flex flex-col lg:flex-row items-center lg:items-start justify-center lg:justify-end">
+    <main className="mx-auto flex flex-col lg:flex-row items-center lg:items-start justify-center lg:justify-end">
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 rounded-lg lg:ml-auto">
         <div className={`event__item max-w-md relative fade-in`}>
           <figure className=" relative transition-transform duration-400 transform-origin-top overflow-hidden rounded-md cursor-pointer" onClick={() => openLightbox(url, title, subtitle, alt)}>

@@ -7,7 +7,7 @@ const ToastContainer: FunctionalComponent = () => {
   return (
     <div id="toast-container">
       {toasts.map((toast) => (
-        <div key={toast.id} className="toast show">
+        <div key={toast.id} className="toast show !z-80">
           <div id="img"><i className={toast.icon}></i></div>
           <div id="desc">{toast.message}</div>
           <button onClick={() => removeToast(toast.id)}>Dismiss</button>

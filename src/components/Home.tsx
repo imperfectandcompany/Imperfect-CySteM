@@ -69,15 +69,15 @@ const Home = () => {
           </filter>
         </defs>
       </svg>
-      <div className="container mx-auto relative px-8 py-16 max-w-7xl md:px-12 lg:px-18 lg:py-22">
+      <div className="container mx-auto relative px-8 py-16 max-w-7xl md:px-12 lg:px-18 lg:py-22 ">
         <span className="text-xs font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500">
           Support Center
         </span>
         <p className="mt-8 text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
           Hi, how can we help you?
         </p>
-        <div className="additional-image mt-8" aria-hidden="true"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
+        <div className="additional-image mt-8 animate-fade-in" aria-hidden="true"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10 animate-fade-in">
           {loading
             ? Array.from(
                 { length: Math.floor(Math.random() * 3) + 1 },
