@@ -20,6 +20,8 @@ export interface ImageElement extends Omit<BaseContentElement, 'content'> {
     type: 'image';
     url: string;
     alt: string;
+    title?: string;
+    subtitle?: string;
 }
 
 export interface ListElement extends BaseContentElement {
@@ -275,4 +277,5 @@ export type ContentElement =
     | RankingSystemElement
     | RankingPointsElement
     | TextStyleElement
-    | SpacingElement;
+    | SpacingElement
+    | FeatureElement;

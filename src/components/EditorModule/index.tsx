@@ -256,6 +256,10 @@ const DimensionRuler = ({ viewport }: DimensionRulerProps) => {
   );
 };
 
+interface DropdownPosition {
+  top: number;
+  left: number;
+}
 
 // Interface for the props for EditorModule
 interface EditorModuleProps {
@@ -271,7 +275,7 @@ const EditorModule: FunctionalComponent<EditorModuleProps> = ({ elements, setEle
   const [isLayoutZoomEnabled, setLayoutZoomEnabled] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ top: 0, left: 0 });
 
 
 
@@ -483,16 +487,44 @@ const EditorModule: FunctionalComponent<EditorModuleProps> = ({ elements, setEle
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+  const [availableSpaceBelow, setAvailableSpaceBelow] = useState<number>(0);
+
+  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down'); // New state for dropdown direction
 
 
-  const handleDropdownToggle = (event: MouseEvent) => {
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    setDropdownPosition({ top: rect.bottom, left: rect.left });
-    setDropdownVisible(!dropdownVisible);
-  };
 
 
+  const [dropdownHeight, setDropdownHeight] = useState<number>(0);
+
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+    const handleDropdownToggle = (event: MouseEvent) => {
+        const target = event.currentTarget as HTMLElement;
+        const rect = target.getBoundingClientRect();
+
+        // Measure the dropdown height dynamically if it hasn't been measured yet
+        if (!dropdownHeight) {
+            const tempDropdown = document.createElement('div');
+            tempDropdown.className = 'dropdown-menu';
+            document.body.appendChild(tempDropdown);
+            const tempDropdownHeight = tempDropdown.offsetHeight;
+            document.body.removeChild(tempDropdown);
+            setDropdownHeight(tempDropdownHeight);
+        }
+
+        const availableSpaceBelowCalc = window.innerHeight - rect.bottom;
+        setAvailableSpaceBelow(availableSpaceBelowCalc);
+
+        if (availableSpaceBelowCalc < dropdownHeight) {
+            setDropdownPosition({ top: rect.top - dropdownHeight, left: rect.left });
+            setDropdownDirection('up');
+        } else {
+            setDropdownPosition({ top: rect.bottom, left: rect.left });
+            setDropdownDirection('down');
+        }
+
+        setDropdownVisible(!dropdownVisible);
+    };
 
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -524,6 +556,23 @@ const EditorModule: FunctionalComponent<EditorModuleProps> = ({ elements, setEle
     }
     setTimeout(() => setModalVisible(false), 300);
   };
+
+  useEffect(() => {
+    const handleResizeOrScroll = () => {
+        if (dropdownVisible) {
+            // Recalculate dropdown position when window is resized or scrolled
+            handleDropdownToggle(new MouseEvent('resize'));
+        }
+    };
+
+    window.addEventListener('resize', handleResizeOrScroll);
+    window.addEventListener('scroll', handleResizeOrScroll);
+
+    return () => {
+        window.removeEventListener('resize', handleResizeOrScroll);
+        window.removeEventListener('scroll', handleResizeOrScroll);
+    };
+}, [dropdownVisible]);
 
   
   function generateElementSyntax(element: ContentElement): string {
@@ -592,18 +641,20 @@ function generateSyntax(elements: ContentElement[]): string {
                   No elements added. Use the button below to add elements.
                 </div>
               ) : (
-                renderContent(elements, setElements, isPreviewMode)
+                renderContent(elements,isPreviewMode, setElements)
               )}
             </div>
             <div className="add-element-block select-none" onClick={handleDropdownToggle}>
               <span>Add Element</span>
               {dropdownVisible && (
                 <div
-                  className="dropdown-menu"
-                  style={{
-                    top: dropdownPosition.top,
-                    left: dropdownPosition.left,
-                  }}
+                className={`dropdown-menu dropdown-menu-${dropdownDirection}`} // Adjust class based on direction
+                                    ref={dropdownRef}
+                style={{
+                  top: dropdownPosition.top,
+                  left: dropdownPosition.left,
+                  transition: 'all 0.3s ease', // Smooth transition
+              }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div
