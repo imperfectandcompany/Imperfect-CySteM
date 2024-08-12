@@ -1,6 +1,6 @@
 /** src/components/Home.tsx **/
 
-import { useContext } from "preact/hooks";
+import { useContext, useState } from "preact/hooks";
 import { ContentContext } from "../contexts/ContentContext";
 import { route } from "preact-router";
 
@@ -15,8 +15,22 @@ const Home = () => {
     route(`/category/${categorySlug}`);
   };
 
+
+  const handleClick = (categorySlug:string) => {
+  if (!fadeOut) {
+    setFadeOut(true);
+    setTimeout(() => {
+        navigateToCategory(categorySlug);
+    }, 500); // Wait for the animation to complete
+  }
+}
+
+const [fadeOut, setFadeOut] = useState(false);
+
+
+
   return (
-    <>
+    <div className={`${fadeOut ? "fade-out" : "animate-fade-in"}`}>
       <svg
         className="absolute blur-3xl right-0 opacity-80"
         width="50%"
@@ -97,7 +111,7 @@ const Home = () => {
                 <div
                   key={category.CategoryID}
                   className="bg-white hover:bg-blue-100 cursor-pointer shadow-md hover:shadow-lg rounded-lg p-4 transition duration-200 ease-in-out transform hover:-translate-y-1"
-                  onClick={() => navigateToCategory(category.Slug)}
+                  onClick={() => handleClick(category.Slug)}
                 >
                   <h3 className="text-xl font-bold text-gray-800">
                     {category.Title}
@@ -106,7 +120,7 @@ const Home = () => {
               ))}
         </div>
       </div>
-    </>
+</div>
   );
 };
 

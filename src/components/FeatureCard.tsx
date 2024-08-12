@@ -57,12 +57,12 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
     : 1500; // Time in milliseconds to qualify as a long press
   const SHORT_PRESS_MIN_DURATION = 100; // Minimum time in milliseconds to qualify as a short press
 
-  const handleMouseDown = (event: MouseEvent) => {
+  const handleMouseDown = () => {
     setPressStartTime(Date.now());
     const timer = window.setTimeout(() => {
       setPressType("long");
       onClick();
-      route(href); // Trigger the route change on long press
+      // route(href); // Trigger the route change on long press
     }, LONG_PRESS_DURATION);
     setPressTimer(timer);
   };
@@ -89,7 +89,7 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
       } else {
         setPressType("none");
         onClick();
-        route(href); // Regular click, navigate on mouse up
+        // route(href); // Regular click, navigate on mouse up
       }
     }
     setPressTimer(null);
@@ -146,7 +146,7 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
 
   const handleOpen = () => {
     onClick();
-    route(href);
+    // route(href);
   };
 
   const handleCopyLink = () => {
@@ -177,12 +177,15 @@ export const FeatureCard: FunctionalComponent<FeatureCardProps> = ({
         pressType === "long" ? "cursor-auto" : ""
       }`}
       onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
+            onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
+      // onMouseUp={isFeatureEnabled("ContextMenu") ? handleMouseUp : undefined}
+      // onMouseLeave={isFeatureEnabled("ContextMenu") ? handleMouseLeave : undefined}
+      // onContextMenu={isFeatureEnabled("ContextMenu") ? handleContextMenu : undefined}
       style={{ opacity: pressType === "long" ? 0.5 : 1 }}
     >
-      <article className="card">
+      <article className="card bg-white px-8 py-4 flex shadow-sm">
         {showImage && ( // Conditionally render the image
         
           <img

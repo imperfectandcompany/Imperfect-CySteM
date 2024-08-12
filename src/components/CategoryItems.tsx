@@ -5,9 +5,10 @@ import { generateSlug } from "../utils";
 import { FeatureCard } from "./FeatureCard";
 import Breadcrumb from "./Breadcrumb";
 import { AccessRestricted } from "./AccessRestricted";
-import { useContext } from "preact/hooks";
+import { useContext, useState } from "preact/hooks";
 import { Article, ContentContext } from "../contexts/ContentContext";
 import { useAuth } from "../contexts/AuthContext";
+import { route } from "preact-router";
 
 interface CategoryItemsProps {
   categorySlug: string;
@@ -50,8 +51,29 @@ const { isAuthenticated } = useAuth();
     }
   );
 
+
+  const [fadeOut, setFadeOut] = useState(false);
+
+  let currentTimeout: number | null = null;
+
+  const onCardClickChild = (article: Article) => {
+
+    if (currentTimeout) {
+      clearTimeout(currentTimeout); // Clear any existing timeout
+    }
+
+    setFadeOut(true);
+    currentTimeout = window.setTimeout(() => {
+      onCardClick(article);
+      const href = `/article/${article.Slug}`;
+      route(href);
+      currentTimeout = null; // Reset the timeout reference
+    }, 500); // Wait for the animation to complete
+  };
+
+
   return (
-    <div>
+    <div className={`${fadeOut ? 'fade-out' : ''}`}>
       <Breadcrumb
         path={`/category/${categorySlug}`}
         categorySlug={categorySlug}
@@ -61,7 +83,6 @@ const { isAuthenticated } = useAuth();
           {category.Title}
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
-          
           {filteredArticles?.map((article: Article) => (
             <FeatureCard
               key={article.ArticleID} // Use card ID as key
@@ -82,7 +103,7 @@ const { isAuthenticated } = useAuth();
                 description: false,
                 detailedDescription: false,
               }}
-              onClick={() => onCardClick(article)} // Use onCardClick with the card
+              onClick={() => onCardClickChild(article)} // Use onCardClick with the card
               archived={!!article.Archived} // Add the archived property
               staffOnly={!!article.StaffOnly} // Add the staffOnly property
             />

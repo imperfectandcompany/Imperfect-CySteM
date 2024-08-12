@@ -1,532 +1,807 @@
-import { useState, useEffect, useRef } from "preact/hooks";
-import { JSX } from "preact/jsx-runtime";
+import { memo } from "preact/compat";
+import { useState, useCallback, useEffect } from "preact/hooks";
+import { FunctionalComponent } from "preact";
+import { Link } from "preact-router";
+import "tailwindcss/tailwind.css";
+import Breadcrumb from "../Breadcrumb";
+import { getToken } from "../../utils";
+import { AdminError } from "../AdminError";
+import { UserError } from "../UserError";
 
-interface Issue {
-  issue_id: number;
-  issue_version_id: number;
-  category_id: number;
-  description: string;
-  user_id: number;
-  created_at: string;
+interface Input {
+  input_id: number;
+  input_type: string;
+  input_version_id: number;
+  input_label: string;
+  options: string[];
 }
 
 interface Category {
   category_id: number;
   category_name: string;
-  parent_id?: number;
-  hasSubCategories?: boolean;
-  hasIssues?: boolean;
+  default_priority: string | null;
+  subcategories: Category[];
+  inputs: Input[];
+  issue: Issue | null;
 }
 
-interface Props {
-  token: string;
-  prefillCategoryId?: number;
+interface Issue {
+  issue_version_id: number;
+  issue_description: string;
 }
 
-const Issues = ({ token, prefillCategoryId }: Props) => {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [currentIssue, setCurrentIssue] = useState<Partial<Issue>>({});
-  const [isModalOpen, setIsModalOpen] = useState(false);
+interface Props {}
+
+type InputFieldProps = {
+  id: string;
+  label: string;
+  type: string;
+  placeholder: string;
+  value?: string;
+  onChange: (e: Event) => void;
+  describedBy: string;
+  tooltip?: string;
+  options?: string[];
+};
+
+const InputField = memo(
+  ({
+    id,
+    label,
+    type,
+    placeholder,
+    value,
+    onChange,
+    describedBy,
+    tooltip,
+    options = [],
+  }: InputFieldProps) => {
+    return (
+      <div className="mb-4 animate-fade-in">
+        <label
+          htmlFor={id}
+          className="block text-gray-700 text-sm font-bold mb-2"
+        >
+          {label}
+          {tooltip && (
+            <span className="relative group ml-2">
+              <i className="fas fa-info-circle text-gray-500 cursor-help"></i>
+              <span className="absolute left-1/2 bottom-full transform -translate-x-1/2 translate-y-2 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {tooltip}
+              </span>
+            </span>
+          )}
+        </label>
+        {type === "textarea" ? (
+          <textarea
+            id={id}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+            rows={4}
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={onChange}
+            required
+            aria-label={label}
+            aria-describedby={describedBy}
+          ></textarea>
+        ) : type === "dropdown" ? (
+          <select
+            id={id}
+            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+            value={value || ""}
+            onChange={onChange}
+            required
+            aria-label={label}
+            aria-describedby={describedBy}
+          >
+            <option value="" disabled>
+              Please select an option
+            </option>
+            {options.map((option, index) => (
+              <option key={index} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id={id}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+            type={type}
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={onChange}
+            required
+            aria-label={label}
+            aria-describedby={describedBy}
+          />
+        )}
+      </div>
+    );
+  }
+);
+
+function useSupportForm(token: string | false) {
+  const [email, setEmail] = useState("");
+  const [issueCategory, setIssueCategory] = useState<Category | null>(null);
+  const [subIssue, setSubIssue] = useState<Category | null>(null);
+  const [details, setDetails] = useState<{ [key: string]: string }>({});
+  const [progress, setProgress] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [emailValid, setEmailValid] = useState(true);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [subIssueTransition, setSubIssueTransition] = useState(false);
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
+  const [inputs, setInputs] = useState<Input[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [versionHistory, setVersionHistory] = useState<any[]>([]);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [issuesPerPage] = useState(10); // Number of issues per page
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof Issue;
-    direction: "asc" | "desc";
-  } | null>(null);
 
-  useEffect(() => {
-    fetchIssues();
-  }, []);
+  const handleIssueChange = useCallback(
+    (event: Event) => {
+      const categoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+      const selectedCat = categories.find((cat) => cat.category_id === categoryId);
+  
+      if (selectedCat) {
+        setIssueCategory(selectedCat);
+        setDetails({});
+        setSubIssue(null); // Reset subIssue when changing main issue
+  
+        // Check if the selected category has subcategories
+        if (selectedCat.subcategories && selectedCat.subcategories.length > 0) {
+          setSubcategories(selectedCat.subcategories);
+          setInputs([]); // Clear inputs because we need to select a subcategory first
+          setCurrentStep(1); // Go to subcategory selection
+        } else {
+          setSubcategories([]);
+          setInputs(selectedCat.inputs || []);
+          setCurrentStep(2); // Go directly to input fields if no subcategories
+        }
+      }
+    },
+    [categories]
+  );
+  
+  const handleSubIssueChange = useCallback(
+    (event: Event) => {
+      const subcategoryId = parseInt((event.target as HTMLSelectElement).value, 10);
+      const selectedSubcat = subcategories.find((cat) => cat.category_id === subcategoryId);
+  
+      if (selectedSubcat) {
+        setSubIssue(selectedSubcat);
+        setDetails({});
+        
+        // Check if the selected subcategory has further subcategories
+        if (selectedSubcat.subcategories && selectedSubcat.subcategories.length > 0) {
+          setSubcategories(selectedSubcat.subcategories);
+          setInputs([]); // Clear inputs because we need to select a further subcategory first
+          setCurrentStep(1); // Stay in subcategory selection step
+        } else {
+          setSubcategories([]);
+          setInputs(selectedSubcat.inputs || []);
+          setCurrentStep(2); // Go to inputs if no further subcategories
+        }
+      }
+    },
+    [subcategories]
+  );
+  
 
-  useEffect(() => {
-    fetchCategories();
-  }, [issues]);
+const handleDetailChange = useCallback((key: string, value: string) => {
+  setDetails((prev) => ({ ...prev, [key]: value }));
+}, []);
 
-  useEffect(() => {
-    if (prefillCategoryId) {
-      setCurrentIssue((prev) => ({ ...prev, category_id: prefillCategoryId }));
-      setIsModalOpen(true);
+const handleBack = useCallback(() => {
+  if (currentStep === 2) {
+    if (subIssue) {
+      setSubIssue(null);
+      setCurrentStep(1); // Go back to subcategory selection
+    } else {
+      setIssueCategory(null);
+      setCurrentStep(0); // Go back to main category selection
     }
-  }, [prefillCategoryId]);
+  } else if (currentStep === 1) {
+    setIssueCategory(null);
+    setCurrentStep(0); // Go back to main category selection
+  }
+}, [currentStep, subIssue, setIssueCategory, setSubIssue, setCurrentStep]);
 
-  const fetchIssues = async () => {
+useEffect(() => {
+  // Initialize totalFields and filledFields
+  let totalFields = 1; // Start with the email field
+  let filledFields = email ? 1 : 0; // Check if the email is filled
+
+  // Always include the main category selection as a mandatory field
+  totalFields++;
+  if (issueCategory) filledFields++; // Check if the issue category is selected
+
+  // Include sub-issue field only if subcategories are available
+  if (subcategories.length > 0) {
+    totalFields++;
+    if (subIssue) filledFields++; // Check if the sub-issue is selected
+  }
+
+  // Include individual inputs as separate fields
+  // This section now properly iterates over inputs to calculate filled fields
+  totalFields += inputs.length; // Add the count of input fields to total fields
+  filledFields += inputs.reduce((count, input) => {
+    // Increment count for each non-empty and trimmed input
+    return count + (details[input.input_label]?.trim() ? 1 : 0);
+  }, 0);
+
+  // Calculate the progress
+  const progressPercentage = (filledFields / totalFields) * 100;
+
+  // Update the progress state with the calculated percentage, ensuring it does not exceed 100%
+  setProgress(Math.min(progressPercentage, 100));
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  setEmailValid(emailRegex.test(email));
+}, [email, issueCategory, subcategories.length, subIssue, details, inputs]);
+
+
+
+
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const progressDifference = Math.abs(displayProgress - progress);
+    if (progressDifference > 0.5) {
+      setDisplayProgress((prev) => {
+        return progress > prev ? prev + 1 : prev - 1;
+      });
+    }
+  }, 10);
+  return () => clearInterval(interval);
+}, [displayProgress, progress]);
+
+
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('https://api.imperfectgamers.org/support/requests/populate/all', {
+          headers: {
+            Authorization: token || '',
+          },
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          const validCategories = filterValidCategories(data.data);
+          setCategories(validCategories);
+          if (validCategories.length === 0) {
+            setError("Currently, there is no valid path for form submission. Please contact an administrator for more information.");
+          }
+        } else {
+          setError('Failed to fetch form data: ' + data.message);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching form data:', error);
+        setError('Error fetching form data');
+        setLoading(false);
+      }
+    };
+  
+    fetchFormData();
+  }, [token]);
+
+  const filterValidCategories = (categories: Category[]): Category[] => {
+    return categories.filter((category) => isValidCategory(category));
+  };
+
+  const isValidCategory = (category: Category): boolean => {
+    // Ensure subcategories is always an array
+    const subcats = category.subcategories || [];
+  
+    if (subcats.length > 0) {
+      category.subcategories = subcats.filter((subcategory) =>
+        isValidCategory(subcategory)
+      );
+      return category.subcategories.length > 0 || (category.inputs.length > 0 && category.issue !== null);
+    }
+    return category.inputs.length > 0 && category.issue !== null;
+  };
+  
+
+
+  return {
+    email,
+    setEmail,
+    issueCategory,
+    subIssue,
+    details,
+    progress,
+    submitted,
+    setSubmitted,
+    loading,
+    setLoading,
+    currentStep,
+    setCurrentStep,
+    emailValid,
+    setEmailValid,
+    reviewMode,
+    setReviewMode,
+    subIssueTransition,
+    displayProgress,
+    handleIssueChange,
+    handleSubIssueChange,
+    handleDetailChange,
+    handleBack,
+    categories,
+    subcategories,
+    inputs,
+    error,
+    setError,
+  };
+}
+
+const SupportForm: FunctionalComponent<Props> = () => {
+  const {
+    email,
+    setEmail,
+    issueCategory,
+    subIssue,
+    details,
+    progress,
+    submitted,
+    setSubmitted,
+    loading,
+    setLoading,
+    currentStep,
+    setCurrentStep,
+    emailValid,
+    setEmailValid,
+    reviewMode,
+    setReviewMode,
+    subIssueTransition,
+    displayProgress,
+    handleIssueChange,
+    handleSubIssueChange,
+    handleDetailChange,
+    handleBack,
+    categories,
+    subcategories,
+    inputs,
+    error,
+    setError,
+  } = useSupportForm(getToken());
+
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault();
+
+    const requestData = {
+      email,
+      category_id: subIssue ? subIssue.category_id : issueCategory?.category_id,
+      inputs: inputs.map((input) => ({
+        input_id: input.input_id,
+        value: details[input.input_label] || ""
+      })),
+    };
+
+    // Validate required inputs
+    let validationFailed = false;
+    requestData.inputs.forEach((input) => {
+      if (input.value.trim() === "") {
+        validationFailed = true;
+        setError(`Validation failed: Input is required.`);
+      }
+    });
+
+    if (validationFailed) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(
-        "https://api.imperfectgamers.org/support/requests/issues/all",
-        {
-          headers: {
-            Authorization: token,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.status === "success") {
-        setIssues(data.data);
-      } else {
-        setError("Failed to fetch issues: " + data.message);
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching issues:", error);
-      setError("Error fetching issues");
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(
-        "https://api.imperfectgamers.org/support/requests/populate",
-        {
-          headers: {
-            Authorization: token,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.status === "success") {
-        const updatedCategories = data.data.map((category: Category) => {
-          const hasSubCategories = data.data.some(
-            (cat: Category) => cat.parent_id === category.category_id
-          );
-          const hasIssues = issues.some(
-            (issue) => issue.category_id === category.category_id
-          );
-          return { ...category, hasSubCategories, hasIssues };
-        });
-        setCategories(updatedCategories);
-      } else {
-        setError("Failed to fetch categories: " + data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setError("Error fetching categories");
-    }
-  };
-
-  const fetchIssueVersions = async (issueId: number) => {
-    try {
-      const response = await fetch(
-        `https://api.imperfectgamers.org/support/requests/issues/${issueId}/versions`,
-        {
-          headers: {
-            Authorization: token,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.status === "success") {
-        setVersionHistory(data.data);
-        setIsHistoryModalOpen(true);
-      } else {
-        alert("Failed to fetch issue versions: " + data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching issue versions:", error);
-    }
-  };
-
-  const handleDeleteIssue = async (issueId: number) => {
-    if (!confirm("Are you sure you want to delete this issue?")) return;
-
-    try {
-      const response = await fetch(
-        `https://api.imperfectgamers.org/support/requests/issues/${issueId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: token,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.status === "success") {
-        alert("Issue deleted successfully");
-        fetchIssues();
-      } else {
-        alert("Failed to delete issue: " + data.message);
-      }
-    } catch (error) {
-      console.error("Error deleting issue:", error);
-    }
-  };
-
-  const handleSaveIssue = async () => {
-    try {
-      const method = currentIssue.issue_id ? "PUT" : "POST";
-      const url = currentIssue.issue_id
-        ? `https://api.imperfectgamers.org/support/requests/issues/${currentIssue.issue_id}`
-        : "https://api.imperfectgamers.org/support/requests/issues";
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('https://api.imperfectgamers.org/support/requests/submit', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
+          'Content-Type': 'application/json',
+          Authorization: getToken() || '',
         },
-        body: JSON.stringify(currentIssue),
+        body: JSON.stringify(requestData),
       });
       const data = await response.json();
-      if (data.status === "success") {
-        alert("Issue saved successfully");
-        setIsModalOpen(false);
-        fetchIssues();
+      if (data.status === 'success') {
+        setSubmitted(true);
       } else {
-        alert("Failed to save issue: " + data.message);
+        setError('Failed to submit support request: ' + data.message);
       }
+      setLoading(false);
     } catch (error) {
-      console.error("Error saving issue:", error);
+      console.error('Error submitting support request:', error);
+      setError('Error submitting support request');
+      setLoading(false);
     }
   };
 
-  const handleEditIssue = (issue: Issue) => {
-    setCurrentIssue(issue);
-    setIsModalOpen(true);
-  };
-
-  const handleAddNewIssue = () => {
-    setCurrentIssue({});
-    showModal();
-  };
-
-  const handleViewHistory = (issueId: number) => {
-    fetchIssueVersions(issueId);
-  };
-
-  const sortIssues = (
-    issues: Issue[],
-    config: { key: keyof Issue; direction: "asc" | "desc" }
-  ) => {
-    return issues.sort((a, b) => {
-      if (a[config.key] < b[config.key]) {
-        return config.direction === "asc" ? -1 : 1;
-      }
-      if (a[config.key] > b[config.key]) {
-        return config.direction === "asc" ? 1 : -1;
-      }
-      return 0;
-    });
-  };
-
-  const sortedIssues = sortConfig
-    ? sortIssues([...issues], sortConfig)
-    : issues;
-
-  // Calculate the issues to display on the current page
-  const indexOfLastIssue = currentPage * issuesPerPage;
-  const indexOfFirstIssue = indexOfLastIssue - issuesPerPage;
-  const currentIssues = sortedIssues.slice(indexOfFirstIssue, indexOfLastIssue);
-
-  // Handle page change
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const requestSort = (key: keyof Issue) => {
-    let direction: "asc" | "desc" = "asc";
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc";
+  const renderInputs = () => {
+    if (reviewMode) return null;
+  
+    // Check if inputs are available for either the selected subIssue or the main issueCategory
+    const hasInputs = inputs.length > 0;
+    const hasIssue = subIssue || issueCategory;
+  
+    // If no inputs and no issue description, display a message
+    if (!hasInputs && !hasIssue) {
+      return (
+        <div className="text-center text-gray-500">
+          No specific inputs required for the selected category.
+        </div>
+      );
     }
-    setSortConfig({ key, direction });
+  
+    return inputs.map((input) => (
+      <InputField
+        key={input.input_id}
+        id={`input-${input.input_id}`}
+        label={input.input_label}
+        type={input.input_type}
+        placeholder={input.input_label}
+        value={details[input.input_label]}
+        onChange={(e: Event) => {
+          const target = e.target as HTMLInputElement;
+          handleDetailChange(input.input_label, target.value);
+        }}
+        describedBy={`help-${input.input_id}`}
+        options={input.options}
+      />
+    ));
   };
-
-  const getSortIndicator = (key: keyof Issue) => {
-    if (!sortConfig || sortConfig.key !== key) {
-      return "";
-    }
-    return sortConfig.direction === "asc" ? "▲" : "▼";
+  
+  // In the submit button rendering logic
+  const isSubmittable = () => {
+    // Ensure there's an issue or inputs to submit, and all required fields are filled
+    return issueCategory && inputs.every(input => details[input.input_label]?.trim() !== '');
   };
+  
+  // Usage in the component's JSX
+  <button
+    className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${isSubmittable() ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-300`}
+    type="button"
+    onClick={() => setReviewMode(true)}
+    disabled={!isSubmittable()}
+  >
+    Review and Submit
+  </button>
 
-  const renderCategoryOptions = (
-    parentId: number | null,
-    indent: string = ""
-  ): JSX.Element[] => {
-    return categories
-      .filter((category) => category.parent_id === parentId)
-      .flatMap((category) => [
-        <option
-          key={category.category_id}
-          value={category.category_id}
-          disabled={category.hasSubCategories || category.hasIssues}
+  const renderReview = () => {
+    return (
+      <div>
+        <div className="flex items-baseline justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold mb-4">
+              Final Review Before Submission
+            </h2>
+          </div>
+          <div>
+            <button
+              className="mt-2 px-6 py-2 bg-black/15 rounded hover:cursor-pointer focus:cursor-auto focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out !z-20"
+              onClick={() => setReviewMode(false)}
+            >
+              Edit Details
+            </button>
+          </div>
+        </div>
+        <div className="mb-4">
+          <strong>Email:</strong> {email}
+        </div>
+        <div className="mb-4">
+          <strong>Issue Category:</strong> {issueCategory?.category_name}
+        </div>
+        <div className="mb-4">
+          <strong>Sub-Issue:</strong> {subIssue?.category_name}
+        </div>
+        {Object.entries(details).map(([key, value], index) => (
+          <div key={index} className="mb-4">
+            <strong>{key}:</strong> {value}
+          </div>
+        ))}
+        <button
+          className={`relative bg-black text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition duration-300 ease-in-out disabled:opacity-50 ${
+            progress !== 100 || loading ? "button-disabled" : ""
+          }`}
+          type="submit"
+          disabled={progress !== 100 || loading}
+          aria-disabled={progress !== 100 || loading}
         >
-          {indent + category.category_name}{" "}
-          {category.hasSubCategories ? "(Has subcategories)" : ""}{" "}
-          {category.hasIssues ? "(Has issues)" : ""}
-        </option>,
-        ...renderCategoryOptions(category.category_id, indent + "--"),
-      ]);
+          {loading ? (
+            <div className="absolute inset-0 flex justify-center items-center">
+              <div className="spinner"></div>
+            </div>
+          ) : null}
+          Submit Request
+        </button>
+      </div>
+    );
   };
+
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (displayProgress / 100) * circumference;
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <h1 className="text-3xl font-bold mb-4">
+          Support Request Submitted Successfully!
+        </h1>
+        <p className="text-lg text-gray-600 mb-4">
+          Thank you for reaching out. We will get back to you as soon as
+          possible.
+        </p>
+        <Link href="/">
+          <button className="mt-2 px-6 py-2 bg-black/15 rounded hover:cursor-pointer focus:cursor-auto focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out !z-20">
+            Return to Home
+          </button>
+        </Link>
+      </div>
+    );
+  }
+
 
   if (loading) {
-    return <div className="text-center mt-10">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return <div className="text-center mt-10 text-red-500">{error}</div>;
+    return <UserError message="Support Request Not Available" subMessage={error}></UserError>;
   }
 
-  const modalRef = useRef<HTMLElement | null>(null);
-
-  const hideModal = () => {
-    if (modalRef.current) {
-      modalRef.current.classList.add("modal-leave");
-    }
-    setTimeout(() => setIsModalOpen(false), 300);
-    setTimeout(() => setIsHistoryModalOpen(false), 300);
-
-  };
-
-  function useClickAwayListener(
-    ref: React.RefObject<HTMLElement>,
-    callback: () => void
-  ) {
-    useEffect(() => {
-      function handleClickOutside(event: MouseEvent) {
-        if (ref.current && !ref.current.contains(event.target as Node)) {
-          callback();
-        }
-      }
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }, [ref, callback]);
+  if (categories.length === 0) {
+    return (
+      <div className="text-center text-gray-500">
+        Currently, there is no valid path for form submission. Please contact an administrator for more information.
+      </div>
+    );
   }
 
-  useClickAwayListener(modalRef, () => hideModal());
-
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
 
   return (
-    <div className="issues-container p-4">
-      <h2 className="text-2xl font-bold mb-4">Issues</h2>
-      <button
-        onClick={handleAddNewIssue}
-        className="btn-add-issue mb-4 bg-blue-500 text-white py-2 px-4 rounded"
-      >
-        Add New Issue
-      </button>
-      <table className="issues-table w-full border-collapse">
-        <thead>
-          <tr>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("issue_id")}
-            >
-              Issue ID {getSortIndicator("issue_id")}
-            </th>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("issue_version_id")}
-            >
-              Issue Version ID {getSortIndicator("issue_version_id")}
-            </th>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("category_id")}
-            >
-              Category ID {getSortIndicator("category_id")}
-            </th>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("description")}
-            >
-              Description {getSortIndicator("description")}
-            </th>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("user_id")}
-            >
-              User ID {getSortIndicator("user_id")}
-            </th>
-            <th
-              className="py-2 px-4 border-b cursor-pointer"
-              onClick={() => requestSort("created_at")}
-            >
-              Created At {getSortIndicator("created_at")}
-            </th>
-            <th className="py-2 px-4 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentIssues.map((issue) => (
-            <tr key={issue.issue_id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border-b">{issue.issue_id}</td>
-              <td className="py-2 px-4 border-b">{issue.issue_version_id}</td>
-              <td className="py-2 px-4 border-b">{issue.category_id}</td>
-              <td className="py-2 px-4 border-b">{issue.description}</td>
-              <td className="py-2 px-4 border-b">{issue.user_id}</td>
-              <td className="py-2 px-4 border-b">{issue.created_at}</td>
-              <td className="py-2 px-4 border-b">
-                <button
-                  onClick={() => handleEditIssue(issue)}
-                  className="btn-edit-issue bg-yellow-500 text-white py-1 px-3 rounded mr-2"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeleteIssue(issue.issue_id)}
-                  className="btn-delete-issue bg-red-500 text-white py-1 px-3 rounded"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => handleViewHistory(issue.issue_id)}
-                  className="btn-view-history bg-blue-500 text-white py-1 px-3 rounded"
-                >
-                  History
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex justify-center mt-4">
-        {Array.from(
-          { length: Math.ceil(sortedIssues.length / issuesPerPage) },
-          (_, index) => (
-            <button
-              key={index + 1}
-              onClick={() => paginate(index + 1)}
-              className={`px-4 py-2 mx-1 rounded ${
-                currentPage === index + 1
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300 text-black"
-              }`}
-            >
-              {index + 1}
-            </button>
-          )
-        )}
-      </div>
-
-      {isModalOpen && (
-        <div className="modal-overlay fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
-          <div
-            className="modal modal-enter bg-white p-8 rounded shadow-lg w-1/2"
-            ref={modalRef as React.RefObject<HTMLDivElement>}
-          >
-            <div className="modal-header">
-              <h2 className="text-2xl mb-4">
-                {currentIssue.issue_id ? "Edit Issue" : "Add New Issue"}
-              </h2>
-              <span className="modal-close" onClick={() => hideModal()}>
-                &times;
-              </span>
-            </div>
-            <div className="modal-content">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSaveIssue();
-                }}
-              >
-                <div className="mb-4">
-                  <label className="block mb-2">Category</label>
-                  <select
-                    value={currentIssue.category_id || ""}
-                    onChange={(e) => {
-                      const target = e.target as HTMLSelectElement;
-                      setCurrentIssue({
-                        ...currentIssue,
-                        category_id: parseInt(target.value),
-                      });
-                    }}
-                    className="border rounded w-full py-2 px-3"
+    <div className="min-h-screen">
+      <Breadcrumb path={"/support"} />
+      <main>
+        <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
+          <form onSubmit={handleSubmit} className="p6 sm:px-0">
+            <div className="border-gray-200 rounded-lg h-auto bg-white">
+              <div className="flex justify-between">
+                <div className="mb-6">
+                  <h1 className="text-3xl font-normal tracking-tighter text-black sm:text-4xl lg:text-5xl">
+                    Submit a{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-blue-500">
+                      Support Request
+                    </span>
+                  </h1>
+                  <p className="text-xl text-gray-600 sm:text-2xl lg:text-2xl mt-2">
+                    How can we assist you today? Please select the relevant
+                    category to help us serve you better.
+                  </p>
+                </div>
+                <div className="mb-4 flex justify-center items-center relative">
+                  <svg
+                    className="progress-ring"
+                    width="60"
+                    height="60"
+                    aria-label={`Form completion progress: ${Math.round(
+                      displayProgress
+                    )}%`}
                   >
-                    <option value="">Select Category</option>
-                    {renderCategoryOptions(null)}
-                  </select>
+                    <defs>
+                      <linearGradient
+                        id="gradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                      >
+                        <stop
+                          offset="0%"
+                          style={{
+                            stopColor: "rgb(165, 180, 252)",
+                            stopOpacity: 1,
+                          }}
+                        />
+                        <stop
+                          offset="100%"
+                          style={{
+                            stopColor: "rgb(59, 130, 246)",
+                            stopOpacity: 1,
+                          }}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      className="progress-ring__circle"
+                      stroke="gray"
+                      strokeWidth="4"
+                      fill="transparent"
+                      r="20"
+                      cx="30"
+                      cy="30"
+                    />
+                    <circle
+                      className="progress-ring__circle"
+                      stroke={
+                        displayProgress === 100
+                          ? emailValid
+                            ? "green"
+                            : "yellow"
+                          : "url(#gradient)"
+                      }
+                      strokeWidth="4"
+                      fill="transparent"
+                      r="20"
+                      cx="30"
+                      cy="30"
+                      strokeDasharray={`${circumference} ${circumference}`}
+                      strokeDashoffset={offset}
+                      style={{
+                        transition: "stroke-dashoffset 0.35s, stroke 0.35s",
+                        transform: "rotate(-90deg)",
+                        transformOrigin: "50% 50%",
+                      }}
+                    />
+                  </svg>
+                  <span className="absolute text-xs font-semibold">
+                    {displayProgress === 100 ? (
+                      emailValid ? (
+                        <i className="fas fa-check text-green-500"></i>
+                      ) : (
+                        <i className="fas fa-exclamation-triangle text-yellow-500"></i>
+                      )
+                    ) : (
+                      `${Math.round(displayProgress)}%`
+                    )}
+                  </span>
                 </div>
-                <div className="mb-4">
-                  <label className="block mb-2">Description</label>
-                  <textarea
-                    value={currentIssue.description || ""}
-                    onChange={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      setCurrentIssue({
-                        ...currentIssue,
-                        description: target.value,
-                      });
-                    }}
-                    className="border rounded w-full py-2 px-3"
-                  ></textarea>
-                </div>
-                <div className="flex justify-end">
+              </div>
+              {!reviewMode && currentStep > 0 && (
+                <div className="text-end">
                   <button
-                    type="submit"
-                    className="copy-button"
-                    disabled={!currentIssue.category_id}
+                    className="mb-6 justify-end items-end hover:cursor-pointer focus:cursor-auto focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ease-in-out !z-20"
+                    type="button"
+                    onClick={handleBack}
                   >
-                {currentIssue.issue_id ? "Save Edit" : "Save Issue"}
+                    <i className="fas fa-arrow-left mr-2"></i> Go Back to
+                    Previous Step
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isHistoryModalOpen && (
-        <div className="modal-overlay fixed z-10 inset-0 flex items-center justify-center bg-black bg-opacity-50"
-        >            
-                  <div
-            className="modal modal-enter bg-white p-8 rounded shadow-lg w-1/2"
-            ref={modalRef as React.RefObject<HTMLDivElement>}
-          >
-        <div className="modal-header">
-              <h2 className="text-2xl mb-4">
-Issue Version History              </h2>
-            </div>
-          <div className="modal-content ">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="py-2 px-4 border-b">Version ID</th>
-                  <th className="py-2 px-4 border-b">Description</th>
-                  <th className="py-2 px-4 border-b">Created At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versionHistory.map((version) => (
-                  <tr
-                    key={version.issue_version_id}
-                    className="hover:bg-gray-100"
+              )}
+              {!reviewMode && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="email-input"
+                    className="block text-gray-700 text-sm font-bold mb-2"
                   >
-                    <td className="py-2 px-4 border-b">
-                      {version.issue_version_id}
-                    </td>
-                    <td className="py-2 px-4 border-b">
-                      {version.description}
-                    </td>
-                    <td className="py-2 px-4 border-b">{version.created_at}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => hideModal()}
-                className="btn-close bg-gray-300 text-black py-2 px-4 rounded"
+                    Your Email Address
+                  </label>
+                  <input
+                    id="email-input"
+                    className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out ${
+                      !emailValid && progress === 100 ? "border-red-500" : ""
+                    }`}
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail((e.target as HTMLInputElement).value);
+                      setEmailValid(false);
+                    }}
+                    placeholder="Enter your email address"
+                    required
+                    aria-label="Your Email Address"
+                    aria-describedby="email-help"
+                    disabled={loading}
+                  />
+                  {!emailValid && progress === 100 && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Please enter a valid email address to continue.
+                    </p>
+                  )}
+                  <p id="email-help" className="text-xs text-gray-500 mt-1">
+                    We'll never share your email with anyone else.
+                  </p>
+                </div>
+              )}
+      {!reviewMode && currentStep === 0 && (
+        <div className="mb-4">
+          <label
+            htmlFor="issue-category-select"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
+            Issue Category
+          </label>
+          <select
+            id="issue-category-select"
+            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+            value={issueCategory ? issueCategory.category_id.toString() : ""}
+            onChange={handleIssueChange}
+            required
+            aria-label="Select Issue Category"
+            aria-describedby="category-help"
+            disabled={loading}
+          >
+            <option value="" disabled>
+              Select an Issue Category
+            </option>
+            {categories.map((category) => (
+              <option
+                key={category.category_id}
+                value={category.category_id}
               >
-                Close
-              </button>
-            </div>
-          </div>
-          </div>
+                {category.category_name}
+              </option>
+            ))}
+          </select>
+          <p id="category-help" className="text-xs text-gray-500 mt-1">
+            Select the category that best describes your issue.
+          </p>
         </div>
       )}
+{!reviewMode && currentStep === 1 && subcategories && subcategories.length > 0 && (
+  
+  <div className={`mb-4 ${subIssueTransition ? "animate-fade-in" : ""}`}>
+    <label
+      htmlFor="sub-issue-select"
+      className="block text-gray-700 text-sm font-bold mb-2"
+    >
+      Sub-Issue
+    </label>
+    <select
+      id="sub-issue-select"
+      className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline transition duration-300 ease-in-out"
+      value={subIssue ? subIssue.category_id.toString() : ""}
+      onChange={handleSubIssueChange}
+      required
+      aria-label="Select Sub-Issue"
+      aria-describedby="sub-issue-help"
+      disabled={loading}
+    >
+      <option value="" disabled>
+        Select a Sub-Issue
+      </option>
+      {subcategories.map((sub) => (
+        <option key={sub.category_id} value={sub.category_id}>
+          {sub.category_name}
+        </option>
+      ))}
+    </select>
+    <p id="sub-issue-help" className="text-xs text-gray-500 mt-1">
+      Select the specific issue you are experiencing.
+    </p>
+  </div>
+)}
+              {!reviewMode && currentStep === 2 && renderInputs()}
+              {!reviewMode && currentStep === 2 && (
+                <div>
+                  <button
+                    className={`relative w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+                      progress < 100 || !emailValid
+                        ? "bg-gray-400"
+                        : "bg-indigo-600 hover:bg-indigo-700"
+                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-300`}
+                    type="button"
+                    onClick={() => setReviewMode(true)}
+                    disabled={progress < 100 || !emailValid}
+                  >
+                    Review and Submit
+                  </button>
+                </div>
+              )}
+              {reviewMode && renderReview()}
+              {loading && <div className="text-center mt-10">Loading...</div>}
+              {error && <div className="text-center mt-10 text-red-500">{error}</div>}
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 };
 
-export default Issues;
+export default SupportForm;
