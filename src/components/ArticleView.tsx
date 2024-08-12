@@ -10,12 +10,10 @@ interface DetailViewProps {
   onBack: () => void;
 }
 
-    interface ShareButtonsProps {
-        url: string;
-        title: string;
-    }
-
-
+interface ShareButtonsProps {
+  url: string;
+  title: string;
+}
 
 export const ArticleView: FunctionalComponent<DetailViewProps> = ({
   item,
@@ -24,132 +22,149 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
   const contentElements = parseContent(item.DetailedDescription);
   const { addToast } = useToast();
 
-  const ShareButtons: FunctionalComponent<ShareButtonsProps> = ({ url, title }) => {
+  const ShareButtons: FunctionalComponent<ShareButtonsProps> = ({
+    url,
+    title,
+  }) => {
     const [showMore, setShowMore] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-  
 
-  // Determine if the device supports the Web Share API
-  const canShare = navigator.share !== undefined;
-  // Determine if the device is likely a desktop (based on screen width)
-  const isDesktop = window.innerWidth > 1024;
-
+    // Determine if the device supports the Web Share API
+    const canShare = navigator.share !== undefined;
+    // Determine if the device is likely a desktop (based on screen width)
+    const isDesktop = window.innerWidth > 1024;
 
     // Toggle for showing more options
     useEffect(() => {
-
       const handleClickOutside = (event: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
           setShowMore(false);
         }
       };
 
       const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
+        if (event.key === "Escape") {
           setShowMore(false);
         }
       };
 
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
 
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleKeyDown);
+        document.removeEventListener("keydown", handleKeyDown);
       };
     }, []);
     const encodedUrl = encodeURIComponent(url);
     const encodedTitle = encodeURIComponent(title);
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(url).then(() => {
-              addToast('Link copied to clipboard!', 'success');
-        });
+      navigator.clipboard.writeText(url).then(() => {
+        addToast("Link copied to clipboard!", "success");
+      });
     };
 
     const nativeShare = () => {
-        if (navigator.share) {
-            navigator.share({
-                title: title,
-                url: url
-            }).catch(console.error);
-        } else {
-            alert('Native sharing is not supported on this device.');
-        }
+      if (navigator.share) {
+        navigator
+          .share({
+            title: title,
+            url: url,
+          })
+          .catch(console.error);
+      } else {
+        alert("Native sharing is not supported on this device.");
+      }
     };
 
     return (
-        <div className="mt-4">
-            <div className="flex space-x-4">
-                <a
-                    href={`https://discord.com/channels/@me?url=${encodedUrl}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-800"
-                >
-                    <i className="fab fa-discord"></i>
-                </a>
-                <a
-                    href={`mailto:?subject=${encodedTitle}&body=${encodedUrl}`}
-                    className="text-gray-600 hover:text-gray-800"
-                >
-                    <i className="fas fa-envelope"></i>
-                </a>
-                <button onClick={copyToClipboard} className="text-gray-600 hover:text-gray-800">
-                    <i className="fas fa-link"></i>
-                </button>
-                {canShare && (
-          <button onClick={nativeShare} className="text-gray-600 hover:text-gray-800">
-            <i className="fas fa-share-alt"></i>
+      <div className="mt-4 !z-50">
+        <div className="flex space-x-4">
+          <a
+            href={`https://discord.com/channels/@me?url=${encodedUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 hover:text-indigo-800"
+          >
+            <i className="fab fa-discord"></i>
+          </a>
+          <a
+            href={`mailto:?subject=${encodedTitle}&body=${encodedUrl}`}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <i className="fas fa-envelope"></i>
+          </a>
+          <button
+            onClick={copyToClipboard}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <i className="fas fa-link"></i>
           </button>
-        )}
-                {isDesktop && (
-          <button onClick={() => window.print()} className="text-gray-600 hover:text-gray-800">
-            <i className="fas fa-print"></i>
+          {canShare && (
+            <button
+              onClick={nativeShare}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <i className="fas fa-share-alt"></i>
+            </button>
+          )}
+          {isDesktop && (
+            <button
+              onClick={() => window.print()}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <i className="fas fa-print"></i>
+            </button>
+          )}
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <i className="fas fa-ellipsis-h"></i>
           </button>
-        )}
-                <button onClick={() => setShowMore(!showMore)} className="text-gray-600 hover:text-gray-800">
-                    <i className="fas fa-ellipsis-h"></i>
-                </button>
-            </div>
-            {showMore && (
-        <div
-        ref={dropdownRef}
-        className="absolute z-10 right-4 p-4 flex flex-col space-x-2 shadow-lg rounded-lg  transition-opacity duration-300 ease-in-out"
-        style={{ opacity: showMore ? 1 : 0 }}
-      >
-                <div className="flex space-x-4 items-center transition-all duration-300 ease-in-out transform origin-top">
-                    <a
-                        href={`https://steamcommunity.com/sharedfiles/edititem/767/3/?url=${encodedUrl}&title=${encodedTitle}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-700 hover:text-gray-900"
-                    >
-                        <i className="fab fa-steam"></i>
-                    </a>
-                    <a
-                        href={`https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-orange-500 hover:text-orange-700"
-                    >
-                        <i className="fab fa-reddit-alien"></i>
-                    </a>
-                    <a
-                        href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                    >
-                        <i className="fab fa-linkedin-in"></i>
-                    </a>
-                </div>
-                </div>
-            )}
         </div>
+        {showMore && (
+          <div
+            ref={dropdownRef}
+            className="absolute -top-6 right-4 p-4 flex space-x-2 shadow-lg rounded-lg  transition-opacity duration-300 ease-in-out"
+            style={{ opacity: showMore ? 1 : 0 }}
+          >
+            <div className="flex space-x-4 items-center transition-all duration-300 ease-in-out transform origin-top">
+              <a
+                href={`https://steamcommunity.com/sharedfiles/edititem/767/3/?url=${encodedUrl}&title=${encodedTitle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                <i className="fab fa-steam"></i>
+              </a>
+              <a
+                href={`https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-500 hover:text-orange-700"
+              >
+                <i className="fab fa-reddit-alien"></i>
+              </a>
+              <a
+                href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <i className="fab fa-linkedin-in"></i>
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
     );
-};
+  };
 
   return (
     <>
@@ -205,26 +220,25 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
           </filter>
         </defs>
       </svg>
-      
-      <div className="px-8 py-32 mx-auto ml article-container md:px-6 lg:px-18 lg:py-22 relative z-20">
 
-      <div className="flex justify-between items-center mb-8">
-                        <button
-                            className="group w-10 h-10 rounded-full border border-stone-300 text-stone-600 text-lg flex items-center justify-center transition duration-300 !bg-stone-200 cursor-pointer hover:!bg-gray-300"
-                            onClick={onBack}
-                        >
-                            <i className="fas fa-arrow-up transform -rotate-45 transition-transform duration-300 group-hover:-rotate-90"></i>
-                        </button>
-                        <ShareButtons url={window.location.href} title={item.Title} />
-                    </div>
-                    <h1 className="mt-8 text-4xl font-normal tracking-tighter text-black/75 sm:text-5xl">
-          {item.Title.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+      <div className="px-8 py-32 mx-auto ml article-container md:px-6 lg:px-18 lg:py-22 relative">
+        <div className="flex justify-between items-center mb-8">
+          <button
+            className="group w-10 h-10 rounded-full border border-stone-300 text-stone-600 text-lg flex items-center justify-center transition duration-300 !bg-stone-200 cursor-pointer hover:!bg-gray-300"
+            onClick={onBack}
+          >
+            <i className="fas fa-arrow-up transform -rotate-45 transition-transform duration-300 group-hover:-rotate-90"></i>
+          </button>
+          <ShareButtons url={window.location.href} title={item.Title} />
+        </div>
+        <h1 className="mt-8 text-4xl font-normal tracking-tighter text-black/75 sm:text-5xl">
+          {item.Title.split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ")}
           <hr className="my-4"></hr>
-          </h1>
+        </h1>
         <div className="detail-view px-4 py-4">
-          <div className="mt-4">
-            {renderContent(contentElements, true)}
-          </div>
+          <div className="mt-4">{renderContent(contentElements, true)}</div>
         </div>
       </div>
     </>

@@ -7,6 +7,7 @@ import Breadcrumb from "../Breadcrumb";
 import { getToken } from "../../utils";
 import { AdminError } from "../AdminError";
 import { UserError } from "../UserError";
+import ProgressBar from "../../app";
 
 interface Input {
   input_id: number;
@@ -564,25 +565,51 @@ const SupportForm: FunctionalComponent<Props> = () => {
   }
 
 
+
+const [showLoading, setShowLoading] = useState(false);
+const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
+
+useEffect(() => {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
   if (loading) {
-    return <div>Loading...</div>;
+    setShowLoading(true);
+    setLoadingStartTime(Date.now());
+  } else if (loadingStartTime !== null) {
+    const elapsedTime = Date.now() - loadingStartTime;
+
+    if (elapsedTime < 750) {
+      timer = setTimeout(() => {
+        setShowLoading(false);
+        setLoadingStartTime(null); // Reset loading start time
+      }, 750 - elapsedTime);
+    } else {
+      setShowLoading(false);
+      setLoadingStartTime(null); // Reset loading start time
+    }
   }
 
-  if (error) {
-    return <UserError message="Support Request Not Available" subMessage={error}></UserError>;
-  }
-
-  if (categories.length === 0) {
-    return (
-      <div className="text-center text-gray-500">
-        Currently, there is no valid path for form submission. Please contact an administrator for more information.
-      </div>
-    );
-  }
-
+  return () => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  };
+}, [loading, loadingStartTime]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen animate-fade-in">
+      {showLoading ? (
+         <div className="fixed inset-0 z-50 space-x-8  mx-auto text-center mr-0 flex items-center w-full justify-center text-3xl font-bold ">
+<div className="flex flex-col mr-8 space-y-8">
+    <div className="flex items-center mx-auto text-sm font-medium tracking-widest text-transparent uppercase bg-clip-text bg-gradient-to-r from-indigo-300 via-indigo-400 to-indigo-500 select-none">Loading Support</div>
+<ProgressBar duration={250} color="indigo"/>
+</div></div>
+      ) : error ? (
+        <UserError message="Support Request Not Available" subMessage={error}></UserError>
+      ) : categories.length === 0 ? (
+        <UserError message="Support Request Not Available" subMessage={'Currently, there is no valid path for form submission. Please contact an administrator for more information.'}></UserError>
+      ) : (
+    <div className="">
       <Breadcrumb path={"/support"} />
       <main>
         <div className="container relative px-8 py-16 mx-auto max-w-7xl md:px-12 lg:px-18 lg:py-22">
@@ -596,7 +623,7 @@ const SupportForm: FunctionalComponent<Props> = () => {
                       Support Request
                     </span>
                   </h1>
-                  <p className="text-xl text-gray-600 sm:text-2xl lg:text-2xl mt-2">
+                  <p className="txl mt-2">
                     How can we assist you today? Please select the relevant
                     category to help us serve you better.
                   </p>
@@ -818,6 +845,8 @@ const SupportForm: FunctionalComponent<Props> = () => {
           </form>
         </div>
       </main>
+    </div>
+      )}
     </div>
   );
 };
