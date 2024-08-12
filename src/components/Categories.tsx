@@ -58,11 +58,6 @@ export const Categories = ({
   );
 }
 
-
-  if (!categories) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div>
       <Breadcrumb path={path} onBreadcrumbClick={onBreadcrumbClick} />

@@ -28,8 +28,14 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
     const [showMore, setShowMore] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
   
+
+  // Determine if the device supports the Web Share API
+  const canShare = navigator.share !== undefined;
+  // Determine if the device is likely a desktop (based on screen width)
+  const isDesktop = window.innerWidth > 1024;
+
+
     // Toggle for showing more options
-    // Click away listener
     useEffect(() => {
 
       const handleClickOutside = (event: MouseEvent) => {
@@ -93,12 +99,16 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
                 <button onClick={copyToClipboard} className="text-gray-600 hover:text-gray-800">
                     <i className="fas fa-link"></i>
                 </button>
-                <button onClick={nativeShare} className="text-gray-600 hover:text-gray-800">
-                    <i className="fas fa-share-alt"></i>
-                </button>
-                <button onClick={() => window.print()} className="text-gray-600 hover:text-gray-800">
-                    <i className="fas fa-print"></i>
-                </button>
+                {canShare && (
+          <button onClick={nativeShare} className="text-gray-600 hover:text-gray-800">
+            <i className="fas fa-share-alt"></i>
+          </button>
+        )}
+                {isDesktop && (
+          <button onClick={() => window.print()} className="text-gray-600 hover:text-gray-800">
+            <i className="fas fa-print"></i>
+          </button>
+        )}
                 <button onClick={() => setShowMore(!showMore)} className="text-gray-600 hover:text-gray-800">
                     <i className="fas fa-ellipsis-h"></i>
                 </button>
@@ -106,10 +116,10 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
             {showMore && (
         <div
         ref={dropdownRef}
-        className="absolute z-10 left-0 mt-2 w-full flex space-x-4 bg-white shadow-lg rounded-lg p-4 transition-opacity duration-300 ease-in-out"
+        className="absolute z-10 right-4 p-4 flex flex-col space-x-2 shadow-lg rounded-lg  transition-opacity duration-300 ease-in-out"
         style={{ opacity: showMore ? 1 : 0 }}
       >
-                <div className="flex space-x-4 mt-4 transition-all duration-300 ease-in-out transform scale-95 origin-top">
+                <div className="flex space-x-4 items-center transition-all duration-300 ease-in-out transform origin-top">
                     <a
                         href={`https://steamcommunity.com/sharedfiles/edititem/767/3/?url=${encodedUrl}&title=${encodedTitle}`}
                         target="_blank"
@@ -195,7 +205,6 @@ export const ArticleView: FunctionalComponent<DetailViewProps> = ({
           </filter>
         </defs>
       </svg>
-
       
       <div className="px-8 py-32 mx-auto ml article-container md:px-6 lg:px-18 lg:py-22 relative z-20">
 

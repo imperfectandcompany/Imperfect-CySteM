@@ -19,8 +19,25 @@ body {
 }
 
 
+.card {
+  transition: transform 0.3s ease-in-out;
+  margin: 20px; /* Provides space around cards */
+}
+
+@media (max-width: 768px) {
+  .card {
+    font-size: 14px; /* Slightly smaller font on mobile devices */
+  }
+  .context-menu {
+    width: 90%; /* Full width for smaller screens */
+    transform: translate(-50%, 0); /* Adjust positioning */
+  }
+}
+
+
 .card:active::after {
   background: rgba(0, 0, 0, 0.2); /* Visual feedback for active press */
+  border-radius: 12px;
 }
 
 .card {
@@ -591,20 +608,6 @@ body {
   transition-delay: 0s;
 }
 
-.card {
-  transition: transform 0.3s ease-in-out;
-  margin: 20px; /* Provides space around cards */
-}
-
-@media (max-width: 768px) {
-  .card {
-    font-size: 14px; /* Slightly smaller font on mobile devices */
-  }
-  .context-menu {
-    width: 90%; /* Full width for smaller screens */
-    transform: translate(-50%, 0); /* Adjust positioning */
-  }
-}
 
 .create-article-form.shake {
     animation: shake 0.5s;

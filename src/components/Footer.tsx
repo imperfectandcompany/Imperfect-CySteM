@@ -6,7 +6,8 @@ import { content } from "../content";
 
 export const Footer: FunctionalComponent = () => {
   return (
-    <footer className="relative text-center text-sm py-6 border-t border-black/5">
+    <footer className="relative items-baseline justify-center bottom-0 text-center text-sm border-t border-black/5">
+      <div className="mt-6">
       <svg
         className="absolute blur-3xl right-0 opacity-80"
         width="50%"
@@ -71,6 +72,7 @@ export const Footer: FunctionalComponent = () => {
             {link.label}
           </a>
         ))}
+      </div>
       </div>
     </footer>
   );
