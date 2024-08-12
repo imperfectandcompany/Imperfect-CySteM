@@ -394,7 +394,7 @@ const Inputs = ({ token, categoryId, prefillCategoryId }: Props) => {
                     <option value="text">Text</option>
                     <option value="textarea">Textarea</option>
                     <option value="dropdown">Dropdown</option>
-                    <option value="radio">Radio</option>
+                    <option value="radio" disabled>Radio (Currently Unstable)</option>
                   </select>
                 </div>
                 {(currentInput.type === "radio" ||

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
 import AccordionItem from './AccordionItem';
 import { JSX } from 'preact/jsx-runtime';
+import React from 'preact/compat';
 
 interface Category {
     category_id: number;
     category_name: string;
-    parent_id?: number;
+    parent_id: number | null;
     hasChildren?: boolean;
     hasIssue?: boolean; // Add this field to indicate if the category has an issue
 }
@@ -191,7 +192,7 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    setCategories([...categories, { category_id: data.category_id, category_name: name, parent_id: parentId ?? undefined, hasIssue: false }]);
+                    setCategories([...categories, { category_id: data.category_id, category_name: name, parent_id: parentId ?? null, hasIssue: false }]);
                     setName('');
                     setParentId(null);
                     setDefaultPriority(null);
@@ -205,16 +206,66 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
             });
     };
 
+    //prevent nesting until we fix a certain bug.
+    // const renderCategoryOptions = (parentId: number | null, indent: string = ''): JSX.Element[] => {
+    //     return categories
+    //         .filter(category => category.parent_id === parentId)
+    //         .flatMap(category => [
+    //             <option key={category.category_id} value={category.category_id} disabled={category.hasIssue}>
+    //                 {indent + category.category_name} {category.hasIssue ? '(Issue exists)' : ''}
+    //             </option>,
+    //             ...renderCategoryOptions(category.category_id, indent + '--'),
+    //         ]);
+    // };
+
+    // const renderCategoryOptions = (parentId: number | null, indent: string = ''): JSX.Element[] => {
+    //     return categories
+    //         .filter(category => category.parent_id === parentId)
+    //         .flatMap(category => {
+    //             // Check if the category has subcategories
+    //             const hasSubcategories = categories.some(cat => cat.parent_id === category.category_id);
+    //             return [
+    //                 <option key={category.category_id} value={category.category_id} disabled={hasSubcategories}>
+    //                     {indent + category.category_name} {hasSubcategories ? '(Subcategories exist)' : ''}
+    //                 </option>,
+    //                 // Do not render options for sub-subcategories
+    //                 ...(hasSubcategories ? [] : renderCategoryOptions(category.category_id, indent + '--')),
+    //             ];
+    //         });
+    // };
+
     const renderCategoryOptions = (parentId: number | null, indent: string = ''): JSX.Element[] => {
         return categories
             .filter(category => category.parent_id === parentId)
-            .flatMap(category => [
-                <option key={category.category_id} value={category.category_id} disabled={category.hasIssue}>
-                    {indent + category.category_name} {category.hasIssue ? '(Issue exists)' : ''}
-                </option>,
-                ...renderCategoryOptions(category.category_id, indent + '--'),
-            ]);
+            .flatMap(category => {
+                // Check if the category has an issue
+                const isDisabled = category.hasIssue;
+    
+                const optionElement = (
+                    <option key={category.category_id} value={category.category_id} disabled={isDisabled}>
+                        {indent + category.category_name}
+                    </option>
+                );
+    
+                // Render subcategories with indentation, but do not allow adding beneath them
+                const subcategoryOptions = renderCategoryOptions(category.category_id, indent + '--').map(subOption => {
+                    // Subcategories should not allow adding beneath them, so disable all subcategory options
+                    return React.cloneElement(subOption, { disabled: true });
+                });
+    
+                return [optionElement, ...subcategoryOptions];
+            });
     };
+
+    // const renderCategoryOptions = (parentId: number | null) => {
+    //     return categories
+    //       .filter(category => !category.hasChildren) // Only include categories without children
+    //       .map(category => (
+    //         <option key={category.category_id} value={category.category_id}>
+    //           {category.category_name}
+    //         </option>
+    //       ));
+    //   };
 
     const renderCategories = (parentId: number | null) => {
         return categories
@@ -224,7 +275,12 @@ const IssueCategories = ({ token, onAddIssue, onAddInput }: Props) => {
                 return (
                     <AccordionItem 
                         key={category.category_id} 
-                        category={{ ...category, hasChildren }} 
+                        category={{ 
+                            category_id: category.category_id, 
+                            category_name: category.category_name, 
+                            parent_id: category.parent_id ?? undefined, 
+                            hasChildren 
+                        }} 
                         fetchCategoryDetails={fetchCategoryDetails}
                         onAddIssue={onAddIssue}  // Pass onAddIssue to AccordionItem
                         onAddInput={onAddInput}  // Pass onAddInput to AccordionItem

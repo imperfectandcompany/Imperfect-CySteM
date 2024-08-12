@@ -411,10 +411,19 @@ export function App(): VNode {
     <ToastProvider>
       <ContentProvider>
         <AuthProvider>
-          <div className="flex flex-col min-h-screen md:!mt-6">
+          <div className="flex flex-col min-h-screen md:!mt-3">
+            <Header
+              onSearchChange={handleSearchChange}
+              onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
+              searchQuery={
+                isFeatureEnabled("HomeSearch") ? state.searchQuery : null
+              }
+              onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
+            />
+
             {isFeatureEnabled("NotificationBanner") && (
               <div className="">
-                <div class="md:mx-56 relative md:my-0 bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 ">
+                <div class="mx-4 md:mx-56 relative mt-8  bg-gradient-to-b from-indigo-500 via-indigo-500/5 to-indigo-500/10 shadow-lg rounded-lg p-1 ">
                   <div className="bg-blue-900 text-white text-center p-4 rounded-lg ">
                     <button
                       className="absolute top-3 right-3 text-indigo-300 hover:text-indigo-500 "
@@ -456,14 +465,7 @@ export function App(): VNode {
                 </div>
               </div>
             )}
-            <Header
-              onSearchChange={handleSearchChange}
-              onLogoClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-              searchQuery={
-                isFeatureEnabled("HomeSearch") ? state.searchQuery : null
-              }
-              onCategoryClick={() => dispatch({ type: "CLEAR_SEARCH" })}
-            />
+            
             <main className="flex-1 relative ">
               <div className="mx-auto md:py-8 md:max-w-screen-xl lg:max-w-screen-lg xl:max-w-screen-2xl">
                 <ToastContainer />
