@@ -146,6 +146,35 @@ const SupportRequestDetails: FunctionalComponent<SupportRequestDetailsProps> = (
     }
   };
 
+  //TODO AFTER WEBHOOK LISTENER IS MODIFIED ALONGSIDE API
+
+//   // Add a new function to handle membership cancellation
+// const handleCancelMembership = async () => {
+//   try {
+//     setLoading(true);
+//     const response = await fetch(`https://api.imperfectgamers.org/support/requests/${requestId}/cancel-membership`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: token || "",
+//       },
+//     });
+//     const data = await response.json();
+//     if (data.status === "success") {
+//       // Handle successful cancellation (e.g., update state, show message)
+//       console.log("Membership cancelled successfully");
+//     } else {
+//       // Handle failure (e.g., show error message)
+//       setError("Failed to cancel membership: " + data.message);
+//     }
+//   } catch (error) {
+//     console.error("Error cancelling membership:", error);
+//     setError("Error cancelling membership");
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -158,6 +187,31 @@ const SupportRequestDetails: FunctionalComponent<SupportRequestDetailsProps> = (
     return null;
   }
 
+  const [isPremium, setIsPremium] = useState(false); // New state for tracking premium status
+
+
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      if (requestDetails?.request.email) {
+        try {
+          const response = await fetch(`https://api.imperfectgamers.org/premium/support/status/${requestDetails.request.email}`);
+          const data = await response.json();
+          if (response.ok && data.is_premium !== undefined) {
+            setIsPremium(data.is_premium);
+          } else {
+            throw new Error(data.message || "Failed to check premium status");
+          }
+        } catch (error) {
+          console.error("Error checking premium status:", error);
+          // Optionally set an error state here
+        }
+      }
+    };
+  
+    checkPremiumStatus();
+  }, [requestDetails?.request.email]); // Depend on the email from requestDetails
+
+
   return (
     <div className="container mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">Support Request Details</h2>
@@ -165,6 +219,19 @@ const SupportRequestDetails: FunctionalComponent<SupportRequestDetailsProps> = (
       <p>Priority: {requestDetails.request.priority}</p>
       <p>Email: {requestDetails.request.email}</p>
       <p>Created At: {new Date(requestDetails.request.created_at).toLocaleString()}</p>
+            {/* Conditionally render the Cancel Membership button */}
+            {isPremium && (
+        <button onClick={()=>console.log('Will hit handleCancelMembership() in next commit.')} className="bg-red-500 text-white py-2 px-4 rounded mt-2">
+          Cancel Membership
+        </button>
+      )}
+
+      {/* Display premium status */}
+      {!isPremium && (
+        <div className="text-sm text-gray-600 mt-2">
+          They are currently not a premium member.
+        </div>
+      )}
 
       <h3 className="text-xl font-semibold mt-4">Inputs</h3>
       <ul className="space-y-2">
